@@ -5,3 +5,6 @@ dist/
 !.env.example
 coverage/
 recordings/
+
+test-results/
+playwright-report/
