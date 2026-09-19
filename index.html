@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>星にされる人 — HCR</title></head>
+<body><main>
+  <header>HUMAN CONSTELLATION RUNTIME / LIVE API FOUNDATION</header>
+  <h1>星にされる人</h1><p class="lead">ひとりの身体を、時間をかけて星座にする。</p>
+  <p>実APIの接続検証コンソールです。身体推定・残像描画は未実装。</p>
+  <label>開発アクセストークン<input id="token" type="password" autocomplete="off"></label>
+  <p>入力した緯度・経度を星APIへ送信します。現在地の自動取得はしません。</p>
+  <label>緯度<input id="lat" type="number" value="35.68" step="any" min="-90" max="90"></label>
+  <label>経度<input id="lng" type="number" value="139.76" step="any" min="-180" max="180"></label>
+  <button id="sky">星APIへ接続</button><button id="jev">Jevへ接続（有料）</button>
+  <pre id="result" role="status">APIキーはサーバー環境変数に設定してください。</pre>
+  <p>振付API：POST /api/program。恒星カタログ由来の正規化済み座標が必要です。</p>
+  <footer>Human as a rendering backend. Consent as a runtime invariant.</footer>
+</main><script type="module" src="/src/client/main.js"></script></body></html>

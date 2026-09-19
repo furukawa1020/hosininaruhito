@@ -1,0 +1,1 @@
+{"hosting":{"public":"dist","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"/api/**","run":{"serviceId":"hcr-api","region":"asia-east1","pinTag":true}}]}}
