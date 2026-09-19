@@ -1,8 +1,10 @@
-﻿import './style.css';
+import './style.css';
+import { mountCamera } from './camera-view.js';
 import { RequestSession, parseCoordinates } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
+const camera = mountCamera(document, window);
 let services = null;
 let busy = false;
 const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'Codex / 振付' };
@@ -36,7 +38,8 @@ function clearResults() {
   $('count').textContent = 'AWAITING OBSERVATION';
   $('result').textContent = '実APIの応答をここに表示します。';
 }
-function stop(message = '通信を停止しました。再開するには、もう一度操作してください。') {
+function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
+  camera.stop(cameraReason);
   session.cancel();
   busy = false;
   updateControls();
@@ -162,7 +165,7 @@ $('jev').addEventListener('click', () => {
 $('stop').addEventListener('click', () => stop());
 $('refresh').addEventListener('click', () => loadStatus());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') stop(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信を停止しました。'); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信とカメラを停止しました。', 'hidden'); });
 window.addEventListener('pagehide', () => { session.cancel(); $('token').value = ''; });
 loadStatus();
 
