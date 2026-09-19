@@ -48,3 +48,14 @@ drowingは不透明な文字列として保持し、恒星座標や線分に変�
 ローカル実行環境ではサンドボックス起動時にACLエラーが発生したため、明示的な権限確認を経てシェル処理を実行。
 ブラウザー連携は2回起動クラッシュし、Playwright + インストール済みEdgeへ切り替えて試験した。
 これらは作品内Codex sandboxの実行成功を示すものではない。
+
+## カメラとCIの確認（2026-09-20 / PR #22）
+
+- Windows / Node 24.12.0 / Edge 153.0.4234.32 / Playwright 1.63.0で、単体48件＋ビルドとブラウザー17件が成功。
+- [Linux CI](https://github.com/furukawa1020/hosininaruhito/actions/runs/35456831800)でもNode 22 / Chromium 153.0.8010.12（Playwright build 1243）で同じ48件＋ビルド＋17件が成功。
+- [browser-screenshots成果物](https://github.com/furukawa1020/hosininaruhito/actions/runs/35456831800/artifacts/10588603015)を取得し、カメラ2枚と観測画面3枚のPNGのみであることを確認。保持7日。
+- Windowsの内蔵仮想動画は途中終了が再現したため、入力をコードで生成するYUVファイルへ固定。アプリの切断時停止は維持。
+- Windows向け固定版Chromiumの取得は接続タイムアウト。ローカルは既存Edge、固定版ChromiumはLinux CIで検証した。
+- 画像を保存するのは試験ハーネスのみ。実行中のアプリに録画・映像保存機能はない。
+- 実カメラの許可表示・機器解放は未確認。#9は手動確認待ち。
+- 実APIスモークは未設定によりLIVE SKY NOT RUN・終了コード1。送信とfixtureによる代用は行っていない。
