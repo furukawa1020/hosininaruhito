@@ -4,43 +4,103 @@ Browser → Firebase Hosting /api rewrite → Cloud Run Hono → 星API / Jev / 
 カメラの毎フレームはローカル処理。AIは提案し、決定論的な検証器が実行権限を持つ。
 
 ## Contract
+
 ProgramV1: version=1, constellationId, source, steps[1..12]。
-Step: starId（unique）,joint（leftWrist/rightWrist）,target{x,y},holdMs,tolerance。
+constellationId/source/starIdは空白のみを許さない200文字以内の文字列。
+Step: starId（unique）, joint（leftWrist/rightWrist）, target{x,y}, holdMs, tolerance。
 座標：非ミラーの画像正規化値。左上原点、x右、y下。メートル値ではない。
 PoseSample: joint,x,y,at,confidence。atとtickは同一単調時計のミリ秒。
-Captureは実測値・誤差・時刻を保存。目標値で上書きしない。
+Capture: starId,joint,x,y,at,capturedAt,error。atはセンサーの実測時刻、capturedAtは確定処理時刻。
+保持時間は新しいsample.atでのみ進む。Captureの座標は実測値で、目標値に上書きしない。
+
+無効な計測、追跡ロスト、古い/重複/逆行した計測、時計逆行、150msを超える間隔でpausedへ遷移する。
+再開にはstart()が必要で、保持時間は最初から計測する。完了後はreset()なしに再captureしない。
+これは計測上の判定であり、画像内の境界値だけで身体の到達可能性や安全性を保証しない。
 
 ## API routes
-GET /api/status: 設定の有無。接続成功を意味しない。
-POST /api/sky {lat,lng}: 星APIの実呼出。日時省略のprovider-default。タイムゾーンは追加確認。
+
+GET /api/status: 設定の有無。services.access/sky/reflex/plannerでサービス別に返す。接続成功を意味しない。
+POST /api/sky {lat,lng}: 星APIの実呼出。日時省略のprovider-default。日時の追加指定は未対応のため拒否。
 POST /api/reflex {dx,dy,tracked}: Jevの実呼出。助言のみ。
 POST /api/program {constellation:{id,stars:[{id,x,y}]}}: Codexで順序を計画。座標と保持条件の不変を検証。
 POSTはBearer HCR_ACCESS_TOKENが必要。16KiB、外部呼出1件/instanceまで。
+API応答はno-store。HTTP通信は12秒・1MiB以内、Codexは40秒で中断。クライアント切断を伝播する。
 
 ## P0
+
 - [ ] APIキー設定後のライブスモーク。失敗時は代替fixtureで成功と扱わない
 - [ ] Cloud Run相当のコンテナでCodex read-only sandbox確認。失敗時に無効化しない
 - [ ] 星カタログ・ライセンス・drowingのID体系と線分の解釈確認
 - [ ] 星APIの日時書式とタイムゾーンの確認
 
 星APIのdirectionNum/altitudeNumは星座代表値で恒星座標ではない。drowingを座標として解釈しない。
-現在の振付APIはカタログ由来の正規化座標を受け取る契約だけで、星API→振付の自動接続は未完了。
+振付APIはカタログ由来の正規化座標を受け取る契約だけで、星API→振付の自動接続は未完了。
 
 ## P1
+
 - [ ] 恒星座標→投影→到達領域調整→Program。地平線下・投影特異点を扱う
 - [ ] MediaPipe Poseのローカル推論。撮影同意、拒否、停止、鏡像、追跡ロストのテスト
 - [ ] Three.js残像。時刻付き実測点の蓄積、常設停止、Esc、非表示時停止
-- [ ] Codex plan→validate→simulate→critic→replanを上限付きツールループにする
+- [ ] Codex plan→validate→simulate→critic→replanを上限付き処理にする
 - [ ] Jev最大2Hz、古い応答破棄、同時1リクエスト、実測遅延評価
 - [ ] Firebase Auth + App Check + ユーザー別quota。開発共有トークンを廃止
 
 ## Deployment via connected integrations
+
 対象project IDと課金設定を確認。連携でCloud Run/Build/Artifact Registry/Secret Managerを準備。
 Firebase Hostingはdist、Cloud RunはDockerfile。hcr-api / asia-east1をfirebase.jsonと一致させる。
 OPENAI_API_KEY / TYPESAFE_API_KEY / HOSHIMIRU_API_TOKEN / HCR_ACCESS_TOKENはSecret Managerに保存。
 専用SAには必要な秘密だけの参照権限。CODEX_MODELは環境変数。
 Cloud Run: PORT待受、max instances=1、concurrency=1、timeout=50秒を初期設定。
 最初は非公開。Hosting rewriteで外部公開する前に認証・課金上限・公開範囲を確認する。
-Hosting rewriteは60秒制限。Codexは40秒で中断。長い処理は非同期ジョブへ分離。
+Hosting rewriteは60秒制限。長い処理は非同期ジョブへ分離。
 予算アラートは課金上限ではない。提供者側の利用上限と緊急停止を設ける。
 CLIへ自動フォールバック禁止。接続済み連携が見えなければユーザーに有効化を依頼。
+
+## 2026-09-20 進捗
+
+- [x] 観測地点・送信同意・星座一覧・説明・物語・地平線下表示
+- [x] 星APIのみの設定で観測可能。Jev/Codexの設定状態は別表示
+- [x] 停止ボタン・Esc・非表示で通信中断、古い応答破棄、切断のサーバー伝播
+- [x] 応答の型・ID重複・角度・サイズ検証、HTTPエラーの区別
+- [x] ライブスモークコマンド追加。未設定時は失敗終了しfixtureで代用しない
+- [x] HumanRuntimeの追跡ロスト・古い計測・時計逆行で明示再開まで停止
+- [x] センサー時刻で保持時間を計測し、実測時刻と確定時刻を別々に保存
+- [x] npm run check成功（30テスト＋ビルド）、Edgeで8ブラウザー試験成功
+- [x] PC・スマートフォン幅の画像を確認。lockfileにPlaywright開発依存を反映
+- [x] 日本語Issueを全体管理1件＋機能/検証19件に分割
+
+詳細な確認根拠と未確認点は[API-VERIFICATION.md](API-VERIFICATION.md)。
+星APIトークン未設定のためP0の実APIライブスモークは未完了。
+恒星カタログ接続、身体推定、Three.js残像、Cloud Run sandbox確認、認証基盤、デプロイは未完了。
+
+## GitHub Issueと依存関係
+
+全体管理：[完成までのロードマップ #1](https://github.com/furukawa1020/hosininaruhito/issues/1)。
+各Issueに目的・範囲・完了条件・依存関係・検証方法を記載する。
+実装済みと統合済みを区別し、PRと検証証拠を確認してから完了にする。
+
+| Issue | 成果物 | 依存 |
+| --- | --- | --- |
+| [#2](https://github.com/furukawa1020/hosininaruhito/issues/2) | 実APIの観測画面と停止・エラー表示を仕上げる | なし |
+| [#3](https://github.com/furukawa1020/hosininaruhito/issues/3) | 星APIの実トークンで疎通と失敗時の挙動を確認する | #2 |
+| [#4](https://github.com/furukawa1020/hosininaruhito/issues/4) | 星APIの日時書式・タイムゾーン・省略時の基準を確定する | なし |
+| [#5](https://github.com/furukawa1020/hosininaruhito/issues/5) | 恒星カタログ・星座線のID対応と利用条件を確定する | なし |
+| [#6](https://github.com/furukawa1020/hosininaruhito/issues/6) | 出典付き恒星データの取り込みと星座ID変換を実装する | #5 |
+| [#7](https://github.com/furukawa1020/hosininaruhito/issues/7) | 恒星座標から観測方向・画面座標への投影を実装する | #4, #6 |
+| [#8](https://github.com/furukawa1020/hosininaruhito/issues/8) | 追跡ロスト・古い計測・時計逆行で実行を確実に停止する | なし |
+| [#9](https://github.com/furukawa1020/hosininaruhito/issues/9) | 撮影同意とカメラの開始・拒否・解放を実装する | #2, #8 |
+| [#10](https://github.com/furukawa1020/hosininaruhito/issues/10) | MediaPipe Poseで手首をローカル推定し計測契約へ変換する | #9 |
+| [#11](https://github.com/furukawa1020/hosininaruhito/issues/11) | 無理のない到達範囲を計測し振付目標を調整する | #7, #10, #8 |
+| [#12](https://github.com/furukawa1020/hosininaruhito/issues/12) | Three.jsで時刻付き実測点の星座と残像を描画する | #6, #8 |
+| [#13](https://github.com/furukawa1020/hosininaruhito/issues/13) | Codexの振付計画を検証・シミュレーション・再計画の上限付き処理にする | #6, #11, #8 |
+| [#14](https://github.com/furukawa1020/hosininaruhito/issues/14) | Jevの助言を最大2Hz・同時1件に制御する | #10, #8 |
+| [#15](https://github.com/furukawa1020/hosininaruhito/issues/15) | 観測・準備・身体誘導・完成を一つの体験につなぐ | #3, #7, #10, #11, #12, #13, #14 |
+| [#16](https://github.com/furukawa1020/hosininaruhito/issues/16) | Cloud Run相当のコンテナでCodex sandboxと中断を検証する | なし |
+| [#17](https://github.com/furukawa1020/hosininaruhito/issues/17) | Firebase認証・App Check・ユーザー別上限で公開APIを保護する | #2 |
+| [#18](https://github.com/furukawa1020/hosininaruhito/issues/18) | 単体・ブラウザー試験をCI化し検証結果を再現可能にする | #2, #8 |
+| [#19](https://github.com/furukawa1020/hosininaruhito/issues/19) | 指定プロジェクトにFirebase HostingとCloud Runを段階公開する | #3, #16, #17, #15, #18 |
+| [#20](https://github.com/furukawa1020/hosininaruhito/issues/20) | 実API・実カメラによる作品全体の受入試験を完了する | #15, #19 |
+
+観測基盤 #2 と安全停止 #8 を先に固める。外部キー等を必要とする #3/#4/#5/#16 と、
+独立して進められる実装を区別する。最終的な完成判定は #20 の実API・実機受入試験による。

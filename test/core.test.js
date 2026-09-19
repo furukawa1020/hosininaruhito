@@ -16,10 +16,10 @@ test('hold then capture; pause prevents capture',()=>{
   for(let now=0;now<=800;now+=100) r.tick({...target,at:now,joint:'rightWrist',confidence:1},now);
   assert.equal(r.captures.length,1);r.stop();assert.equal(r.tick({},900).action,'stop');
 });
-test('stale frames and frame gaps reset hold',()=>{
+test('stale frames and frame gaps pause execution',()=>{
   const r=new HumanRuntime(compileConstellation(fixture));r.start();const s={...r.target.target,joint:'rightWrist',confidence:1};
-  r.tick({...s,at:0},0);assert.equal(r.tick({...s,at:900},900).action,'wait');
-  assert.equal(r.tick({...s,at:0},1000).action,'wait');assert.equal(r.captures.length,0);
+  r.tick({...s,at:0},0);assert.equal(r.tick({...s,at:900},900).action,'stop');
+  assert.equal(r.tick({...s,at:0},1000).action,'stop');assert.equal(r.captures.length,0);
 });
 test('auth fails closed',async()=>{
   assert.equal((await createApp({}).request('/api/sky',{method:'POST'})).status,503);

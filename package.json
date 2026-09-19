@@ -14,7 +14,8 @@
     "start": "node --env-file-if-exists=.env src/server/index.js",
     "test": "node --test",
     "check": "npm test && npm run build",
-    "smoke:sky": "node --env-file-if-exists=.env scripts/smoke-sky.mjs"
+    "smoke:sky": "node --env-file-if-exists=.env scripts/smoke-sky.mjs",
+    "test:browser": "npm run build && playwright test"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
@@ -23,6 +24,7 @@
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "vite": "^7.1.0"
   }
 }
