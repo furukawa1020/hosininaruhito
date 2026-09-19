@@ -13,7 +13,8 @@
     "build": "vite build",
     "start": "node --env-file-if-exists=.env src/server/index.js",
     "test": "node --test",
-    "check": "npm test && npm run build"
+    "check": "npm test && npm run build",
+    "smoke:sky": "node --env-file-if-exists=.env scripts/smoke-sky.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
