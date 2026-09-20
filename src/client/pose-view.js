@@ -19,7 +19,7 @@ const messages = {
   invalid_pose: '手首の計測値を確認できないため停止しました。'
 };
 
-export function mountPose(document, window) {
+export function mountPose(document, window, { onSample = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   const video = $('camera-video');
   let cameraReady = false;
@@ -31,6 +31,7 @@ export function mountPose(document, window) {
     $('pose-notice').textContent = messages[state.reason] || messages.manual;
   };
   const showSample = frame => {
+    onSample(frame);
     $('pose-overlay').toggleAttribute('hidden', !frame);
     $('pose-latency').textContent = frame ? '更新遅延 ' + Math.round(frame.latencyMs) + ' ms' : '';
     if (!frame) return;

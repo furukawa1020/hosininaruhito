@@ -1,4 +1,5 @@
 import './style.css';
+import { mountReach } from './reach-view.js';
 import { mountCamera } from './camera-view.js';
 import { mountPose } from './pose-view.js';
 import { RequestSession, parseCoordinates } from './requests.js';
@@ -7,7 +8,8 @@ const $ = id => document.getElementById(id);
 const session = new RequestSession();
 let pose;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
-pose = mountPose(document, window);
+const reach = mountReach(document, window);
+pose = mountPose(document, window, { onSample: frame => reach.onFrame(frame) });
 let services = null;
 let busy = false;
 const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'Codex / 振付' };
