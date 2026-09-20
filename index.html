@@ -81,12 +81,27 @@
           <p id="pose-notice" role="status" aria-live="polite"></p>
           <p class="pose-legend"><span>● 左手首</span><span>● 右手首</span><small id="pose-latency"></small></p>
         </div>
+        <div class="reach-controls">
+          <h3>楽に動かせる範囲を記録する</h3>
+          <p class="field-note">座位でも立位でも、その場で楽な姿勢を選んでください。選んだ手を小さくゆっくり動かし、3秒以上を目安に「ここまでを使う」を押します。大きく伸ばす必要はありません。つらいときは中断してください。</p>
+          <div class="reach-options">
+            <label for="reach-posture">今の姿勢<select id="reach-posture"><option value="seated">座って行う</option><option value="standing">立って行う</option></select></label>
+            <label for="reach-joint">動かす手<select id="reach-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
+          </div>
+          <p class="field-note">動かすのは片手だけです。現在の推定では顔と両手首が映る必要があります。カメラや身体の位置・姿勢を変えたら計測し直してください。</p>
+          <button id="reach-start" class="secondary" type="button" disabled>楽に動かせる範囲を計測する</button>
+          <div class="reach-actions"><button id="reach-finish" class="secondary" type="button" disabled>ここまでを使う</button><button id="reach-clear" class="text-button" type="button" disabled>計測を中断・消去</button></div>
+          <p id="reach-notice" role="status" aria-live="polite"></p>
+          <p id="reach-progress" class="field-note"></p>
+          <p class="field-note">点は記録した手首の位置です。画面上の記録で、身体の安全や距離を判定するものではありません。記録は送信・保存せず、推定停止時に消去します。</p>
+        </div>
         <p class="field-note">画面右上の「停止」・Esc・タブ切り替えで停止します。位置情報の同意やAPIの設定は不要です。</p>
       </div>
       <div class="camera-preview">
         <div class="section-heading"><span id="camera-badge">カメラ停止</span><span>鏡像プレビュー</span></div>
         <div class="camera-frame">
           <video id="camera-video" muted playsinline hidden aria-label="カメラの鏡像プレビュー"></video>
+          <svg id="reach-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" hidden role="img" aria-label="記録した手首の位置"><path id="reach-points" fill="none" stroke="#d1eaa4" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>
           <svg id="pose-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" hidden aria-label="推定した左右の手首" role="img"><circle id="left-wrist" fill="#d1eaa4"/><circle id="right-wrist" fill="#f8cd90"/></svg>
           <div id="camera-placeholder"><span aria-hidden="true">◎</span><p>あなたの操作で、はじめる。</p><small>同意して開始するまで撮影しません</small></div>
         </div>

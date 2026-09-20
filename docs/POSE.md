@@ -4,7 +4,7 @@
 
 撮影に同意してカメラを開始した後、「手首の推定を開始・再開する」で開始する。
 映像はModule Worker内のMediaPipeへ渡し、左・右の手首を鏡像プレビュー上に表示する。
-星座への身体誘導・到達範囲の調整・capture・残像描画とは未統合。
+動かせる範囲の計測へ接続済み（[REACH.md](REACH.md)）。星座への身体誘導・capture・残像描画とは未統合。
 
 - SDKは`@mediapipe/tasks-vision@1.0.1`。package-lock.jsonで配布物のintegrityも固定。
 - モデルはPose Landmarker Lite float16/1、5,777,746 bytes。
