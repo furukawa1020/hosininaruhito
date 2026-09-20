@@ -70,16 +70,24 @@
       <div class="camera-copy">
         <p class="eyebrow">PREPARE YOUR CAMERA</p>
         <h2 id="camera-title">身体を重ねる、その準備。</h2>
-        <p class="muted">まずはカメラの映り方を確かめます。身体の推定と星座への誘導は準備中です。座ったまま確認できます。</p>
-        <label class="consent"><input id="camera-consent" type="checkbox"><span>カメラで撮影し、この端末の画面に映像を表示することに同意します。映像の送信・保存は行いません。</span></label>
+        <p class="muted">まずはカメラの映り方を確かめます。カメラの確認後、端末内で手首の位置を推定できます。星座への誘導は準備中です。座ったまま確認できます。</p>
+        <label class="consent"><input id="camera-consent" type="checkbox"><span>カメラで撮影し、この端末で映像の表示と手首の位置推定に利用することに同意します。映像の送信・保存は行いません。</span></label>
         <button id="camera-start" class="primary" type="button" disabled>カメラを開始する <span aria-hidden="true">↗</span></button>
         <p id="camera-notice" role="status" aria-live="polite"></p>
+        <div class="pose-controls">
+          <h3>手首の位置を確かめる</h3>
+          <p class="field-note">一人で、顔と両手首が映る楽な姿勢で確認してください。推定はこの端末内で行います。</p>
+          <button id="pose-start" class="secondary" type="button" disabled>手首の推定を開始・再開する</button>
+          <p id="pose-notice" role="status" aria-live="polite"></p>
+          <p class="pose-legend"><span>● 左手首</span><span>● 右手首</span><small id="pose-latency"></small></p>
+        </div>
         <p class="field-note">画面右上の「停止」・Esc・タブ切り替えで停止します。位置情報の同意やAPIの設定は不要です。</p>
       </div>
       <div class="camera-preview">
         <div class="section-heading"><span id="camera-badge">カメラ停止</span><span>鏡像プレビュー</span></div>
         <div class="camera-frame">
           <video id="camera-video" muted playsinline hidden aria-label="カメラの鏡像プレビュー"></video>
+          <svg id="pose-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" hidden aria-label="推定した左右の手首" role="img"><circle id="left-wrist" fill="#d1eaa4"/><circle id="right-wrist" fill="#f8cd90"/></svg>
           <div id="camera-placeholder"><span aria-hidden="true">◎</span><p>あなたの操作で、はじめる。</p><small>同意して開始するまで撮影しません</small></div>
         </div>
       </div>
@@ -90,7 +98,7 @@
       <button id="jev" type="button" class="secondary" disabled>Jevに試験入力を送信（有料）</button>
       <pre id="result">実APIの応答をここに表示します。</pre>
     </details>
-    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>身体推定・残像描画は準備中です。</span></footer>
+    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>星座への身体誘導・残像描画は準備中です。</span></footer>
   </main>
   <script type="module" src="/src/client/main.js"></script>
 </body>

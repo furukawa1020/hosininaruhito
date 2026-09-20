@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 // A generated, looping YUV test pattern. It contains no captured image.
 export default async function setup() {
   const width = 320, height = 240;
-  const chunks = [Buffer.from('YUV4MPEG2 W320 H240 F10:1 Ip A1:1 C420jpeg\n')];
+  const chunks = [Buffer.from('YUV4MPEG2 W320 H240 F30:1 Ip A1:1 C420jpeg\n')];
   for (let frame = 0; frame < 10; frame++) {
     const y = Buffer.alloc(width * height, 40);
     for (let row = 0; row < height; row++) {

@@ -9,3 +9,4 @@ recordings/
 test-results/
 playwright-report/
 /e2e/.generated/
+/public/pose/
