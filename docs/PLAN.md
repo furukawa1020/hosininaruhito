@@ -9,7 +9,7 @@ ProgramV1: version=1, constellationId, source, steps[1..12]。
 constellationId/source/starIdは空白のみを許さない200文字以内の文字列。
 Step: starId（unique）, joint（leftWrist/rightWrist）, target{x,y}, holdMs, tolerance。
 座標：非ミラーの画像正規化値。左上原点、x右、y下。メートル値ではない。
-PoseSample: joint,x,y,at,confidence。atとtickは同一単調時計のミリ秒。
+PoseSample: joint,x,y,at,confidence。atとtickは同一単調時計のミリ秒。カメラのatはcaptureTime、未提供ならpresentationTimeであり、常に露光時刻が得られるわけではない（POSE.md参照）。
 Capture: starId,joint,x,y,at,capturedAt,error。atはセンサーの実測時刻、capturedAtは確定処理時刻。
 保持時間は新しいsample.atでのみ進む。Captureの座標は実測値で、目標値に上書きしない。
 
@@ -39,7 +39,7 @@ API応答はno-store。HTTP通信は12秒・1MiB以内、Codexは40秒で中断�
 ## P1
 
 - [ ] 恒星座標→投影→到達領域調整→Program。地平線下・投影特異点を扱う
-- [ ] MediaPipe Poseのローカル推論。撮影同意、拒否、停止、鏡像、追跡ロストのテスト
+- [x] MediaPipe Poseのローカル推論。撮影同意、拒否、停止、鏡像、追跡ロストのテスト（実機精度・遅延は未確認）
 - [ ] Three.js残像。時刻付き実測点の蓄積、常設停止、Esc、非表示時停止
 - [ ] Codex plan→validate→simulate→critic→replanを上限付き処理にする
 - [ ] Jev最大2Hz、古い応答破棄、同時1リクエスト、実測遅延評価
@@ -66,13 +66,13 @@ CLIへ自動フォールバック禁止。接続済み連携が見えなけれ�
 - [x] ライブスモークコマンド追加。未設定時は失敗終了しfixtureで代用しない
 - [x] HumanRuntimeの追跡ロスト・古い計測・時計逆行で明示再開まで停止
 - [x] センサー時刻で保持時間を計測し、実測時刻と確定時刻を別々に保存
-- [x] npm run check成功（30テスト＋ビルド）、Edgeで8ブラウザー試験成功
+- [x] npm run check成功（62テスト＋ビルド）、Edgeで27ブラウザー試験成功
 - [x] PC・スマートフォン幅の画像を確認。lockfileにPlaywright開発依存を反映
 - [x] 日本語Issueを全体管理1件＋機能/検証19件に分割
 
 詳細な確認根拠と未確認点は[API-VERIFICATION.md](API-VERIFICATION.md)。
 星APIトークン未設定のためP0の実APIライブスモークは未完了。
-恒星カタログ接続、身体推定、Three.js残像、Cloud Run sandbox確認、認証基盤、デプロイは未完了。
+恒星カタログ接続、身体推定の実機確認、Three.js残像、Cloud Run sandbox確認、認証基盤、デプロイは未完了。
 
 ## GitHub Issueと依存関係
 
@@ -118,3 +118,18 @@ CLIへ自動フォールバック禁止。接続済み連携が見えなけれ�
 仕様と手動確認手順は[CAMERA.md](CAMERA.md)。身体推定と作品への統合はまだ実装していない。
 ブラウザー試験の映像はコードで生成する合成パターン。実カメラや映像ファイルを持ち込まない。
 依存パッケージの追加・変更はなく、既存lockfileを維持。CIのnpm ciで再現性を確認する。
+
+## ローカル身体推定（#10）
+
+- [x] MediaPipe Tasks Vision 1.0.1とLiteモデルfloat16/1を固定。モデルのサイズ・SHA-256検証と同一オリジン配信
+- [x] Module Workerで同時1枚の推論。左右手首の画像座標・可視性・Window単調時刻へ変換
+- [x] 150msを超えた結果、人物不在・複数検出・遮蔽・不正値、モデル失敗で推定停止。明示操作で再開
+- [x] カメラ停止・Esc・非表示・同意撤回で推論と手首表示も停止
+- [x] 外部通信を制限するCSPをHono・Vite・Hosting設定へ追加。映像・関節座標を送信/保存しない
+- [x] 計測契約とWorker所有権の14試験、合成入力での実SDK起動・人物不在・404を含む10ブラウザー試験
+- [x] Edgeで全27件の回帰試験成功。PC・スマートフォン幅の手首表示を目視確認
+- [x] Linux CIでも62件＋ビルド＋27件成功（run 35494900076）
+- [ ] 実カメラ・実人体の左右/遮蔽/遅延確認（#10の残条件）
+
+詳細は[POSE.md](POSE.md)。実モデルの人体検出正常系と身体誘導・captureへの統合は未検証/未実装。
+SDK追加と固定版をpackage-lock.jsonに反映。モデルとライセンスを同梱し、通常CIでモデルの外部取得は行わない。

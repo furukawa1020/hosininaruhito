@@ -18,7 +18,7 @@ const messages = {
   failed: 'カメラの映像を表示できませんでした。設定を確認して再試行してください。'
 };
 
-export function mountCamera(document, window) {
+export function mountCamera(document, window, { onChange = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   const consent = $('camera-consent');
   const start = $('camera-start');
@@ -30,6 +30,7 @@ export function mountCamera(document, window) {
     $('camera-notice').dataset.state = state.state;
     $('camera-video').hidden = state.state !== 'preview';
     $('camera-placeholder').hidden = state.state === 'preview';
+    onChange(state);
     $('camera-badge').textContent = state.state === 'preview' ? '撮影中 / ローカル表示' : 'カメラ停止';
   };
   const camera = new CameraSession({

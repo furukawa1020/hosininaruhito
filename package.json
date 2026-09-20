@@ -15,10 +15,15 @@
     "test": "node --test",
     "check": "npm test && npm run build",
     "smoke:sky": "node --env-file-if-exists=.env scripts/smoke-sky.mjs",
-    "test:browser": "npm run build && playwright test"
+    "test:browser": "npm run build && playwright test",
+    "assets:pose": "node scripts/prepare-pose-assets.mjs",
+    "prebuild": "npm run assets:pose",
+    "predev": "npm run assets:pose",
+    "predev:client": "npm run assets:pose"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
+    "@mediapipe/tasks-vision": "1.0.1",
     "@openai/codex-sdk": "^0.155.1",
     "hono": "^4.9.0",
     "three": "^0.180.0"

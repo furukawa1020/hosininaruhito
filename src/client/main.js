@@ -1,10 +1,13 @@
 import './style.css';
 import { mountCamera } from './camera-view.js';
+import { mountPose } from './pose-view.js';
 import { RequestSession, parseCoordinates } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
-const camera = mountCamera(document, window);
+let pose;
+const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
+pose = mountPose(document, window);
 let services = null;
 let busy = false;
 const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'Codex / 振付' };
@@ -40,6 +43,7 @@ function clearResults() {
 }
 function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
   camera.stop(cameraReason);
+  pose.stop();
   session.cancel();
   busy = false;
   updateControls();

@@ -1,10 +1,16 @@
 ﻿import { Hono } from 'hono';
+import { browserPolicy } from './security.js';
 import { timingSafeEqual } from 'node:crypto';
 import { bodyLimit } from 'hono/body-limit';
 import { observeSky, decideReflex, planWithCodex } from '../providers/live.js';
 
 export function createApp(env = process.env, providers = { observeSky, decideReflex, planWithCodex }) {
   const app = new Hono();
+  app.use('*', async (c, next) => {
+    c.header('Content-Security-Policy', browserPolicy);
+    c.header('Permissions-Policy', 'camera=(self), microphone=()');
+    await next();
+  });
   const configured = key => typeof env[key] === 'string' && !!env[key].trim();
   app.use('/api/*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
