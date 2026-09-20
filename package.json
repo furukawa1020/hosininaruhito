@@ -17,9 +17,10 @@
     "smoke:sky": "node --env-file-if-exists=.env scripts/smoke-sky.mjs",
     "test:browser": "npm run build && playwright test",
     "assets:pose": "node scripts/prepare-pose-assets.mjs",
-    "prebuild": "npm run assets:pose",
-    "predev": "npm run assets:pose",
-    "predev:client": "npm run assets:pose"
+    "prebuild": "npm run assets:pose && npm run assets:catalog",
+    "predev": "npm run assets:pose && npm run assets:catalog",
+    "predev:client": "npm run assets:pose && npm run assets:catalog",
+    "assets:catalog": "node scripts/prepare-catalog.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

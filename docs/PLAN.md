@@ -21,6 +21,7 @@ Capture: starId,joint,x,y,at,capturedAt,error。atはセンサーの実測時刻
 
 GET /api/status: 設定の有無。services.access/sky/reflex/plannerでサービス別に返す。接続成功を意味しない。
 POST /api/sky {lat,lng}: 星APIの実呼出。日時省略のprovider-default。日時の追加指定は未対応のため拒否。
+POST /api/catalog {id}: 出典付き恒星・線分。J2000赤経/赤緯（度）、HIP番号、固定版と出典を返す。
 POST /api/reflex {dx,dy,tracked}: Jevの実呼出。助言のみ。
 POST /api/program {constellation:{id,stars:[{id,x,y}]}}: Codexで順序を計画。座標と保持条件の不変を検証。
 POSTはBearer HCR_ACCESS_TOKENが必要。16KiB、外部呼出1件/instanceまで。
@@ -72,7 +73,7 @@ CLIへ自動フォールバック禁止。接続済み連携が見えなけれ�
 
 詳細な確認根拠と未確認点は[API-VERIFICATION.md](API-VERIFICATION.md)。
 星APIトークン未設定のためP0の実APIライブスモークは未完了。
-恒星カタログ接続、身体推定の実機確認、Three.js残像、Cloud Run sandbox確認、認証基盤、デプロイは未完了。
+カタログの画面統合、身体推定の実機確認、Three.js残像、Cloud Run sandbox確認、認証基盤、デプロイは未完了。
 
 ## GitHub Issueと依存関係
 
@@ -148,3 +149,25 @@ SDK追加と固定版をpackage-lock.jsonに反映。モデルとライセンス
 詳細と境界値は[REACH.md](REACH.md)。配置関数は合成入力で検証し、星APIの代表値から星を作らない。
 片手を動かす操作に対応するが、現行推定では両手首が映る必要がある。片手のみの検出は未対応。
 依存パッケージの変更はなく、既存lockfileを維持。
+
+## 2026-09-21 恒星カタログ（#5 / #6）
+
+- [x] 実カタログd3-celestial/XHIPの固定版、原データのSHA-256、J2000・度単位・BSD-3-Clauseと表示条件を記録
+- [x] API公式の1〜88 ID表をIAU略号へ明示対応。全線分端点を元の恒星座標へ完全一致で照合
+- [x] Serpensの2部分を同じ星座IDへ統合し、原資料にない接続線を作らない
+- [x] 認証付きPOST /api/catalog、ファイル/版/型の検証、再生成可能なビルド、コンテナへのデータ・ライセンス同梱
+- [x] 追加10試験で全88星座の往復照合、欠損・曖昧・重複・未知ID・不正値・認証・容量制限を確認
+- [ ] 星APIライブ観測から画面・投影・振付への統合（#3/#7/#15）
+
+詳細は[CATALOG.md](CATALOG.md)。drowingのID体系は引き続き未確定で、推測変換しない。
+依存パッケージは追加せず、既存lockfileを維持。実API・実カメラ・デプロイを実施済みと扱わない。
+
+## 2026-09-21 デプロイ先と接続状況
+
+ユーザーの「環境や連携先から作成」の指示を受け、既存認証済み環境で専用GCPプロジェクト
+`hosininaruhito-20260920`（project number `766405647874`）を作成し、ACTIVEを確認。
+既存の別用途プロジェクトはデプロイ先に使用しない。課金リンク・Firebase初期化・サービス配備は未実施。
+接続済みFirebase/Cloud Run操作ツールは見つかっていない。CLIでの新規ログインは行っていない。
+公式トークン取得先はhttps://livlog.xyz/sso/login。ブラウザー操作は実行環境のACLエラーで起動できず、星APIトークン取得は未完了。
+
+カタログ追加後のnpm run check：84件＋本番ビルド成功。差分レビューで版固定・コンテナ同梱・改行によるハッシュ変化を確認し修正。CIはPRで確認する。
