@@ -21,3 +21,9 @@ Star source identified by D3-Celestial: XHIP, Anderson & Francis (2012).
 See D3-CELESTIAL-LICENSE.txt for copyright, conditions and disclaimer.
 Changes: selected line endpoints, exact HIP matching, RA wrapped to [0,360),
 Serpens parts grouped with separate polylines, explicit Hoshimiru constellation IDs.
+
+Astronomy Engine 2.1.19
+Copyright (c) 2019-2023 Don Cross
+https://github.com/cosinekitty/astronomy
+MIT License. See ASTRONOMY-ENGINE-LICENSE.txt.
+Used server-side for J2000 to horizontal coordinate transformation.
