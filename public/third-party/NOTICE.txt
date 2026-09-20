@@ -13,3 +13,11 @@ SHA-256: 59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a
 JavaScript, WASM and model files are served from the application origin.
 The test harness generates its own geometric video and landmark fixtures.
 No captured human imagery is included in this repository.
+
+D3-Celestial catalogue data (BSD-3-Clause)
+Copyright (c) 2015, Olaf Frohn
+Pinned source: https://github.com/ofrohn/d3-celestial/tree/7e720a3de062059d4c5400a379146a601d9010e0
+Star source identified by D3-Celestial: XHIP, Anderson & Francis (2012).
+See D3-CELESTIAL-LICENSE.txt for copyright, conditions and disclaimer.
+Changes: selected line endpoints, exact HIP matching, RA wrapped to [0,360),
+Serpens parts grouped with separate polylines, explicit Hoshimiru constellation IDs.

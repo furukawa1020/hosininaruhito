@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev && mkdir -p /home/node/.codex && chown node:node /home/node/.codex
 COPY src ./src
+COPY public/catalog ./public/catalog
+COPY public/third-party ./public/third-party
 USER node
 ENV NODE_ENV=production
 ENV PORT=8080

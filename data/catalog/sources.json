@@ -1,0 +1,27 @@
+{
+  "source": {
+    "catalog": "d3-celestial/XHIP",
+    "commit": "7e720a3de062059d4c5400a379146a601d9010e0",
+    "license": "BSD-3-Clause",
+    "epoch": "J2000",
+    "url": "https://github.com/ofrohn/d3-celestial/tree/7e720a3de062059d4c5400a379146a601d9010e0",
+    "attribution": "Olaf Frohn; XHIP: Anderson & Francis (2012)",
+    "providerMapping": "https://hoshimiru.apidog.io/%E6%98%9F%E5%BA%A7%E4%B8%80%E8%A6%A7%E3%82%92%E5%8F%96%E5%BE%97-32979472e0"
+  },
+  "files": {
+    "stars": {
+      "file": "stars.8.json.gz",
+      "compression": "gzip",
+      "bytes": 5385740,
+      "sha256": "e3ec6cde89bae0dde064d91c1edb9ec53c3c40d5c12fdf5d30f9a4de5dbc2143",
+      "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/7e720a3de062059d4c5400a379146a601d9010e0/data/stars.8.json"
+    },
+    "lines": {
+      "file": "constellations.lines.json",
+      "compression": null,
+      "bytes": 27136,
+      "sha256": "294f66bef5d5cf50b1e17f16d2efa1d97a15131612c68dd935adef6e7373e13c",
+      "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/7e720a3de062059d4c5400a379146a601d9010e0/data/constellations.lines.json"
+    }
+  }
+}

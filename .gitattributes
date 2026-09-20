@@ -1,0 +1,4 @@
+
+# Keep the upstream catalogue bytes stable for SHA-256 verification.
+data/catalog/constellations.lines.json -text
+data/catalog/*.gz -text
