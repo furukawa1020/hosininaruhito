@@ -1,11 +1,12 @@
-﻿import { Hono } from 'hono';
+import { Hono } from 'hono';
 import { browserPolicy } from './security.js';
 import { timingSafeEqual } from 'node:crypto';
 import { bodyLimit } from 'hono/body-limit';
+import { projectConstellation } from '../providers/projection.js';
 import { getConstellationCatalog } from '../providers/catalog.js';
 import { observeSky, decideReflex, planWithCodex } from '../providers/live.js';
 
-export function createApp(env = process.env, providers = { observeSky, decideReflex, planWithCodex, getConstellationCatalog }) {
+export function createApp(env = process.env, providers = { observeSky, decideReflex, planWithCodex, getConstellationCatalog, projectConstellation }) {
   const app = new Hono();
   app.use('*', async (c, next) => {
     c.header('Content-Security-Policy', browserPolicy);
@@ -41,7 +42,7 @@ export function createApp(env = process.env, providers = { observeSky, decideRef
     onError: c => c.json({ error: 'Payload too large', code: 'payload_too_large' }, 413)
   }));
   for (const [path, provider] of [
-    ['/api/catalog', 'getConstellationCatalog'], ['/api/sky', 'observeSky'], ['/api/reflex', 'decideReflex'], ['/api/program', 'planWithCodex']
+    ['/api/project', 'projectConstellation'], ['/api/catalog', 'getConstellationCatalog'], ['/api/sky', 'observeSky'], ['/api/reflex', 'decideReflex'], ['/api/program', 'planWithCodex']
   ]) {
     app.post(path, async c => {
       let input;

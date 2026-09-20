@@ -21,6 +21,7 @@ Capture: starId,joint,x,y,at,capturedAt,error。atはセンサーの実測時刻
 
 GET /api/status: 設定の有無。services.access/sky/reflex/plannerでサービス別に返す。接続成功を意味しない。
 POST /api/sky {lat,lng}: 星APIの実呼出。日時省略のprovider-default。日時の追加指定は未対応のため拒否。
+POST /api/project {id,lat,lng,at}: 明示UTCでカタログを方向・画像形へ変換。星API時刻とは別契約。
 POST /api/catalog {id}: 出典付き恒星・線分。J2000赤経/赤緯（度）、HIP番号、固定版と出典を返す。
 POST /api/reflex {dx,dy,tracked}: Jevの実呼出。助言のみ。
 POST /api/program {constellation:{id,stars:[{id,x,y}]}}: Codexで順序を計画。座標と保持条件の不変を検証。
@@ -155,7 +156,8 @@ SDK追加と固定版をpackage-lock.jsonに反映。モデルとライセンス
 - [x] 実カタログd3-celestial/XHIPの固定版、原データのSHA-256、J2000・度単位・BSD-3-Clauseと表示条件を記録
 - [x] API公式の1〜88 ID表をIAU略号へ明示対応。全線分端点を元の恒星座標へ完全一致で照合
 - [x] Serpensの2部分を同じ星座IDへ統合し、原資料にない接続線を作らない
-- [x] 認証付きPOST /api/catalog、ファイル/版/型の検証、再生成可能なビルド、コンテナへのデータ・ライセンス同梱
+- [x] 認証付きPOST /api/project {id,lat,lng,at}: 明示UTCでカタログを方向・画像形へ変換。星API時刻とは別契約。
+POST /api/catalog、ファイル/版/型の検証、再生成可能なビルド、コンテナへのデータ・ライセンス同梱
 - [x] 追加10試験で全88星座の往復照合、欠損・曖昧・重複・未知ID・不正値・認証・容量制限を確認
 - [ ] 星APIライブ観測から画面・投影・振付への統合（#3/#7/#15）
 
@@ -171,3 +173,18 @@ SDK追加と固定版をpackage-lock.jsonに反映。モデルとライセンス
 公式トークン取得先はhttps://livlog.xyz/sso/login。ブラウザー操作は実行環境のACLエラーで起動できず、星APIトークン取得は未完了。
 
 カタログ追加後のnpm run check：84件＋本番ビルド成功。差分レビューで版固定・コンテナ同梱・改行によるハッシュ変化を確認し修正。CIはPRで確認する。
+
+## 2026-09-21 恒星の方向計算・投影（#7）
+
+カタログPR #25をマージ済み。CI run 35535071478で84件＋ビルド＋既存35ブラウザー試験が成功。
+
+- [x] Astronomy Engine 2.1.19の一次資料・インストール済み型を確認し、providers内のJ2000→水平座標アダプターを追加
+- [x] 純粋な心射投影、地平線・天頂・広角特異点・縮退の明示エラー、元の線分の保持
+- [x] 同一倍率・平行移動・非ミラーの画像形と、倍率/除外理由/UTC計算時刻/出典を明示
+- [x] 認証付きPOST /api/project、厳密なUTC・地点入力、ライセンス同梱とlockfile固定
+- [x] 追加10試験。極・日付境界の別SDK経路照合と実カタログ正常系、入力異常系
+- [ ] 星APIの観測時刻との整合（#4）、画面・振付への接続（#15）、実空との照合
+
+詳細は[PROJECTION.md](PROJECTION.md)。星APIの日時省略の仕様を推測していない。計算時刻はexplicit-utc-catalog-calculation。
+
+投影追加後のnpm run check：94件＋本番ビルド成功。セルフレビューで座標系・単位・特異点・日時の区別・線分維持を確認。CIはPRで確認する。
