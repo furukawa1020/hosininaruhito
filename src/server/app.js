@@ -29,7 +29,7 @@ export function createApp(env = process.env, providers = { observeSky, decideRef
       reflex: configured('TYPESAFE_API_KEY'), planner: planner.configured
     };
     return c.json({ mode: 'live', configured: Object.values(services).every(Boolean), services, plannerProvider: planner.provider,
-      auth: cloud && accessConfigured(env) ? {mode:'firebase',config:{apiKey:env.FIREBASE_WEB_API_KEY,projectId:env.FIREBASE_PROJECT_ID,appId:env.FIREBASE_APP_ID,authDomain:env.FIREBASE_PROJECT_ID+'.firebaseapp.com'},siteKey:env.RECAPTCHA_SITE_KEY} : {mode:validMode&&!cloud?'development':'unavailable'} });
+      auth: cloud && accessConfigured(env) ? {mode:'firebase',guestEnabled:env.HCR_GUEST_ENABLED==='true',config:{apiKey:env.FIREBASE_WEB_API_KEY,projectId:env.FIREBASE_PROJECT_ID,appId:env.FIREBASE_APP_ID,authDomain:env.FIREBASE_PROJECT_ID+'.firebaseapp.com'},siteKey:env.RECAPTCHA_SITE_KEY} : {mode:validMode&&!cloud?'development':'unavailable'} });
   });
   let busy = false;
   app.use('/api/*', async (c, next) => {

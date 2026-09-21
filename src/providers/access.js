@@ -24,9 +24,10 @@ export async function verifyAccess(idToken, appToken, env, sdk) {
   try {
     sdk ||= await firebaseClients(env);
     const [user,app]=await Promise.all([sdk.auth.verifyIdToken(idToken,true),sdk.appCheck.verifyToken(appToken)]);
+    const guest=env.HCR_GUEST_ENABLED==='true' && user.firebase?.sign_in_provider==='anonymous';
     if (app.appId!==env.FIREBASE_APP_ID || user.aud!==env.FIREBASE_PROJECT_ID ||
         user.iss!=='https://securetoken.google.com/'+env.FIREBASE_PROJECT_ID || typeof user.uid!=='string' || !user.uid ||
-        user.hcrAccess!==true) throw Error();
+        (user.hcrAccess!==true && !guest)) throw Error();
     return user.uid;
   } catch { fail('Authentication failed',401,'unauthorized'); }
 }

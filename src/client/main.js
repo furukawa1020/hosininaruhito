@@ -146,7 +146,7 @@ function renderSky(data) {
 }
 async function call(path, body) {
   const token = $('token').value;
-  if (!hasAccess(token)) { notice('ログインまたは開発アクセストークンが必要です。', 'error'); return; }
+  if (!hasAccess(token)) { notice('ゲストとしてはじめるか、アカウントでログインしてください。開発環境ではアクセストークンを入力してください。', 'error'); return; }
   const request = session.begin();
   busy = true;
   clearResults();
