@@ -248,3 +248,16 @@ capability追加やsandbox無効化は行わない。ツール無効のSDK生成
 詳細は[DEPLOYMENT.md](DEPLOYMENT.md)。専用projectを.firebasercへ固定。課金接続・実配備は未完了。
 
 コンテナ内で実際のserver/index.jsをPORT=18080で起動し、SIGTERM正常終了も確認。npm run check（123件＋ビルド）成功。smoke:containerはAPI試験成功、sandbox試験失敗を区別して全体を終了コード1とする。
+
+## 2026-09-21 Jevの助言接続（#14 / #15）
+
+- [x] 撮影/位置/Codexとは別の送信同意。丸めたdx/dy/tracked以外は送信せず、サーバーも未知項目を拒否
+- [x] 最大2Hz・同時1件、実行ごと60件、1秒期限、失敗時2秒backoff・3回で助言停止
+- [x] 中断を無視する通信も完了まで所有、実行/目標変更・古い応答を破棄
+- [x] 現在の幾何方向と一致するコメントだけ表示。保持・capture・停止判定をAIへ委譲しない
+- [x] 仮想時計の14単体試験と5fixture画面試験を追加。セルフレビューで同意再選択による回数リセットを防止
+- [ ] Jev実トークン取得、ライブ遅延・失敗率・実人体の確認
+
+仕様と未確認事項は[JEV.md](JEV.md)。依存追加なし、既存lockfileを維持。
+
+検証: npm run check（137件＋本番ビルド）成功。追加Jev画面5件がWindows/Edgeで成功。smoke:jevはnot_configuredを返し、実API成功とは扱わない。

@@ -137,3 +137,50 @@ test('AI preparation requires configured service',async({page})=>{
  await setup(page);await page.locator('#planner-consent').check();
  await expect(page.locator('#session-prepare')).toBeDisabled();
 });
+
+async function prepareAdvice(page,respond) {
+ await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:true}}}));
+ await page.locator('#refresh').click();
+ await page.route('**/api/reflex',respond);
+ await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+ const target=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100+.1,y:parseFloat(el.style.top)/100}));
+ await page.evaluate(p=>window.sessionFixture.point=p,target);
+}
+test('Jev requires separate consent and sends only rounded error, without deciding captures',async({page})=>{
+ const bodies=[];
+ await prepareAdvice(page,r=>{bodies.push(r.request().postDataJSON());return r.fulfill({json:{source:'jev-live',advisoryOnly:true,action:'left',confidence:.01}});});
+ await page.clock.runFor(500);expect(bodies).toHaveLength(0);
+ await page.locator('#advice-consent').check();await page.clock.runFor(100);
+ await expect(page.locator('#advice-notice')).toHaveAttribute('data-state','advice');
+ expect(bodies).toHaveLength(1);expect(Object.keys(bodies[0]).sort()).toEqual(['dx','dy','tracked']);
+ expect(bodies[0].dx).toBe(-.1);await expect(page.locator('#advice-notice')).toContainText('表示の右側');
+ await page.clock.runFor(500);await expect.poll(()=>bodies.length).toBe(2);
+ await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+ await page.locator('#advice-consent').uncheck();await page.clock.runFor(1000);expect(bodies).toHaveLength(2);
+ await expect(page.locator('#advice-notice')).toHaveAttribute('data-state','idle');
+});
+for(const stop of ['consent','escape'])test('late Jev reply is discarded after '+stop,async({page})=>{
+ let route;await prepareAdvice(page,r=>{route=r;});
+ await page.locator('#advice-consent').check();await page.clock.runFor(100);await expect.poll(()=>Boolean(route)).toBe(true);
+ if(stop==='consent')await page.locator('#advice-consent').uncheck();else await page.keyboard.press('Escape');
+ await route.fulfill({json:{source:'jev-live',advisoryOnly:true,action:'left',confidence:1}});
+ await expect(page.locator('#advice-notice')).toHaveAttribute('data-state','idle');
+});
+test('high confidence wrong-direction Jev response cannot advise or capture',async({page})=>{
+ await prepareAdvice(page,r=>r.fulfill({json:{source:'jev-live',advisoryOnly:true,action:'hold',confidence:1}}));
+ await page.locator('#advice-consent').check();await page.clock.runFor(900);
+ await expect(page.locator('#advice-notice')).not.toHaveAttribute('data-state','advice');
+ await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+});
+test('Jev upstream failures stop after bounded retries while local geometry continues',async({page})=>{
+ let calls=0;await prepareAdvice(page,r=>{calls++;return r.fulfill({status:503,json:{code:'upstream_unavailable'}});});
+ await page.locator('#advice-consent').check();
+ for(let i=0;i<3;i++){
+   await page.clock.runFor(i===0?100:2100);
+   await expect.poll(()=>calls).toBe(i+1);
+   await expect(page.locator('#advice-notice')).toHaveAttribute('data-state',i===2?'unavailable':'error');
+ }
+ await page.clock.runFor(2100);expect(calls).toBe(3);
+ await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+});
