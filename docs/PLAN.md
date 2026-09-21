@@ -296,3 +296,7 @@ npm run checkは155試験＋本番ビルド成功。画面試験でAI未使用�
 - [ ] 実カメラ・実人体受入、API側timezone、Jev実トークン（任意助言）
 
 認証と運用手順は[AUTH.md](AUTH.md)。Firebase SDKをlockfileに固定。今回の公開経路はVertexで、Codex sandboxの未解決を成功扱いにしない。
+
+公開追試: Firebase Hosting配備が完了。公開URL経由の星API31星座/Vertex生成、通常EdgeのFirebaseログイン/実reCAPTCHA Enterprise/App Check/星API32星座/ログアウト時消去が成功した。
+ブラウザーで発見したCSPの交換ホスト不足を修正し、許可ホストと無関係な外部通信拒否の回帰試験を追加。
+npm run check 163件＋ビルド、ログイン関連3件が成功。署名試験用の一時IAM権限は削除済み。PR #36で最終CIとレビュー記録を確認してマージする。

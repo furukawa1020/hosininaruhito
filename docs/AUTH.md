@@ -52,6 +52,9 @@ web API keyとsite keyはブラウザーへ返す公開設定で、星APIの秘�
 画面のSDK fixture試験はログイン・認証ヘッダー・失敗・ログアウト後の破棄を確認する。
 2026-09-21、実Firebaseログイン/実App Check検証/実Firestoreの競合予約と後片付けが成功。
 このサーバー側試験のApp Check tokenは管理者署名で発行し、ブラウザーのreCAPTCHA成功とは区別する。
+続いて公開HostingのEdgeで、実reCAPTCHA Enterpriseによるログイン・App Check・星API32星座・ログアウト時消去が成功した。
+debug tokenやfixtureは使っていない。CSPの実交換先不足を修正し、違反/ブラウザー例外0を確認した。
+サーバー試験のための期限付きIAM署名権限は試験後に削除した。
 通常CIは実APIを呼ばない。
 
 firebase 12.19.0 / firebase-admin 14.4.0を固定。

@@ -23,3 +23,12 @@ test('failed login cannot call sky and mobile controls fit',async({page})=>{
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.screenshot({path:'test-results/cloud-login-mobile.png',fullPage:true});
 });
+test('CSP permits the actual App Check exchange host while blocking unrelated outbound requests',async({page})=>{
+ await page.route('https://content-firebaseappcheck.googleapis.com/**',r=>r.fulfill({json:{fixture:true},headers:{'access-control-allow-origin':'*'}}));
+ await setup(page);
+ const result=await page.evaluate(async()=>{
+  const allowed=await fetch('https://content-firebaseappcheck.googleapis.com/fixture').then(r=>r.ok).catch(()=>false);
+  const blocked=await fetch('https://example.com/fixture').then(()=>false).catch(()=>true);
+  return {allowed,blocked};
+ });expect(result).toEqual({allowed:true,blocked:true});
+});

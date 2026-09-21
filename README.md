@@ -2,6 +2,9 @@
 
 一人の身体を時間方向に展開して星座を作る作品。現在は、実APIから星座を取得する観測画面と、撮影への個別同意によるローカルカメラプレビュー・手首のローカル推定を実装しています。
 
+公開サイト: https://hosininaruhito-20260920.web.app
+実ブラウザーのログイン・App Check・星をみるひとAPIの32星座取得を確認済み。Cloud Run上のVertex AI生成も成功しました。実カメラ・実人体の受入確認は残っています。
+
 ## 起動
 
 Node 22.12以上。
@@ -63,8 +66,8 @@ CIはNode 22とlockfile固定のPlaywright/Chromiumで試験します。スク�
 ## 開発・デプロイ
 
 [AGENTS.md](AGENTS.md)と[docs/PLAN.md](docs/PLAN.md)に沿ってP0から進めます。
-Firebase Hosting + Cloud Runの設定ファイルは用意済みですが未デプロイです。
-Firebase/Google Cloudの接続済み連携を優先し、CLIによる認証・デプロイへ自動的に切り替えません。
+Firebase Hosting + Cloud Runへデプロイ済みです。対象は専用project `hosininaruhito-20260920`。
+接続済み連携が利用できなかったため、利用者の委任を受けてCLI配備を実施しました。[配備記録](docs/DEPLOYMENT.md)。
 
 ## 一次資料
 

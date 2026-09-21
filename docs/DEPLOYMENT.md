@@ -5,6 +5,22 @@
 2026-09-21の配備環境で星API31星座取得、Vertex実生成、未認証拒否を確認した。
 公開環境の認証・利用上限・緊急停止は[AUTH.md](AUTH.md)。以下のsandbox履歴はCodex経路の記録。
 
+## 公開記録（2026-09-21）
+
+- Hosting: https://hosininaruhito-20260920.web.app
+- Cloud Run: `hcr-api` / `asia-east1`、専用SA `hcr-runtime`、maxScale 1 / concurrency 1 / timeout 50秒
+- 配備イメージ: `asia-east1-docker.pkg.dev/hosininaruhito-20260920/hcr/api@sha256:1216264327d5f512eb1191852595d3bf45de8e46614068abbc221d6f9e8c150a`
+- 星API secret: `hoshimiru-api-token` version 1。secret値や個人ADCをイメージへ含めない
+- 初回非公開で403を確認後、Hosting rewrite向けinvokerを公開。アプリの有料APIはFirebase/App Check認証を維持
+- 公開rewrite経由: アプリ未認証401、catalog 200、星API31星座、Vertex実生成1試行/746 tokens
+- 公開Edgeブラウザー: 実Firebase/reCAPTCHA Enterprise/App Check、星API32星座、ログアウトで結果消去。CSP違反/例外0
+
+観測日時により星座件数は変わる。試験の秘密・地点・映像は出力しない。
+実カメラ/実人体の受入、星API側timezone、任意Jevの実トークンは未確認。
+Cloud Runの版はHostingのpinTagで固定。更新時はCloud Runをdigest指定で配備後、Hostingも再配備する。
+戻す場合は検証済みHosting releaseへロールバックし、紐づくCloud Run tagを確認する。
+緊急停止は[AUTH.md](AUTH.md)のFirestoreスイッチを優先する。
+
 クラウドの振付AIはVertex AI / ADCを選べる。Codex CLIのインストール・個人ログインを要求しない。
 非公開Cloud Run用サービス定義を `deploy/cloudrun.vertex.yaml` に用意した。[設定と適用順序](VERTEX.md)。
 Vertex経路ではコマンドsandboxを使用しない。従来Codex sandboxの失敗を成功に読み替えるものではない。
