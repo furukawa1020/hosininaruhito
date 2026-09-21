@@ -18,8 +18,23 @@
 観測日時により星座件数は変わる。試験の秘密・地点・映像は出力しない。
 実カメラ/実人体の受入、星API側timezone、任意Jevの実トークンは未確認。
 Cloud Runの版はHostingのpinTagで固定。更新時はCloud Runをdigest指定で配備後、Hostingも再配備する。
+初回専用のYAMLを既存サービスへ `services replace` すると旧Hosting tagが消えるため、更新には使わない。
+イメージ更新は次のコマンドで既存tagを維持する。直後にHostingも配備して新revisionへ固定する。
+
+```text
+gcloud run services update hcr-api --image=IMAGE_DIGEST --region=asia-east1 --project=hosininaruhito-20260920
+firebase deploy --only hosting --project hosininaruhito-20260920 --non-interactive
+```
+
+現在のHosting versionは `e536cb985268b584`、Cloud Run tagは `fh-e536cb985268b584` → `hcr-api-00002-dpz`。
+検証済み旧versionは `ade252aa15c5f980`、tagは `fh-1fcf6f987e11a1c5` → `hcr-api-00001-mw8`。
+復旧試験で旧tagの欠落を発見して復元した。参照中のtag/revisionを削除しない。
 戻す場合は検証済みHosting releaseへロールバックし、紐づくCloud Run tagを確認する。
 緊急停止は[AUTH.md](AUTH.md)のFirestoreスイッチを優先する。
+公開環境の実認証でenabled=falseの503/service_paused、trueに戻した後のcatalog 200を確認済み。
+旧Hosting versionへの実ロールバックと最新への復帰が成功し、両方で認証付きcatalog 200を確認した。
+復旧はFirebase Hostingのリリース履歴から検証済みversionを選ぶか、[releases.create](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.releases/create)のversionNameに上記versionの完全名を指定する。
+直近30分のCloud Run ERRORはこの停止試験の503のみ。監視時も本文・座標・tokenを出力せず、status/時刻/件数を確認する。
 
 クラウドの振付AIはVertex AI / ADCを選べる。Codex CLIのインストール・個人ログインを要求しない。
 非公開Cloud Run用サービス定義を `deploy/cloudrun.vertex.yaml` に用意した。[設定と適用順序](VERTEX.md)。

@@ -300,3 +300,6 @@ npm run checkは155試験＋本番ビルド成功。画面試験でAI未使用�
 公開追試: Firebase Hosting配備が完了。公開URL経由の星API31星座/Vertex生成、通常EdgeのFirebaseログイン/実reCAPTCHA Enterprise/App Check/星API32星座/ログアウト時消去が成功した。
 ブラウザーで発見したCSPの交換ホスト不足を修正し、許可ホストと無関係な外部通信拒否の回帰試験を追加。
 npm run check 163件＋ビルド、ログイン関連3件が成功。署名試験用の一時IAM権限は削除済み。PR #36で最終CIとレビュー記録を確認してマージする。
+
+CI run 35588993248（コードhead e8bd591）で163単体＋ビルド＋74画面試験が成功。Cloud Run revision hcr-api-00002-dpzと公開Hostingを確認。
+運用試験でFirestore緊急停止503/復帰200を確認。旧Hosting tag欠落を発見して復元し、旧versionへの実ロールバック/最新versionへの復帰と認証付きcatalog 200を確認した。更新手順をservices updateによるtag維持へ修正。最終差分はこの運用記録と配備定義コメントのみで、製品コード変更はない。

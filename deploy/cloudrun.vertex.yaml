@@ -1,5 +1,7 @@
 # Private first deployment. Replace IMAGE_DIGEST and VERTEX_MODEL before applying.
 # Secret versions and the runtime service account must already exist.
+# Initial creation only: services replace can remove existing Hosting pin tags.
+# For updates, use services update --image and preserve traffic/tag configuration.
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
