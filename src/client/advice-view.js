@@ -1,4 +1,5 @@
 import { AdvisorySession } from './advice.js';
+import {requestHeaders} from './access.js';
 export function mountAdvice(document,window) {
   const $=id=>document.getElementById(id);
   let services=null,wasActive=false,disposed=false,lastExecution=null;
@@ -10,7 +11,7 @@ export function mountAdvice(document,window) {
     unavailable:'Jevへの接続失敗が続いたため、助言を停止しました。'};
   const controller=new AdvisorySession({now:()=>window.performance.now(),
     send:async(body,{signal})=>{
-      const response=await fetch('/api/reflex',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+$('token').value},
+      const response=await fetch('/api/reflex',{method:'POST',headers:await requestHeaders($('token').value,signal),
         body:JSON.stringify(body),signal:AbortSignal.any([signal,AbortSignal.timeout(1000)])});
       if(!response.ok)throw Error('request_failed');
       return response.json();

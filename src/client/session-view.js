@@ -1,6 +1,7 @@
 import { evaluatePlan, validatePlannedProgram } from '../core/planner.js';
 import { prepareSession } from '../core/session.js';
 import { RequestSession } from './requests.js';
+import {hasAccess,requestHeaders} from './access.js';
 
 export function mountSession(document, window, { reach, trace }) {
   const $ = id => document.getElementById(id);
@@ -11,6 +12,8 @@ export function mountSession(document, window, { reach, trace }) {
   const messages = {
     upstream_quota: 'AIサービスの課金・利用上限を確認してください。',
     planner_destination_changed: 'AIの送信先が変わりました。接続を再確認し、送信先への同意を選び直してください。',
+    daily_limit: '本日の利用上限に達しました。日付がUTCで変わってから利用できます。',
+    service_paused: '運営側で接続を停止しています。',
     planner_rejected: 'AIの提案が配置条件を満たしませんでした。配置は開始していません。',
     upstream_timeout: 'AIの計画が時間内に終わりませんでした。',
     planner_sandbox: 'サーバーの実行制限を確認できませんでした。',
@@ -50,7 +53,7 @@ export function mountSession(document, window, { reach, trace }) {
   const prepare = async () => {
     if ($('session-prepare').disabled || !selected) return;
     const token = $('token').value;
-    if (!token.trim()) { say('開発アクセストークンを入力してください。', 'error'); return; }
+    if (!hasAccess(token)) { say('ログインまたは開発アクセストークンが必要です。', 'error'); return; }
     const calibration = reach.result();
     if (!calibration) return;
     const request = requests.begin();
@@ -59,7 +62,7 @@ export function mountSession(document, window, { reach, trace }) {
     say('恒星カタログを計算し、記録した範囲への配置を確認しています…', 'loading');
     try {
       const response = await fetch('/api/project', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        method: 'POST', headers: await requestHeaders(token,request.signal),
         body: JSON.stringify(input), signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)])
       });
       const data = await response.json();
@@ -75,7 +78,7 @@ export function mountSession(document, window, { reach, trace }) {
         const expectedSource = plannerProvider + '-live';
         say(plannerName() + 'が星の順序を計画しています…', 'loading');
         const planned = await fetch('/api/program', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, 'X-HCR-Planner': plannerProvider },
+          method: 'POST', headers: { ...await requestHeaders(token,request.signal), 'X-HCR-Planner': plannerProvider },
           body: JSON.stringify({ program: fitted.program }),
           signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
         });

@@ -3,7 +3,7 @@
 Cloud RunのサービスアカウントからVertex AIのGeminiへHTTPSで接続する。
 利用者の端末にはCodex CLIやOpenAIキーは不要。個人のChatGPT認証ファイルも配備しない。
 Google Cloud以外では、Google Auth LibraryのADC / Workload Identity Federationで認証できる構成。
-この実装・契約試験と、実クラウド上での生成成功は区別する。現時点で配備は未完了。
+2026-09-21、専用Cloud Run上でgemini-3.5-flashの実生成に成功。合成3目標による契約確認で、実人体の試験とは別。
 
 ## 設定
 
@@ -48,7 +48,7 @@ Cloud Runには専用サービスアカウント `hcr-runtime@hosininaruhito-202
 `deploy/cloudrun.vertex.yaml` はサービス定義。IMAGE_DIGESTとVERTEX_MODELを確定して使う。
 専用project以外には適用しない。maxScale=1、concurrency=1、timeout=50秒、CPU=1、512MiB。
 公開invoker権限は追加しない。既存サービスへ再適用するときはIAMも別途検査する。
-HCR_ACCESS_TOKENとHOSHIMIRU_API_TOKENをSecret Managerの指定バージョンから注入する。
+HOSHIMIRU_API_TOKENをSecret Managerの指定バージョンから注入する。公開認証はFirebase ID token + App Checkで、HCR_ACCESS_TOKENは配備しない。[設定](AUTH.md)。
 ブラウザーのHosting公開はFirebase Auth/App Check/利用者別制限の確認後。
 
 適用順序は、専用projectの課金接続 → 必要API有効化（aiplatform/run/artifactregistry/cloudbuild/secretmanager）
@@ -56,7 +56,7 @@ HCR_ACCESS_TOKENとHOSHIMIRU_API_TOKENをSecret Managerの指定バージョン�
 → IAMで非公開を照合 → 認証付き実API試験。秘密を引数や出力へ出さない。
 
 接続済みのCloud Run/Firebase操作連携を検索したが利用できるものは見つからなかった。
-AGENTS.mdに従い、CLIへの切替確認前に認証・配備・課金接続は実行しない。
+CLIへの切替・課金接続について利用者の委任を受け、専用projectだけで配備を実施した。
 
 ## 検証
 

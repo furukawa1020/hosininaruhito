@@ -17,6 +17,8 @@ APIキーはサーバー環境変数のみ。VITE_変数やGit、チャットへ
 画面に入力するのは`HCR_ACCESS_TOKEN`です。星APIのキーを画面へ入力しないでください。
 Jev・振付AIは任意の別設定で、星APIの観測だけなら不要です。クラウドでは `HCR_PLANNER_PROVIDER=vertex` を選び、Cloud Runサービスアカウントで認証できます。[Vertex AIの設定・配備準備](docs/VERTEX.md)。Codexを選ぶ場合は `CODEX_MODEL` に利用可能モデルを明示します。
 
+公開環境は招待済みFirebaseアカウントでログインします。開発トークンは使用しません。[認証・日次上限・緊急停止](docs/AUTH.md)。所有者のログイン情報はGit管理外の `.env` の `HCR_OWNER_EMAIL` / `HCR_OWNER_PASSWORD` にあり、チャットへ転記しないでください。
+
 ## 現在できること
 
 - サービス別に設定済み／未設定を確認（設定済みは疎通成功を意味しません）
@@ -47,7 +49,7 @@ fixturesはテスト専用で、実APIの失敗時にモックへ切り替えま
   - 初回は`npx playwright install chromium`で試験用ブラウザーを用意できます。
   - インストール済みEdgeを使うWindows環境では、PowerShellで`$env:HCR_BROWSER_CHANNEL='msedge'`を設定します。
 - `npm run smoke:jev`：固定の合成入力を1回だけ実Jevへ送る有料API試験。TYPESAFE_API_KEYが必要。
-- `npm run smoke:ai`：合成3目標を選択した実AIへ送る有料API試験。VertexはADCと専用project/location/model、CodexはOPENAI_API_KEYとCODEX_MODELが必要。クラウド生成成功は未確認。
+- `npm run smoke:ai`：合成3目標を選択した実AIへ送る有料API試験。VertexはADCと専用project/location/model、CodexはOPENAI_API_KEYとCODEX_MODELが必要。Vertexの実生成は確認済み。実人体の試験とは別です。
 - `npm run smoke:sky`：星APIへの実リクエスト。以下をローカルの`.env`に設定した場合だけ実行します。
   - `HCR_ACCESS_TOKEN`、`HOSHIMIRU_API_TOKEN`
   - `HCR_SMOKE_LAT`、`HCR_SMOKE_LNG`：送信してよい観測地点

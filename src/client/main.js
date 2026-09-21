@@ -1,4 +1,5 @@
 import { mountAdvice } from './advice-view.js';
+import {mountAccess,configureAccess,hasAccess,requestHeaders} from './access.js';
 import './style.css';
 import { mountSession } from './session-view.js';
 import { mountTrace } from './trace-view.js';
@@ -19,10 +20,13 @@ experience = mountSession(document, window, { reach, trace });
 pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });
 let services = null;
 let busy = false;
-const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'AI / 振付' };
+const labels = { access: 'アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'AI / 振付' };
 const errors = {
+  daily_limit: '本日の利用上限に達しました。日付がUTCで変わってから利用できます。',
+  service_paused: '運営側で接続を停止しています。',
+  quota_unavailable: '利用上限を確認できません。時間をおいて試してください。',
   not_configured: 'サーバーの接続設定が不足しています。「接続の準備」を確認してください。',
-  unauthorized: '開発アクセストークンが一致しません。入力を確認してください。',
+  unauthorized: '認証情報が一致しません。ログインし直すか、開発環境ではアクセストークンを確認してください。',
   busy: 'サーバーが処理中です。少し待ってから再試行してください。',
   invalid_request: '入力内容が正しくありません。緯度・経度を確認してください。',
   invalid_json: '送信データを読み取れませんでした。',
@@ -88,6 +92,7 @@ async function loadStatus() {
     if (!request.isCurrent()) return;
     if (!response.ok || data.mode !== 'live' || !data.services ||
         !Object.keys(labels).every(key => typeof data.services[key] === 'boolean')) throw new Error('Invalid status');
+    configureAccess(data.auth);
     services = data.services; experience.setServices(services, data.plannerProvider); advice.setServices(services);
     showServices();
     notice(services.access && services.sky
@@ -141,7 +146,7 @@ function renderSky(data) {
 }
 async function call(path, body) {
   const token = $('token').value;
-  if (!token.trim()) { notice('開発アクセストークンを入力してください。', 'error'); $('token').focus(); return; }
+  if (!hasAccess(token)) { notice('ログインまたは開発アクセストークンが必要です。', 'error'); return; }
   const request = session.begin();
   busy = true;
   clearResults();
@@ -149,7 +154,7 @@ async function call(path, body) {
   notice('実APIに接続しています…');
   try {
     const response = await fetch(path, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      method: 'POST', headers: await requestHeaders(token,request.signal),
       body: JSON.stringify(body), signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
     });
     const data = await response.json();
@@ -187,5 +192,6 @@ $('refresh').addEventListener('click', () => loadStatus());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') stop(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信とカメラを停止しました。', 'hidden'); });
 window.addEventListener('pagehide', () => { session.cancel(); $('token').value = ''; });
+mountAccess(document,()=>{stop('ログイン状態が変わりました。体験を準備し直してください。');clearResults();});
 loadStatus();
 

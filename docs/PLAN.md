@@ -1,6 +1,7 @@
 # Architecture and next tasks
 
 Browser → Firebase Hosting /api rewrite → Cloud Run Hono → 星API / Jev / Codex SDK。
+公開環境の振付AIはVertex AIを選択。以下の履歴は当時の状態で、最新の検証記録を優先する。
 カメラの毎フレームはローカル処理。AIは提案し、決定論的な検証器が実行権限を持つ。
 
 ## Contract
@@ -20,12 +21,12 @@ Capture: starId,joint,x,y,at,capturedAt,error。atはセンサーの実測時刻
 ## API routes
 
 GET /api/status: 設定の有無。services.access/sky/reflex/plannerでサービス別に返す。接続成功を意味しない。
-POST /api/sky {lat,lng}: 星APIの実呼出。日時省略のprovider-default。日時の追加指定は未対応のため拒否。
+POST /api/sky {lat,lng}: 星APIの実呼出。サーバー現在時刻をJST date/hour/minで送信。追加日時入力は拒否。提供者側のタイムゾーンは未確定。
 POST /api/project {id,lat,lng,at}: 明示UTCでカタログを方向・画像形へ変換。星API時刻とは別契約。
 POST /api/catalog {id}: 出典付き恒星・線分。J2000赤経/赤緯（度）、HIP番号、固定版と出典を返す。
 POST /api/reflex {dx,dy,tracked}: Jevの実呼出。助言のみ。
 POST /api/program {program:ProgramV1}: Codexで順序だけを計画。座標・関節・保持条件の不変を検証。旧constellation入力も互換対応。
-POSTはBearer HCR_ACCESS_TOKENが必要。16KiB、外部呼出1件/instanceまで。
+POSTは本番ではFirebase ID token + App Check + 招待claim、開発のみBearer HCR_ACCESS_TOKEN。16KiB、外部呼出1件/instanceまで。本番はFirestoreによる日次上限と全revision共通leaseも必要。
 API応答はno-store。HTTP通信は12秒・1MiB以内、Codexは40秒で中断。クライアント切断を伝播する。
 
 ## P0
@@ -279,3 +280,19 @@ npm run checkは155試験＋本番ビルド成功。画面試験でAI未使用�
 実Vertex要求はADC認証後にHTTP403。専用projectはbillingEnabled=false、aiplatform APIも未有効。モデル利用可能性・正常生成は未確認。接続済み操作連携の検索ではCloud Run/Firebaseを操作できるものがなく、AGENTS.mdに従いCLI配備は確認待ち。
 
 星APIの日時は明示JST送信へ変更したが、提供側のタイムゾーンは未確認。fixtures/合成身体の試験とライブ疎通・実人体の試験は混同しない。Jev実トークン、実カメラ、Firebase Auth/App Check/利用者別上限、公開デプロイは残る。
+
+## 2026-09-21 公開認証と非公開クラウド実API試験（#17 / #19）
+
+- [x] CLI配備・課金接続の確認に対し、利用者から「デプロイまでして完成させて全部任せる」と委任を受けた
+- [x] 専用projectのみ課金接続、Firebase/Firestore/App Check/Secret Manager/専用SAを準備。個人の秘密鍵を配備しない
+- [x] Firebase ID tokenの失効・招待claim・projectとApp CheckのappIdを確認。Cloud Runで開発認証を拒否
+- [x] Firestoreの利用者/全体日次上限・全revision共通lease・緊急停止。クライアント全拒否ルールを配備
+- [x] 非公開Cloud Runへ配備。未認証403、IAM通過後のアプリ未認証401、招待利用者catalog 200
+- [x] 実Cloud Runから星をみるひとAPIで31星座、Vertex gemini-3.5-flashで実生成成功（1試行、751 tokens）
+- [x] 実Firebaseログイン・実App Check token検証・実Firestore競合制限。管理者署名tokenの試験で、ブラウザーreCAPTCHAとは別
+- [x] npm run check 163件＋ビルド、既存Edge 71件、追加ログイン2件＋観測回帰8件が成功
+- [x] セルフレビューでApp Check SDKの返値appIdと再ログイン時の既存体験停止を修正。uuid間接依存も修正しaudit 0件
+- [ ] Hosting公開、公開ブラウザーの実reCAPTCHA・星API正常系、CI/PRマージ
+- [ ] 実カメラ・実人体受入、API側timezone、Jev実トークン（任意助言）
+
+認証と運用手順は[AUTH.md](AUTH.md)。Firebase SDKをlockfileに固定。今回の公開経路はVertexで、Codex sandboxの未解決を成功扱いにしない。

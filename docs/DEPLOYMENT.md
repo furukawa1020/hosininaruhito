@@ -1,7 +1,9 @@
 # コンテナ・デプロイ確認
 
 配備先はユーザーの作成指示に基づく専用project `hosininaruhito-20260920`（766405647874）のみ。
-`.firebaserc` のdefaultもこのprojectに固定する。現時点では課金未接続、Firebase未初期化、Cloud Run未配備。
+`.firebaserc` のdefaultもこのprojectに固定する。課金接続・Firebase初期化・非公開Cloud Run配備が完了。
+2026-09-21の配備環境で星API31星座取得、Vertex実生成、未認証拒否を確認した。
+公開環境の認証・利用上限・緊急停止は[AUTH.md](AUTH.md)。以下のsandbox履歴はCodex経路の記録。
 
 クラウドの振付AIはVertex AI / ADCを選べる。Codex CLIのインストール・個人ログインを要求しない。
 非公開Cloud Run用サービス定義を `deploy/cloudrun.vertex.yaml` に用意した。[設定と適用順序](VERTEX.md)。
@@ -49,5 +51,5 @@ Cloud Runの初回は非公開、hcr-api/asia-east1、max instances=1、concurre
 公開Hosting rewriteは認証・利用上限を確認してから有効化する。
 
 接続済みFirebase/Cloud Runの操作連携は見つかっていない。
-AGENTS.mdの「CLIでの認証・デプロイへ勝手に切り替えない」に従い、CLIでの配備は未実施。
+CLI配備と課金接続の確認に対して、利用者から「デプロイまでして完成させて全部任せる」と委任を受けて配備を実施。
 フルアクセスへの環境変更は、この配備経路の選択や課金接続の完了とは区別する。
