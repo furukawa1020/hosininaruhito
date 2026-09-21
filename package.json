@@ -20,7 +20,8 @@
     "prebuild": "npm run assets:pose && npm run assets:catalog",
     "predev": "npm run assets:pose && npm run assets:catalog",
     "predev:client": "npm run assets:pose && npm run assets:catalog",
-    "assets:catalog": "node scripts/prepare-catalog.mjs"
+    "assets:catalog": "node scripts/prepare-catalog.mjs",
+    "smoke:ai": "node --env-file-if-exists=.env scripts/smoke-ai.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

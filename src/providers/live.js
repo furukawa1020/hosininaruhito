@@ -1,4 +1,3 @@
-﻿import { compileConstellation, validateProgram } from '../core/program.js';
 import { fail, required, getJSON } from './http.js';
 export { observeSky } from './sky.js';
 
@@ -25,42 +24,4 @@ export async function decideReflex(input, env, options = {}) {
   return { source: 'jev-live', advisoryOnly: true, action: answer.choice, confidence: answer.confidence };
 }
 
-export async function planWithCodex(input, env, { signal } = {}) {
-  required(env, 'OPENAI_API_KEY');
-  const model = required(env, 'CODEX_MODEL');
-  const constellation = input?.constellation;
-  if (!constellation || typeof constellation.id !== 'string' || !Array.isArray(constellation.stars)) {
-    fail('Catalog-backed normalized constellation required');
-  }
-  let baseline;
-  try { baseline = compileConstellation(constellation); } catch { fail('Invalid constellation'); }
-  const { Codex } = await import('@openai/codex-sdk');
-  const codex = new Codex({ apiKey: env.OPENAI_API_KEY });
-  const thread = codex.startThread({
-    model, sandboxMode: 'read-only', approvalPolicy: 'never', skipGitRepoCheck: true, networkAccessEnabled: false
-  });
-  const timeout = AbortSignal.timeout(40000);
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-  let result;
-  try {
-    combined.throwIfAborted();
-    result = await thread.run(
-      'Return only JSON ProgramV1. Reorder steps to minimize hand travel; preserve each step exactly. No tools, files, shell or new coordinates. Symbolic choreography, not safety certification. Input: ' + JSON.stringify(baseline),
-      { signal: combined }
-    );
-  } catch {
-    if (signal?.aborted) fail('Request cancelled', 499, 'cancelled');
-    if (timeout.aborted) fail('Planner timed out', 504, 'upstream_timeout');
-    fail('Planner unavailable', 502, 'upstream_unavailable');
-  }
-  let program;
-  try { program = validateProgram(JSON.parse(result.finalResponse)); }
-  catch { fail('Invalid planner output', 502, 'invalid_response'); }
-  if (program.steps.length !== baseline.steps.length || program.steps.some(s => {
-    const b = baseline.steps.find(t => t.starId === s.starId);
-    return !b || b.joint !== s.joint || b.target.x !== s.target.x || b.target.y !== s.target.y ||
-      b.holdMs !== s.holdMs || b.tolerance !== s.tolerance;
-  })) fail('Planner changed constraints', 502, 'invalid_response');
-  return { ...program, source: 'codex-live', constellationId: baseline.constellationId };
-}
-
+export { planWithCodex } from './planner.js';

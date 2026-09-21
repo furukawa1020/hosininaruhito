@@ -102,3 +102,38 @@ test('mobile session target and stop stay visible without overflow',async({page}
   await expect(page.locator('#session-notice')).toHaveAttribute('data-state','idle');
   await expect(page.locator('#trace-count')).toContainText('確定した星 0');
 });
+
+test('AI consent sends only the fitted program and retains measured capture',async({page})=>{
+  await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:true,reflex:false}}}));
+  await page.locator('#refresh').click();
+  let input;
+  await page.route('**/api/program',r=>{input=r.request().postDataJSON();return r.fulfill({json:{...input.program,source:'codex-live',steps:[...input.program.steps].reverse()}});});
+  await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
+  await expect(page.locator('#session-notice')).toContainText('Codex');
+  await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+  expect(Object.keys(input)).toEqual(['program']);expect(input.program.steps[0].joint).toBe('leftWrist');
+  await page.locator('#trace-start').click();
+  await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+  const point=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
+  await page.evaluate(p=>window.sessionFixture.point=p,point);await page.clock.runFor(900);
+  await expect(page.locator('#trace-count')).toContainText('確定した星 1');
+});
+for(const failure of ['quota','modified','late'])test('AI '+failure+' cannot install an invalid or cancelled plan',async({page})=>{
+  await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:true,reflex:false}}}));
+  await page.locator('#refresh').click();
+  let route;await page.route('**/api/program',r=>{route=r;});
+  await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
+  await expect.poll(()=>Boolean(route)).toBe(true);
+  const candidate={...route.request().postDataJSON().program,source:'codex-live'};
+  if(failure==='modified')candidate.steps[0].target.x+=.01;
+  if(failure==='late')await page.locator('#planner-consent').uncheck();
+  await route.fulfill({status:failure==='quota'?502:200,json:failure==='quota'?{code:'upstream_quota'}:candidate});
+  await expect(page.locator('#session-notice')).toHaveAttribute('data-state',failure==='late'?'idle':'error');
+  await expect(page.locator('#trace-start')).not.toHaveText('配置した星座を開始する');
+});
+test('AI preparation requires configured service',async({page})=>{
+ await setup(page);await page.locator('#planner-consent').check();
+ await expect(page.locator('#session-prepare')).toBeDisabled();
+});

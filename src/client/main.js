@@ -75,7 +75,7 @@ function showServices() {
 }
 async function loadStatus() {
   const request = session.begin();
-  services = null;
+  services = null; experience.setServices(null);
   busy = true;
   updateControls();
   $('services').textContent = 'サーバーを確認中…';
@@ -85,7 +85,7 @@ async function loadStatus() {
     if (!request.isCurrent()) return;
     if (!response.ok || data.mode !== 'live' || !data.services ||
         !Object.keys(labels).every(key => typeof data.services[key] === 'boolean')) throw new Error('Invalid status');
-    services = data.services;
+    services = data.services; experience.setServices(services);
     showServices();
     notice(services.access && services.sky
       ? '星APIの設定を確認しました。観測地点を入力して接続してください。'

@@ -24,7 +24,7 @@ POST /api/sky {lat,lng}: 星APIの実呼出。日時省略のprovider-default。
 POST /api/project {id,lat,lng,at}: 明示UTCでカタログを方向・画像形へ変換。星API時刻とは別契約。
 POST /api/catalog {id}: 出典付き恒星・線分。J2000赤経/赤緯（度）、HIP番号、固定版と出典を返す。
 POST /api/reflex {dx,dy,tracked}: Jevの実呼出。助言のみ。
-POST /api/program {constellation:{id,stars:[{id,x,y}]}}: Codexで順序を計画。座標と保持条件の不変を検証。
+POST /api/program {program:ProgramV1}: Codexで順序だけを計画。座標・関節・保持条件の不変を検証。旧constellation入力も互換対応。
 POSTはBearer HCR_ACCESS_TOKENが必要。16KiB、外部呼出1件/instanceまで。
 API応答はno-store。HTTP通信は12秒・1MiB以内、Codexは40秒で中断。クライアント切断を伝播する。
 
@@ -219,3 +219,20 @@ fixturesを本番へ混入させない。Three.jsは既存lockfileの0.180.0を�
 実SDK/実合成動画を使う起動・人物不在・モデル失敗の3試験は変更せず、リトライや製品の150ms条件も変更しない。合成フレームを止め、200msの経過でframe_gapになるブラウザー試験を追加した。逆行・古い応答・欠落の単体試験も維持する。
 
 ローカル検証結果: npm run check（108件＋本番ビルド）成功。Windows/Edgeの全57ブラウザー試験が成功し、#28の再発ケースも解消した。PC完成図とスマートフォンの目標・常設停止を目視確認。目視で左手実行中の手選択欄が右手のままになる点を見つけ、表示と消去時の準備状態を同期した。最終差分の画面試験とLinux CIをPRで確認する。
+
+## 2026-09-21 Codexの上限付き順序計画（#13 / #15）
+
+- [x] 配置済みProgramの順序だけを構造化出力で提案。関節・座標・保持条件は固定
+- [x] validate→合成simulate→critic→最大1回replan、全体40秒、応答/イベント容量制限
+- [x] 一時CODEX_HOME、OS起動環境のみ継承、read-only、shell/web search無効、ツールイベント拒否
+- [x] 個別送信同意、ブラウザーでの制約再検証、同意撤回後の古いAI応答破棄、失敗表示
+- [x] 追加15単体試験、追加5fixture画面試験を用意。セルフレビューでSDK設定隔離と終了時削除を確認
+- [ ] 生成中の厳密なトークン/請求上限。現在はターン完了後のusage 12,000超過を拒否する条件
+- [ ] 有料API生成正常系。モデル一覧取得は成功したが、実SDK呼出はAPI残高ゼロで失敗
+- [ ] Jevのセッション統合、実カメラ、Cloud Run sandbox、公開認証、デプロイ
+
+詳細は[AI-PLANNER.md](AI-PLANNER.md)。SDK/依存の変更はなく既存lockfileを維持。
+フルアクセスへの変更後はブラウザー連携自体が0件で、公式ログイン画面は開けない。
+星API/Jevトークンの取得は未完了。専用GCP projectはACTIVE、課金未接続、Dockerエンジン停止中を再確認。
+
+検証結果: npm run checkは123件＋本番ビルド成功。Windows/Edgeの全62ブラウザー試験成功。追加AI試験の描画モジュール読み込み待ちを明示し、製品の停止条件や計測時刻条件は緩和していない。
