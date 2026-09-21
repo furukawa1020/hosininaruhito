@@ -1,3 +1,4 @@
+import { installPoseClock } from './pose-clock.js';
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { readdirSync } from 'node:fs';
@@ -13,6 +14,7 @@ async function camera(page) {
   await expect(page.locator('#pose-start')).toBeEnabled();
 }
 async function fixtureWorker(page, mode = 'normal') {
+  await installPoseClock(page);
   await page.addInitScript(initial => {
     window.poseMode = initial;
     window.poseWorkers = [];
@@ -79,7 +81,7 @@ test('real pinned SDK runs locally on blank synthetic input with no external req
 test('fixture wrists display mirrored positions once and stop clears overlay and worker', async ({ page }) => {
   await fixtureWorker(page);
   await camera(page);
-  await page.locator('#pose-start').click();
+  await page.locator('#pose-start').click(); await page.clock.runFor(250);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   const coordinates = await page.evaluate(() => ({
     width: document.getElementById('camera-video').videoWidth,
@@ -99,7 +101,7 @@ for (const mode of ['no_person', 'multiple_people', 'occluded', 'stall']) {
   test('fixture ' + mode + ' stops inference and requires explicit restart', async ({ page }) => {
     await fixtureWorker(page, mode);
     await camera(page);
-    await page.locator('#pose-start').click();
+    await page.locator('#pose-start').click(); await page.clock.runFor(250);
     await expect(page.locator('#pose-notice')).toHaveAttribute('data-state', 'paused');
     await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason', mode === 'stall' ? 'stale_pose' : mode);
     await expect(page.locator('#pose-overlay')).toBeHidden();
@@ -107,7 +109,7 @@ for (const mode of ['no_person', 'multiple_people', 'occluded', 'stall']) {
     expect(await page.evaluate(() => window.poseWorkers.every(w => w.terminated))).toBe(true);
     expect(await page.evaluate(() => window.poseWorkers.length)).toBe(1);
     await page.evaluate(() => { window.poseMode = 'normal'; });
-    await page.locator('#pose-start').click();
+    await page.locator('#pose-start').click(); await page.clock.runFor(250);
     await expect(page.locator('#pose-overlay')).toBeVisible();
     expect(await page.evaluate(() => window.poseWorkers.length)).toBe(2);
   });
@@ -125,7 +127,7 @@ test('real model download failure is visible without fake tracking', async ({ pa
 test('hidden tab cancels fixture inference; return does not resume', async ({ page }) => {
   await fixtureWorker(page);
   await camera(page);
-  await page.locator('#pose-start').click();
+  await page.locator('#pose-start').click(); await page.clock.runFor(250);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
@@ -153,7 +155,7 @@ test('mobile fixture overlay fits preview and consent withdrawal releases infere
   await page.setViewportSize({ width: 390, height: 844 });
   await fixtureWorker(page);
   await camera(page);
-  await page.locator('#pose-start').click();
+  await page.locator('#pose-start').click(); await page.clock.runFor(250);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.camera-panel').screenshot({ path: 'test-results/pose-fixture-mobile.png' });
@@ -161,4 +163,14 @@ test('mobile fixture overlay fits preview and consent withdrawal releases infere
   await expect(page.locator('#pose-overlay')).toBeHidden();
   expect(await page.evaluate(() => window.poseWorkers.every(w => w.terminated))).toBe(true);
   await expect(page.locator('#pose-start')).toBeDisabled();
+});
+
+test('synthetic frame loss still stops at the production deadline', async ({ page }) => {
+  await fixtureWorker(page); await camera(page);
+  await page.locator('#pose-start').click(); await page.clock.runFor(100);
+  await expect(page.locator('#pose-overlay')).toBeVisible();
+  await page.evaluate(() => { window.poseFixtureFrames = false; });
+  await page.clock.runFor(200);
+  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason', 'frame_gap');
+  await expect(page.locator('#pose-overlay')).toBeHidden();
 });

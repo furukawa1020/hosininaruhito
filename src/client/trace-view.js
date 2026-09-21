@@ -4,6 +4,7 @@ import { isFreshPoseTime } from '../core/pose.js';
 export function mountTrace(document, window, { onFailure = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   let trace = new ConstellationTrace(), renderer = null, lastFrame = null, dimensions = null;
+  let configured = null, guided = false;
   let generation = 0, loading = false, disposed = false, error = null;
   const tracking = () => !disposed && lastFrame && !document.hidden && $('camera-consent').checked && isFreshPoseTime(lastFrame.at, window.performance.now());
   const size = () => ({ width: $('camera-video').videoWidth, height: $('camera-video').videoHeight });
@@ -19,15 +20,30 @@ export function mountTrace(document, window, { onFailure = () => {} } = {}) {
   };
   const render = () => {
     const frame = trace.snapshot();
-    $('trace-start').disabled = !tracking() || loading || frame.state === 'running';
-    $('trace-start').textContent = frame.state === 'paused' || error ? '光の軌跡を再開する' : '光の軌跡を描く';
+    $('trace-start').disabled = !tracking() || loading || frame.state === 'running' || (guided && (!configured || frame.state === 'complete'));
+    $('trace-start').textContent = guided ? '配置した星座を開始する' : frame.state === 'paused' || error ? '光の軌跡を再開する' : '光の軌跡を描く';
     $('trace-clear').disabled = !frame.trail.length && !frame.captures.length && !loading;
     $('trace-notice').dataset.state = error ? 'error' : frame.state;
     $('trace-notice').dataset.reason = error || frame.reason;
-    const text = loading ? '光の描画を準備しています…' : messages[error || frame.state] || messages.paused;
+    let text = loading ? '光の描画を準備しています…' : messages[error || frame.state] || messages.paused;
+    if (guided && !loading && !error) {
+      text = frame.state === 'complete' ? 'すべての対象を保持して確定しました。記録した実測点の星座です。' :
+        !configured ? '停止しました。計測と配置を準備し直してください。' :
+        frame.state === 'running' ? (configured.joint === 'leftWrist' ? '左手' : '右手') +
+          'の点を輪に重ね、楽なら0.8秒保ちます。つらいときは停止してください。' :
+        '配置を準備しました。開始はあなたの操作で行います。';
+    }
+    const target = $('trace-target');
+    target.hidden = !(guided && configured && frame.state === 'running' && frame.activeTarget);
+    if (!target.hidden) {
+      target.style.left = (1 - frame.activeTarget.target.x) * 100 + '%';
+      target.style.top = frame.activeTarget.target.y * 100 + '%';
+    }
+    $('trace-hold').textContent = guided && frame.state === 'running' ? '保持 ' + Math.floor(frame.holdProgress * 100) + '% / 次の星 ' + (frame.captures.length + 1) + ' / ' + configured.program.steps.length : '';
+    $('trace-joint').disabled = guided;
     if ($('trace-notice').textContent !== text) $('trace-notice').textContent = text;
     $('trace-count').textContent = frame.trail.length + ' 点の軌跡 / 確定した星 ' + frame.captures.length;
-    $('trace-empty').hidden = frame.trail.length > 0 || frame.captures.length > 0;
+    $('trace-empty').hidden = frame.trail.length > 0 || frame.captures.length > 0 || (guided && frame.state === 'running');
     renderer?.draw(frame);
   };
   const release = () => { renderer?.dispose(); renderer = null; };
@@ -35,7 +51,7 @@ export function mountTrace(document, window, { onFailure = () => {} } = {}) {
     generation++; loading = false; trace.stop(reason); render();
   };
   const reset = () => {
-    generation++; loading = false; trace.reset(); error = null; dimensions = null;
+    generation++; loading = false; configured = null; guided = false; trace = new ConstellationTrace(); error = null; dimensions = null;
     render(); release();
   };
   const fail = reason => {
@@ -46,7 +62,7 @@ export function mountTrace(document, window, { onFailure = () => {} } = {}) {
     renderer?.resize(bounds.width, bounds.height, window.devicePixelRatio);
   };
   const start = async () => {
-    if (disposed || !tracking() || loading || trace.state === 'running') return;
+    if (disposed || !tracking() || loading || trace.state === 'running' || (guided && (!configured || trace.state === 'complete'))) return;
     const ticket = ++generation;
     loading = true; error = null; render();
     try {
@@ -61,7 +77,7 @@ export function mountTrace(document, window, { onFailure = () => {} } = {}) {
       renderer = candidate;
       dimensions = size();
       $('trace-stage').style.aspectRatio = dimensions.width + ' / ' + dimensions.height;
-      trace = new ConstellationTrace({ joint: $('trace-joint').value });
+      trace = new ConstellationTrace(configured ? { program: configured.program, lines: configured.lines, joint: configured.joint } : { joint: $('trace-joint').value });
       trace.start(window.performance.now());
       resize();
     } catch { if (ticket === generation) fail('webgl_unavailable'); }
@@ -103,5 +119,17 @@ export function mountTrace(document, window, { onFailure = () => {} } = {}) {
   };
   window.addEventListener('pagehide', dispose);
   render();
-  return { onFrame: frame, stop, reset, dispose };
+  return {
+    onFrame: frame, stop, reset, dispose,
+    configureProgram(value) {
+      reset();
+      if (value) {
+        configured = structuredClone(value); guided = true;
+        $('trace-joint').value = configured.joint;
+        trace = new ConstellationTrace({ program: configured.program, lines: configured.lines, joint: configured.joint });
+      }
+      render();
+    },
+    invalidateProgram() { if (guided) { configured = null; stop('conditions_changed'); } }
+  };
 }
