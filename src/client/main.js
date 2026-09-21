@@ -1,4 +1,6 @@
 import { mountAdvice } from './advice-view.js';
+import {mountPlayGuide} from './play-guide.js';
+import {mountLocation} from './location-view.js';
 import {mountAccess,configureAccess,hasAccess,requestHeaders} from './access.js';
 import './style.css';
 import { mountSession } from './session-view.js';
@@ -52,7 +54,7 @@ function clearResults() {
   $('constellations').replaceChildren();
   $('detail').hidden = true;
   $('empty').hidden = false;
-  $('count').textContent = 'AWAITING OBSERVATION';
+  $('count').textContent = '検索前';
   $('result').textContent = '実APIの応答をここに表示します。';
 }
 function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
@@ -96,8 +98,8 @@ async function loadStatus() {
     services = data.services; experience.setServices(services, data.plannerProvider); advice.setServices(services);
     showServices();
     notice(services.access && services.sky
-      ? '星APIの設定を確認しました。観測地点を入力して接続してください。'
-      : '星APIへの接続には、サーバーの HCR_ACCESS_TOKEN と HOSHIMIRU_API_TOKEN を設定してください。');
+      ? '場所を決めて、送信に同意したら「この場所の星座を探す」を押してください。'
+      : '星座を探す接続の準備ができていません。接続状況を確認してください。');
   } catch {
     if (!request.isCurrent()) return;
     $('services').textContent = 'サーバーの状態を取得できません。';
@@ -110,7 +112,7 @@ function selectConstellation(row, button) {
   experience.select(row, observation);
   for (const card of $('constellations').children) card.setAttribute('aria-pressed', String(card === button));
   $('detail').hidden = false;
-  $('detail-english').textContent = row.englishName || 'CONSTELLATION / ' + row.id;
+  $('detail-english').textContent = row.englishName || '';
   $('detail-name').textContent = row.name;
   $('detail-angles').textContent = '方位 ' + row.azimuthDeg.toFixed(1) + '° / 高度 ' + row.altitudeDeg.toFixed(1) + '°';
   $('detail-description').textContent = row.description || row.summary || 'この星座の説明は取得されませんでした。';
@@ -121,7 +123,7 @@ function selectConstellation(row, button) {
 function renderSky(data) {
   if (data.source !== 'hoshimiru-live' || !Array.isArray(data.constellations)) throw new Error('Invalid sky response');
   const rows = [...data.constellations].sort((a, b) => b.altitudeDeg - a.altitudeDeg);
-  $('count').textContent = rows.length + ' CONSTELLATIONS';
+  $('count').textContent = rows.length + ' 星座';
   $('empty').hidden = rows.length > 0;
   if (!rows.length) {
     notice('接続成功。今回の条件では星座が返されませんでした。', 'success');
@@ -142,7 +144,7 @@ function renderSky(data) {
     $('constellations').append(button);
   }
   selectConstellation(rows[0], $('constellations').firstElementChild);
-  notice('星APIに接続しました。' + rows.length + '件の星座を高度順に表示しています。日時はJSTで送信しています。API側のタイムゾーンは未確認です。', 'success');
+  notice('星APIに接続しました。' + rows.length + '件から、気になる星座を選んでください。最初は一番高い空の星座を選んでいます。', 'success');
 }
 async function call(path, body) {
   const token = $('token').value;
@@ -193,5 +195,7 @@ document.addEventListener('keydown', event => { if (event.key === 'Escape') stop
 document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信とカメラを停止しました。', 'hidden'); });
 window.addEventListener('pagehide', () => { session.cancel(); $('token').value = ''; });
 mountAccess(document,()=>{stop('ログイン状態が変わりました。体験を準備し直してください。');clearResults();});
+mountLocation(document,window);
+mountPlayGuide(document,window,{hasAccess:()=>hasAccess($('token').value)});
 loadStatus();
 

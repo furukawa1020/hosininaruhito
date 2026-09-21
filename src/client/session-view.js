@@ -45,6 +45,7 @@ export function mountSession(document, window, { reach, trace }) {
     $('session-selection').textContent = selected ? selected.name + ' / 星をみるひとAPIから選択' : '先に星APIで星座を選んでください。';
   };
   const invalidate = (message = '条件が変わりました。配置を準備し直してください。', clear = false) => {
+    $('session-metadata').textContent='';
     requests.cancel(); pending = false;
     trace.invalidateProgram();
     if (clear) selected = null;
@@ -57,6 +58,7 @@ export function mountSession(document, window, { reach, trace }) {
     const calibration = reach.result();
     if (!calibration) return;
     const request = requests.begin();
+    $('session-metadata').textContent='';
     const input = { id: selected.id, ...selected.coordinates, at: new Date().toISOString() };
     pending = true; trace.configureProgram(null); render();
     say('恒星カタログを計算し、記録した範囲への配置を確認しています…', 'loading');
@@ -94,9 +96,10 @@ export function mountSession(document, window, { reach, trace }) {
         } catch { throw new Error('AIの応答が元の配置条件と一致しません。配置は開始していません。'); }
       }
       trace.configureProgram(fitted);
-      say('配置を準備しました。' + fitted.program.steps.length + '個の星 / 倍率 ' + fitted.scale.toFixed(2) +
+      $('session-metadata').textContent=fitted.program.steps.length + '個の星 / 倍率 ' + fitted.scale.toFixed(2) +
         ' / 対象外 ' + fitted.excluded + '個。計算時刻 ' + fitted.at +
-        '。星APIの観測時刻との一致は未確認です。' + (useAI ? plannerName() + 'の順序を検証しました。保持の判定は実測値で行います。' : 'カタログ順で実行します。'), 'ready');
+        '。星APIの観測時刻との一致は未確認です。';
+      say(fitted.program.steps.length+'個の星を配置できました。下の「配置した星座を開始する」で始めましょう。'+(useAI?plannerName()+'の順序を使います。':'AIを使わず、カタログ順で進めます。'),'ready');
     } catch (error) {
       if (request.isCurrent()) say(error.name === 'TimeoutError' ? '投影の取得が時間内に終わりませんでした。' :
         messages[error.message] || (error.name === 'Error' ? error.message : '投影の通信に失敗しました。'), 'error');

@@ -47,7 +47,7 @@ async function setup(page, respond, guest=false) {
 test('fixture selection to measured captures completes, and reset removes all captures',async({page})=>{
   const posts=[];page.on('request',r=>{if(r.method()==='POST')posts.push({path:new URL(r.url()).pathname,body:r.postDataJSON()});});
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
-  await expect(page.locator('#session-notice')).toContainText('一致は未確認');
+  await expect(page.locator('#session-metadata')).toContainText('一致は未確認');
   await expect(page.locator('#trace-joint')).toHaveValue('leftWrist');
   await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
   for(let i=1;i<=3;i++){
@@ -67,6 +67,7 @@ test('fixture selection to measured captures completes, and reset removes all ca
 test('guest uses the same camera calibration, consented Vertex plan and measured completion',async({page})=>{
  const paths=[];page.on('request',r=>{if(r.method()==='POST'){expect(r.headers()['authorization']).toBe('Bearer guest-fixture');paths.push(new URL(r.url()).pathname);}});
  await setup(page,undefined,true);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#guide-next')).toHaveAttribute('href','#draw');await expect(page.locator('#session-next')).toBeVisible();
  await page.route('**/api/program',r=>r.fulfill({json:{...r.request().postDataJSON().program,source:'vertex-live'}}));
  await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');await expect(page.locator('#session-notice')).toContainText('Vertex AI');
  await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
@@ -74,6 +75,7 @@ test('guest uses the same camera calibration, consented Vertex plan and measured
   const point=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100+.005,y:parseFloat(el.style.top)/100+.005}));await page.evaluate(p=>{window.sessionFixture.point=p;},point);await page.clock.runFor(900);await expect(page.locator('#trace-count')).toContainText('確定した星 '+i);
  }
  await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','complete');expect(paths).toEqual(['/api/sky','/api/project','/api/project','/api/program']);
+ await expect(page.locator('#guide-message')).toContainText('星座ができました');
  await page.locator('#auth-logout').click();await expect(page.locator('#camera-notice')).not.toHaveAttribute('data-state','preview');await expect(page.locator('#trace-count')).toContainText('確定した星 0');
 });
 for(const action of ['loss','posture','location','consent','stop','hidden'])test('prepared session is invalidated by '+action,async({page})=>{
@@ -87,6 +89,7 @@ for(const action of ['loss','posture','location','consent','stop','hidden'])test
   if(action==='hidden')await page.evaluate(()=>{Object.defineProperty(document,'hidden',{value:true,configurable:true});document.dispatchEvent(new Event('visibilitychange'));});
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-state', action==='location' || action==='consent' ? 'idle' : 'paused');
   if(action!=='location' && action!=='consent') await expect(page.locator('#trace-start')).toBeDisabled();
+  if(action==='stop')await expect(page.locator('#guide-next')).toHaveAttribute('href','#camera-setup');
   await expect(page.locator('#trace-count')).toContainText('確定した星 0');
 });
 test('late projection cannot restore a changed session',async({page})=>{
@@ -122,7 +125,7 @@ test('mobile session target and stop stay visible without overflow',async({page}
 test('AI consent sends only the fitted program and retains measured capture',async({page})=>{
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
   await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:true,reflex:false}}}));
-  await page.locator('#refresh').click();
+  await page.locator('.connection').evaluate(el=>el.open=true);await page.locator('#refresh').click();
   let input;
   await page.route('**/api/program',r=>{input=r.request().postDataJSON();return r.fulfill({json:{...input.program,source:'codex-live',steps:[...input.program.steps].reverse()}});});
   await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
@@ -138,7 +141,7 @@ test('AI consent sends only the fitted program and retains measured capture',asy
 for(const failure of ['quota','modified','late'])test('AI '+failure+' cannot install an invalid or cancelled plan',async({page})=>{
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
   await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:true,reflex:false}}}));
-  await page.locator('#refresh').click();
+  await page.locator('.connection').evaluate(el=>el.open=true);await page.locator('#refresh').click();
   let route;await page.route('**/api/program',r=>{route=r;});
   await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
   await expect.poll(()=>Boolean(route)).toBe(true);
@@ -156,7 +159,7 @@ test('AI preparation requires configured service',async({page})=>{
 
 async function vertexStatus(page, provider = 'vertex') {
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:provider,services:{access:true,sky:true,planner:true,reflex:false}}}));
- await page.locator('#refresh').click();
+ await page.locator('.connection').evaluate(el=>el.open=true);await page.locator('#refresh').click();
  await expect(page.locator('#services')).not.toContainText('確認中');
 }
 test('cloud planner displays Google destination and preserves manual start after verified order',async({page})=>{
@@ -203,7 +206,7 @@ test('unknown cloud destination disables AI preparation',async({page})=>{
 async function prepareAdvice(page,respond) {
  await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:false,reflex:true}}}));
- await page.locator('#refresh').click();
+ await page.locator('.connection').evaluate(el=>el.open=true);await page.locator('#refresh').click();
  await page.route('**/api/reflex',respond);
  await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
  const target=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100+.1,y:parseFloat(el.style.top)/100}));
@@ -213,7 +216,7 @@ test('Jev requires separate consent and sends only rounded error, without decidi
  const bodies=[];
  await prepareAdvice(page,r=>{bodies.push(r.request().postDataJSON());return r.fulfill({json:{source:'jev-live',advisoryOnly:true,action:'left',confidence:.01}});});
  await page.clock.runFor(500);expect(bodies).toHaveLength(0);
- await page.locator('#advice-consent').check();await page.clock.runFor(100);
+ await page.locator('#advice-consent').evaluate(el=>el.closest('details').open=true);await page.locator('#advice-consent').check();await page.clock.runFor(100);
  await expect(page.locator('#advice-notice')).toHaveAttribute('data-state','advice');
  expect(bodies).toHaveLength(1);expect(Object.keys(bodies[0]).sort()).toEqual(['dx','dy','tracked']);
  expect(bodies[0].dx).toBe(-.1);await expect(page.locator('#advice-notice')).toContainText('表示の右側');
@@ -224,20 +227,20 @@ test('Jev requires separate consent and sends only rounded error, without decidi
 });
 for(const stop of ['consent','escape'])test('late Jev reply is discarded after '+stop,async({page})=>{
  let route;await prepareAdvice(page,r=>{route=r;});
- await page.locator('#advice-consent').check();await page.clock.runFor(100);await expect.poll(()=>Boolean(route)).toBe(true);
+ await page.locator('#advice-consent').evaluate(el=>el.closest('details').open=true);await page.locator('#advice-consent').check();await page.clock.runFor(100);await expect.poll(()=>Boolean(route)).toBe(true);
  if(stop==='consent')await page.locator('#advice-consent').uncheck();else await page.keyboard.press('Escape');
  await route.fulfill({json:{source:'jev-live',advisoryOnly:true,action:'left',confidence:1}});
  await expect(page.locator('#advice-notice')).toHaveAttribute('data-state','idle');
 });
 test('high confidence wrong-direction Jev response cannot advise or capture',async({page})=>{
  await prepareAdvice(page,r=>r.fulfill({json:{source:'jev-live',advisoryOnly:true,action:'hold',confidence:1}}));
- await page.locator('#advice-consent').check();await page.clock.runFor(900);
+ await page.locator('#advice-consent').evaluate(el=>el.closest('details').open=true);await page.locator('#advice-consent').check();await page.clock.runFor(900);
  await expect(page.locator('#advice-notice')).not.toHaveAttribute('data-state','advice');
  await expect(page.locator('#trace-count')).toContainText('確定した星 0');
 });
 test('Jev upstream failures stop after bounded retries while local geometry continues',async({page})=>{
  let calls=0;await prepareAdvice(page,r=>{calls++;return r.fulfill({status:503,json:{code:'upstream_unavailable'}});});
- await page.locator('#advice-consent').check();
+ await page.locator('#advice-consent').evaluate(el=>el.closest('details').open=true);await page.locator('#advice-consent').check();
  for(let i=0;i<3;i++){
    await page.clock.runFor(i===0?100:2100);
    await expect.poll(()=>calls).toBe(i+1);
