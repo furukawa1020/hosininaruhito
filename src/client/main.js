@@ -1,3 +1,4 @@
+import { mountAdvice } from './advice-view.js';
 import './style.css';
 import { mountSession } from './session-view.js';
 import { mountTrace } from './trace-view.js';
@@ -8,11 +9,12 @@ import { RequestSession, parseCoordinates } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
-let pose, experience;
+let pose, experience, advice;
 let observation = null;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
 const reach = mountReach(document, window, { onChange: () => experience?.reachChanged() });
-const trace = mountTrace(document, window, { onFailure: () => { camera.stop('manual'); pose?.stop(); } });
+const trace = mountTrace(document, window, { onState: state => advice?.update(state), onFailure: () => { camera.stop('manual'); pose?.stop(); } });
+advice = mountAdvice(document, window);
 experience = mountSession(document, window, { reach, trace });
 pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });
 let services = null;
@@ -50,6 +52,7 @@ function clearResults() {
   $('result').textContent = '実APIの応答をここに表示します。';
 }
 function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
+  advice.stop();
   experience.stop();
   trace.stop(cameraReason);
   camera.stop(cameraReason);
@@ -75,7 +78,7 @@ function showServices() {
 }
 async function loadStatus() {
   const request = session.begin();
-  services = null; experience.setServices(null);
+  services = null; experience.setServices(null); advice.setServices(null);
   busy = true;
   updateControls();
   $('services').textContent = 'サーバーを確認中…';
@@ -85,7 +88,7 @@ async function loadStatus() {
     if (!request.isCurrent()) return;
     if (!response.ok || data.mode !== 'live' || !data.services ||
         !Object.keys(labels).every(key => typeof data.services[key] === 'boolean')) throw new Error('Invalid status');
-    services = data.services; experience.setServices(services);
+    services = data.services; experience.setServices(services); advice.setServices(services);
     showServices();
     notice(services.access && services.sky
       ? '星APIの設定を確認しました。観測地点を入力して接続してください。'

@@ -1,7 +1,7 @@
 import { ConstellationTrace } from '../core/trace.js';
 import { isFreshPoseTime } from '../core/pose.js';
 
-export function mountTrace(document, window, { onFailure = () => {} } = {}) {
+export function mountTrace(document, window, { onFailure = () => {}, onState = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   let trace = new ConstellationTrace(), renderer = null, lastFrame = null, dimensions = null;
   let configured = null, guided = false;
@@ -45,6 +45,7 @@ export function mountTrace(document, window, { onFailure = () => {} } = {}) {
     $('trace-count').textContent = frame.trail.length + ' 点の軌跡 / 確定した星 ' + frame.captures.length;
     $('trace-empty').hidden = frame.trail.length > 0 || frame.captures.length > 0 || (guided && frame.state === 'running');
     renderer?.draw(frame);
+    onState({...frame,executionId:generation});
   };
   const release = () => { renderer?.dispose(); renderer = null; };
   const stop = (reason = 'manual') => {

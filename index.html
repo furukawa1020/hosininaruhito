@@ -125,6 +125,9 @@
         <p class="muted">手首の推定を開始したら、その場で楽に動かせる範囲の動きを光で確かめられます。直近4秒までの点をこの画面だけに描きます。</p>
         <label for="trace-joint">光を描く手<select id="trace-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
         <div class="trace-actions"><button id="trace-start" class="secondary" type="button" disabled>光の軌跡を描く</button><button id="trace-clear" class="text-button" type="button" disabled>軌跡を消す</button></div>
+        <label class="consent"><input id="advice-consent" type="checkbox"> 目標との差をTypeSafe AIへ送り、Jevの助言を受ける（有料API）</label>
+        <p class="field-note">画像内の左右・上下の差を小数第2位へ丸めて送ります。映像・観測地点・手首の座標そのものは送りません。最大2回/秒、1回の実行で60回まで。保持と確定は端末内で判定します。</p>
+        <p id="advice-notice" role="status" aria-live="polite"></p>
         <p id="trace-notice" role="status" aria-live="polite"></p>
         <p id="trace-count" class="field-note"></p><p id="trace-hold" class="field-note"></p>
         <p class="field-note">「停止」・Esc・追跡ロストで静止します。再開では軌跡を描き直します。撮影への同意を外すと消去します。点の外部送信・保存はしません。</p>
