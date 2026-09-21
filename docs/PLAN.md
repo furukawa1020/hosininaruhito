@@ -236,3 +236,15 @@ fixturesを本番へ混入させない。Three.jsは既存lockfileの0.180.0を�
 星API/Jevトークンの取得は未完了。専用GCP projectはACTIVE、課金未接続、Dockerエンジン停止中を再確認。
 
 検証結果: npm run checkは123件＋本番ビルド成功。Windows/Edgeの全62ブラウザー試験成功。追加AI試験の描画モジュール読み込み待ちを明示し、製品の停止条件や計測時刻条件は緩和していない。
+
+## 2026-09-21 コンテナ検証（#16 / #19）
+
+PR #30をマージ。CI run 35570206607で123単体試験＋ビルド＋62ブラウザー試験が成功。
+Docker Desktop起動後、デプロイ用イメージをビルドし、UID 1000でstatus 200/未認証401/認証catalog 200を確認した。
+.envの同梱はなし。再現可能な `npm run smoke:container` を追加した。
+
+Codexのread-onlyコマンドsandboxは名前空間作成権限不足で失敗し、試験は終了コード1を返す。
+capability追加やsandbox無効化は行わない。ツール無効のSDK生成正常系とは別試験で、そちらはAPI残高ゼロのため未確認。
+詳細は[DEPLOYMENT.md](DEPLOYMENT.md)。専用projectを.firebasercへ固定。課金接続・実配備は未完了。
+
+コンテナ内で実際のserver/index.jsをPORT=18080で起動し、SIGTERM正常終了も確認。npm run check（123件＋ビルド）成功。smoke:containerはAPI試験成功、sandbox試験失敗を区別して全体を終了コード1とする。
