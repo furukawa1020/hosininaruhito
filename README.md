@@ -31,14 +31,14 @@ Jev・Codexは任意の別設定で、星APIの観測だけなら不要です。
 - Jevの助言API、Codex SDKの振付計画API、決定論的な保持/captureの基盤
 
 星APIの日時はprovider-defaultです。日時・タイムゾーン、`drowing`のID体系と線分の意味は未確認。
-星座の代表方位・高度から恒星位置は生成しません。恒星カタログの読み込みAPIは実装済み（[出典とID対応](docs/CATALOG.md)）。星座選択→投影→計測範囲への配置→保持確定を接続しました（[セッション仕様](docs/SESSION.md)）。AI振付・助言の統合は未実装です。Three.jsによる手首の軌跡表示を追加しました（[表示・停止仕様](docs/TRACE.md)）。身体推定の実機精度は未確認です。
+星座の代表方位・高度から恒星位置は生成しません。恒星カタログの読み込みAPIは実装済み（[出典とID対応](docs/CATALOG.md)）。星座選択→投影→計測範囲への配置→保持確定を接続しました（[セッション仕様](docs/SESSION.md)）。Codexの順序計画を個別同意で選べます（[仕様と実API確認](docs/AI-PLANNER.md)）。Jev助言のセッション統合は未実装です。Three.jsによる手首の軌跡表示を追加しました（[表示・停止仕様](docs/TRACE.md)）。身体推定の実機精度は未確認です。
 fixturesはテスト専用で、実APIの失敗時にモックへ切り替えません。
 
 カメラはAPI設定なしでも利用できます。HTTPSまたはlocalhostで撮影に同意し、「カメラを開始する」を押します。音声は取得せず、映像の送信・保存は行いません。[停止仕様と実機確認手順](docs/CAMERA.md)を参照してください。
 
 手首の推定はカメラ開始後に別ボタンで開始します。SDK・WASM・モデルはアプリから配信し、映像はWorker内で処理します。ローカル推定の仕様・配布条件・未確認事項は[POSE.md](docs/POSE.md)。初回ビルド前にモデルを手動取得する必要はありません。
 
-動かせる範囲の計測は、手首推定の開始後に利用できます。姿勢・使う手を選び、本人の操作で開始・確定します。追跡が止まると記録を消去します。[REACH.md](docs/REACH.md)を参照。星APIで選んだ星座の投影と接続できます。カタログ順に実行し、AI振付は未接続です。
+動かせる範囲の計測は、手首推定の開始後に利用できます。姿勢・使う手を選び、本人の操作で開始・確定します。追跡が止まると記録を消去します。[REACH.md](docs/REACH.md)を参照。星APIで選んだ星座の投影と接続できます。カタログ順またはCodexが提案して検証済みの順序で実行します。
 
 ## 検証
 
@@ -46,6 +46,7 @@ fixturesはテスト専用で、実APIの失敗時にモックへ切り替えま
 - `npm run test:browser`：Playwrightによる画面試験。API成功応答はテスト内のfixture、カメラは合成映像の疑似デバイスです。実カメラは使用しません。
   - 初回は`npx playwright install chromium`で試験用ブラウザーを用意できます。
   - インストール済みEdgeを使うWindows環境では、PowerShellで`$env:HCR_BROWSER_CHANNEL='msedge'`を設定します。
+- `npm run smoke:ai`：合成3目標を実Codexへ送る有料API試験。OPENAI_API_KEYとCODEX_MODELが必要。現在はAPI残高ゼロで生成成功を未確認。
 - `npm run smoke:sky`：星APIへの実リクエスト。以下をローカルの`.env`に設定した場合だけ実行します。
   - `HCR_ACCESS_TOKEN`、`HOSHIMIRU_API_TOKEN`
   - `HCR_SMOKE_LAT`、`HCR_SMOKE_LNG`：送信してよい観測地点
