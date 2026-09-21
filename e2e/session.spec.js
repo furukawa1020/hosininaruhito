@@ -69,7 +69,7 @@ test('guest uses the same camera calibration, consented Vertex plan and measured
  await setup(page,undefined,true);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
  await page.route('**/api/program',r=>r.fulfill({json:{...r.request().postDataJSON().program,source:'vertex-live'}}));
  await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');await expect(page.locator('#session-notice')).toContainText('Vertex AI');
- await page.locator('#trace-start').click();
+ await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
  for(let i=1;i<=3;i++){
   const point=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100+.005,y:parseFloat(el.style.top)/100+.005}));await page.evaluate(p=>{window.sessionFixture.point=p;},point);await page.clock.runFor(900);await expect(page.locator('#trace-count')).toContainText('確定した星 '+i);
  }
