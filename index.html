@@ -24,6 +24,16 @@
     </section>
     <div class="workspace">
       <aside class="observation-panel">
+        <section id="cloud-login" hidden aria-labelledby="auth-title">
+          <h2 id="auth-title">ログインして体験を始める</h2>
+          <p class="field-note">主催者から案内されたアカウントを使います。ログイン時はGoogleの認証と不正利用対策へ接続します。映像・観測地点は送りません。</p>
+          <label for="auth-email">メールアドレス<input id="auth-email" type="email" autocomplete="username"></label>
+          <label for="auth-password">パスワード<input id="auth-password" type="password" autocomplete="current-password"></label>
+          <button id="auth-login" type="button" class="primary">ログイン</button>
+          <button id="auth-logout" type="button" class="text-button" hidden>ログアウト</button>
+          <p id="auth-notice" role="status" aria-live="polite"></p>
+          <p class="field-note">ログイン状態はページのメモリ内で保持します。再読み込み時は再ログインしてください。不正利用対策トークンはブラウザーに保存される場合があります。Googleの<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a>が適用されます。</p>
+        </section>
         <div class="section-heading"><span class="eyebrow">OBSERVATION POINT</span><span class="index">01</span></div>
         <h2>どこの空を見ますか</h2>
         <p class="muted">現在地は自動取得しません。街の中心など、おおよその位置で始められます。</p>
@@ -34,13 +44,13 @@
               <label for="lat">緯度 <span>LATITUDE</span><input id="lat" name="lat" type="number" step="any" min="-90" max="90" placeholder="35.68" required></label>
               <label for="lng">経度 <span>LONGITUDE</span><input id="lng" name="lng" type="number" step="any" min="-180" max="180" placeholder="139.76" required></label>
             </div>
-            <label for="token">開発アクセストークン<input id="token" type="password" autocomplete="off" spellcheck="false" required aria-describedby="token-help"></label>
-            <p id="token-help" class="field-note">サーバーの HCR_ACCESS_TOKEN を入力。ブラウザには保存しません。</p>
+            <div id="development-token"><label for="token">開発アクセストークン<input id="token" type="password" autocomplete="off" spellcheck="false" required aria-describedby="token-help"></label>
+            <p id="token-help" class="field-note">サーバーの HCR_ACCESS_TOKEN を入力。ブラウザには保存しません。</p></div>
             <label class="consent"><input id="consent" type="checkbox" required><span>入力した緯度・経度を「星をみるひとAPI」に送信することに同意します。</span></label>
             <button id="sky" class="primary" type="submit" disabled>この場所の星座を探す <span aria-hidden="true">↗</span></button>
           </fieldset>
         </form>
-        <p class="field-note">観測日時はAPIの既定値です。日時・タイムゾーンの指定は準備中です。</p>
+        <p class="field-note">日時はJSTで送信します。星API側のタイムゾーンは未確認です。</p>
         <div class="connection">
           <div class="section-heading"><h3>接続の準備</h3><button id="refresh" type="button" class="text-button">再確認</button></div>
           <ul id="services" class="service-list"><li>サーバーを確認中…</li></ul>

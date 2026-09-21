@@ -2,6 +2,9 @@
 
 一人の身体を時間方向に展開して星座を作る作品。現在は、実APIから星座を取得する観測画面と、撮影への個別同意によるローカルカメラプレビュー・手首のローカル推定を実装しています。
 
+公開サイト: https://hosininaruhito-20260920.web.app
+実ブラウザーのログイン・App Check・星をみるひとAPIの32星座取得を確認済み。Cloud Run上のVertex AI生成も成功しました。実カメラ・実人体の受入確認は残っています。
+
 ## 起動
 
 Node 22.12以上。
@@ -16,6 +19,8 @@ Node 22.12以上。
 APIキーはサーバー環境変数のみ。VITE_変数やGit、チャットへ貼らないこと。
 画面に入力するのは`HCR_ACCESS_TOKEN`です。星APIのキーを画面へ入力しないでください。
 Jev・振付AIは任意の別設定で、星APIの観測だけなら不要です。クラウドでは `HCR_PLANNER_PROVIDER=vertex` を選び、Cloud Runサービスアカウントで認証できます。[Vertex AIの設定・配備準備](docs/VERTEX.md)。Codexを選ぶ場合は `CODEX_MODEL` に利用可能モデルを明示します。
+
+公開環境は招待済みFirebaseアカウントでログインします。開発トークンは使用しません。[認証・日次上限・緊急停止](docs/AUTH.md)。所有者のログイン情報はGit管理外の `.env` の `HCR_OWNER_EMAIL` / `HCR_OWNER_PASSWORD` にあり、チャットへ転記しないでください。
 
 ## 現在できること
 
@@ -47,7 +52,7 @@ fixturesはテスト専用で、実APIの失敗時にモックへ切り替えま
   - 初回は`npx playwright install chromium`で試験用ブラウザーを用意できます。
   - インストール済みEdgeを使うWindows環境では、PowerShellで`$env:HCR_BROWSER_CHANNEL='msedge'`を設定します。
 - `npm run smoke:jev`：固定の合成入力を1回だけ実Jevへ送る有料API試験。TYPESAFE_API_KEYが必要。
-- `npm run smoke:ai`：合成3目標を選択した実AIへ送る有料API試験。VertexはADCと専用project/location/model、CodexはOPENAI_API_KEYとCODEX_MODELが必要。クラウド生成成功は未確認。
+- `npm run smoke:ai`：合成3目標を選択した実AIへ送る有料API試験。VertexはADCと専用project/location/model、CodexはOPENAI_API_KEYとCODEX_MODELが必要。Vertexの実生成は確認済み。実人体の試験とは別です。
 - `npm run smoke:sky`：星APIへの実リクエスト。以下をローカルの`.env`に設定した場合だけ実行します。
   - `HCR_ACCESS_TOKEN`、`HOSHIMIRU_API_TOKEN`
   - `HCR_SMOKE_LAT`、`HCR_SMOKE_LNG`：送信してよい観測地点
@@ -61,8 +66,8 @@ CIはNode 22とlockfile固定のPlaywright/Chromiumで試験します。スク�
 ## 開発・デプロイ
 
 [AGENTS.md](AGENTS.md)と[docs/PLAN.md](docs/PLAN.md)に沿ってP0から進めます。
-Firebase Hosting + Cloud Runの設定ファイルは用意済みですが未デプロイです。
-Firebase/Google Cloudの接続済み連携を優先し、CLIによる認証・デプロイへ自動的に切り替えません。
+Firebase Hosting + Cloud Runへデプロイ済みです。対象は専用project `hosininaruhito-20260920`。
+接続済み連携が利用できなかったため、利用者の委任を受けてCLI配備を実施しました。[配備記録](docs/DEPLOYMENT.md)。
 
 ## 一次資料
 
