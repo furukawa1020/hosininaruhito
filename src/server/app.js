@@ -4,9 +4,10 @@ import { timingSafeEqual } from 'node:crypto';
 import { bodyLimit } from 'hono/body-limit';
 import { projectConstellation } from '../providers/projection.js';
 import { getConstellationCatalog } from '../providers/catalog.js';
-import { observeSky, decideReflex, planWithCodex } from '../providers/live.js';
+import { observeSky, decideReflex } from '../providers/live.js';
+import { planProgram, plannerStatus } from '../providers/planning.js';
 
-export function createApp(env = process.env, providers = { observeSky, decideReflex, planWithCodex, getConstellationCatalog, projectConstellation }) {
+export function createApp(env = process.env, providers = { observeSky, decideReflex, planProgram, getConstellationCatalog, projectConstellation }) {
   const app = new Hono();
   app.use('*', async (c, next) => {
     c.header('Content-Security-Policy', browserPolicy);
@@ -19,11 +20,12 @@ export function createApp(env = process.env, providers = { observeSky, decideRef
     await next();
   });
   app.get('/api/status', c => {
+    const planner = plannerStatus(env);
     const services = {
       access: configured('HCR_ACCESS_TOKEN'), sky: configured('HOSHIMIRU_API_TOKEN'),
-      reflex: configured('TYPESAFE_API_KEY'), planner: configured('OPENAI_API_KEY') && configured('CODEX_MODEL')
+      reflex: configured('TYPESAFE_API_KEY'), planner: planner.configured
     };
-    return c.json({ mode: 'live', configured: Object.values(services).every(Boolean), services });
+    return c.json({ mode: 'live', configured: Object.values(services).every(Boolean), services, plannerProvider: planner.provider });
   });
   app.use('/api/*', async (c, next) => {
     if (!configured('HCR_ACCESS_TOKEN')) return c.json({ error: 'HCR_ACCESS_TOKEN not configured', code: 'not_configured' }, 503);
@@ -42,9 +44,11 @@ export function createApp(env = process.env, providers = { observeSky, decideRef
     onError: c => c.json({ error: 'Payload too large', code: 'payload_too_large' }, 413)
   }));
   for (const [path, provider] of [
-    ['/api/project', 'projectConstellation'], ['/api/catalog', 'getConstellationCatalog'], ['/api/sky', 'observeSky'], ['/api/reflex', 'decideReflex'], ['/api/program', 'planWithCodex']
+    ['/api/project', 'projectConstellation'], ['/api/catalog', 'getConstellationCatalog'], ['/api/sky', 'observeSky'], ['/api/reflex', 'decideReflex'], ['/api/program', 'planProgram']
   ]) {
     app.post(path, async c => {
+      if (path === '/api/program' && c.req.header('X-HCR-Planner') !== plannerStatus(env).provider)
+        return c.json({ error: 'Planner destination changed', code: 'planner_destination_changed' }, 409);
       let input;
       try { input = await c.req.json(); }
       catch { return c.json({ error: 'Invalid JSON', code: 'invalid_json' }, 400); }

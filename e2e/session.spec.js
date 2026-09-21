@@ -7,7 +7,7 @@ const projection=input=>({...input,ok:true,timeBasis:'explicit-utc-catalog-calcu
   stars:[{id:'a',x:.25,y:.25},{id:'b',x:.75,y:.25},{id:'c',x:.25,y:.75}],lines:[['a','b'],['b','c']]});
 async function setup(page, respond) {
   await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
-  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false}}}));
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:false,reflex:false}}}));
   await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験用星座',azimuthDeg:120,altitudeDeg:40}]}}));
   await page.route('**/api/project',respond|| (r=>r.fulfill({json:projection(r.request().postDataJSON())})));
   await page.addInitScript(()=>{
@@ -105,7 +105,7 @@ test('mobile session target and stop stay visible without overflow',async({page}
 
 test('AI consent sends only the fitted program and retains measured capture',async({page})=>{
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
-  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:true,reflex:false}}}));
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:true,reflex:false}}}));
   await page.locator('#refresh').click();
   let input;
   await page.route('**/api/program',r=>{input=r.request().postDataJSON();return r.fulfill({json:{...input.program,source:'codex-live',steps:[...input.program.steps].reverse()}});});
@@ -121,7 +121,7 @@ test('AI consent sends only the fitted program and retains measured capture',asy
 });
 for(const failure of ['quota','modified','late'])test('AI '+failure+' cannot install an invalid or cancelled plan',async({page})=>{
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
-  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:true,reflex:false}}}));
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:true,reflex:false}}}));
   await page.locator('#refresh').click();
   let route;await page.route('**/api/program',r=>{route=r;});
   await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
@@ -138,9 +138,55 @@ test('AI preparation requires configured service',async({page})=>{
  await expect(page.locator('#session-prepare')).toBeDisabled();
 });
 
+async function vertexStatus(page, provider = 'vertex') {
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:provider,services:{access:true,sky:true,planner:true,reflex:false}}}));
+ await page.locator('#refresh').click();
+ await expect(page.locator('#services')).not.toContainText('確認中');
+}
+test('cloud planner displays Google destination and preserves manual start after verified order',async({page})=>{
+ await setup(page);await vertexStatus(page);
+ await expect(page.locator('#planner-destination')).toHaveText('Google Cloud / Vertex AI');
+ let calls=0;
+ await page.route('**/api/program',r=>{calls++;expect(r.request().headers()['x-hcr-planner']).toBe('vertex');const input=r.request().postDataJSON();expect(Object.keys(input)).toEqual(['program']);return r.fulfill({json:{...input.program,source:'vertex-live',steps:[...input.program.steps].reverse()}});});
+ await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');expect(calls).toBe(0);
+ await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#session-notice')).toContainText('Vertex AI');expect(calls).toBe(1);
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+ await page.screenshot({path:'test-results/vertex-fixture-consent.png'});
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.locator('#planner-destination').scrollIntoViewIfNeeded();
+ await expect(page.locator('#stop')).toBeInViewport();
+ await page.screenshot({path:'test-results/vertex-fixture-mobile.png'});
+ await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+});
+test('cloud planner rejects a response with another provider provenance',async({page})=>{
+ await setup(page);await vertexStatus(page);
+ await page.route('**/api/program',r=>r.fulfill({json:{...r.request().postDataJSON().program,source:'codex-live'}}));
+ await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
+ await expect(page.locator('#trace-start')).not.toHaveText('配置した星座を開始する');
+});
+test('destination refresh revokes consent and a late cloud response cannot restore the plan',async({page})=>{
+ await setup(page);await vertexStatus(page);let route;
+ await page.route('**/api/program',r=>{route=r;});
+ await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();
+ await expect.poll(()=>Boolean(route)).toBe(true);
+ await vertexStatus(page,'codex');await expect(page.locator('#planner-consent')).not.toBeChecked();
+ await expect(page.locator('#planner-destination')).toHaveText('OpenAI / Codex');
+ await route.fulfill({json:{...route.request().postDataJSON().program,source:'vertex-live'}});
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','idle');
+ await expect(page.locator('#trace-start')).not.toHaveText('配置した星座を開始する');
+});
+test('unknown cloud destination disables AI preparation',async({page})=>{
+ await setup(page);await vertexStatus(page,'unknown');await page.locator('#planner-consent').check();
+ await expect(page.locator('#session-prepare')).toBeDisabled();
+});
+
 async function prepareAdvice(page,respond) {
  await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
- await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:true}}}));
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:false,reflex:true}}}));
  await page.locator('#refresh').click();
  await page.route('**/api/reflex',respond);
  await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');

@@ -1,0 +1,46 @@
+# Private first deployment. Replace IMAGE_DIGEST and VERTEX_MODEL before applying.
+# Secret versions and the runtime service account must already exist.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: hcr-api
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '1'
+    spec:
+      serviceAccountName: hcr-runtime@hosininaruhito-20260920.iam.gserviceaccount.com
+      containerConcurrency: 1
+      timeoutSeconds: 50
+      containers:
+        - image: IMAGE_DIGEST
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: '1'
+              memory: 512Mi
+          env:
+            - name: HCR_BIND
+              value: 0.0.0.0
+            - name: HCR_PLANNER_PROVIDER
+              value: vertex
+            - name: VERTEX_PROJECT_ID
+              value: hosininaruhito-20260920
+            - name: VERTEX_LOCATION
+              value: global
+            - name: VERTEX_MODEL
+              value: VERTEX_MODEL
+            - name: HCR_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hcr-access-token
+                  key: '1'
+            - name: HOSHIMIRU_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hoshimiru-api-token
+                  key: '1'

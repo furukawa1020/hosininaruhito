@@ -30,6 +30,7 @@
     "@mediapipe/tasks-vision": "1.0.1",
     "@openai/codex-sdk": "^0.155.1",
     "astronomy-engine": "2.1.19",
+    "google-auth-library": "11.1.0",
     "hono": "^4.9.0",
     "three": "^0.180.0"
   },

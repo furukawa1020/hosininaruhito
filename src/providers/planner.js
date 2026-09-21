@@ -61,6 +61,10 @@ export async function runCodexTurn(prompt, { env, model, signal, outputSchema, C
 export async function planWithCodex(input, env, { signal, run = runCodexTurn, timeoutMs = PLANNER_LIMITS.timeoutMs } = {}) {
   required(env, 'OPENAI_API_KEY');
   const model = required(env, 'CODEX_MODEL');
+  return planWithProvider(input, env, { signal, run, timeoutMs, model, source: 'codex-live' });
+}
+
+export async function planWithProvider(input, env, { signal, run, model, source, timeoutMs = PLANNER_LIMITS.timeoutMs }) {
   let baseline;
   try {
     if (!input || Object.keys(input).length !== 1 || (!input.program && !input.constellation)) throw Error();
@@ -87,8 +91,8 @@ export async function planWithCodex(input, env, { signal, run = runCodexTurn, ti
       try {
         if (typeof result.finalResponse !== 'string' || Buffer.byteLength(result.finalResponse) > PLANNER_LIMITS.responseBytes)
           throw Error('invalid_order');
-        const program = reorderProgram(baseline, JSON.parse(result.finalResponse));
-        const evaluation = evaluatePlan(baseline, program);
+        const program = reorderProgram(baseline, JSON.parse(result.finalResponse), source);
+        const evaluation = evaluatePlan(baseline, program, source);
         if (evaluation.ok) return { ...program, planning: { attempts: attempt, usageTokens: usedTokens, simulation: 'synthetic-contract-only', ...evaluation } };
         critic = evaluation.reason;
       } catch { critic = 'invalid_order'; }

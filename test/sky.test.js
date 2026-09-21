@@ -30,21 +30,28 @@ test('sky rejects malformed, duplicate, oversized or unsuccessful provider paylo
     assert.throws(() => normalizeSky(data), { status: 502, code: 'invalid_response' });
   }
 });
-test('sky sends only coordinates with a server-side bearer token and no inferred time', async t => {
+test('sky sends documented date fields in explicit JST across UTC day rollover', async t => {
   let called = 0;
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     called++;
     assert.equal(url.origin, 'https://app.livlog.xyz');
     assert.equal(url.pathname, '/hoshimiru/constellation');
-    assert.deepEqual([...url.searchParams], [['lat', '35.68'], ['lng', '139.76']]);
+    assert.deepEqual([...url.searchParams], [['lat', '35.68'], ['lng', '139.76'], ['date','2026-01-02'], ['hour','00'], ['min','05']]);
     assert.equal(options.headers.Authorization, 'Bearer provider-test-token');
     assert.equal(options.redirect, 'error');
     assert.ok(options.signal instanceof AbortSignal);
     return Response.json(response([row]));
   });
-  const result = await observeSky({ lat: 35.68, lng: 139.76 }, { HOSHIMIRU_API_TOKEN: 'provider-test-token' });
+  const result = await observeSky({ lat: 35.68, lng: 139.76 }, { HOSHIMIRU_API_TOKEN: 'provider-test-token' }, { now: () => new Date('2026-01-01T15:05:00.000Z') });
+  assert.equal(result.timeBasis, 'explicit-jst-provider-timezone-unverified');
+  assert.equal(result.requestedAt, '2026-01-01T15:05:00.000Z');
   assert.equal(result.constellations.length, 1);
   assert.equal(called, 1);
+});
+
+test('live-compatible empty errors array succeeds; populated and malformed errors fail closed',()=>{
+ assert.equal(normalizeSky({...response([row]),errors:[]}).constellations.length,1);
+ for(const errors of [[{code:'E001'}],{},'',false,0])assert.throws(()=>normalizeSky({...response([]),errors}),{code:'invalid_response'});
 });
 test('missing keys, invalid coordinates and unsupported times never call upstream', async t => {
   const fetch = t.mock.method(globalThis, 'fetch', () => { throw new Error('Unexpected network'); });

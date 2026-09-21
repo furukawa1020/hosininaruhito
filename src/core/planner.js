@@ -7,18 +7,19 @@ export function canonicalProgram(value) {
     steps: value.steps.map(s => ({ starId: s.starId, joint: s.joint,
       target: { x: s.target.x, y: s.target.y }, holdMs: s.holdMs, tolerance: s.tolerance })) };
 }
-export function reorderProgram(baseline, proposal) {
+export function reorderProgram(baseline, proposal, source = 'codex-live') {
+  if (!['codex-live', 'vertex-live'].includes(source)) throw Error('invalid_source');
   const base = canonicalProgram(baseline);
   if (!proposal || Object.keys(proposal).length !== 1 || !Array.isArray(proposal.order) ||
       proposal.order.length !== base.steps.length || new Set(proposal.order).size !== base.steps.length)
     throw Error('invalid_order');
   const steps = proposal.order.map(id => base.steps.find(s => s.starId === id));
   if (steps.some(s => !s)) throw Error('invalid_order');
-  return { ...base, steps, source: 'codex-live' };
+  return { ...base, steps, source };
 }
-export function validatePlannedProgram(baseline, candidate) {
+export function validatePlannedProgram(baseline, candidate, source = 'codex-live') {
   const clean = canonicalProgram(candidate), base = canonicalProgram(baseline);
-  if (clean.constellationId !== base.constellationId || clean.source !== 'codex-live' ||
+  if (!['codex-live', 'vertex-live'].includes(source) || clean.constellationId !== base.constellationId || clean.source !== source ||
       clean.steps.length !== base.steps.length || clean.steps.some(s => {
         const original = base.steps.find(b => b.starId === s.starId);
         return !original || JSON.stringify(s) !== JSON.stringify(original);
@@ -30,8 +31,8 @@ export function travel(program) {
     Math.hypot(s.target.x-program.steps[i].target.x, s.target.y-program.steps[i].target.y), 0);
 }
 // Synthetic contract simulation, never evidence of human reach or safety.
-export function evaluatePlan(baseline, candidate) {
-  const program = validatePlannedProgram(baseline, candidate);
+export function evaluatePlan(baseline, candidate, source = 'codex-live') {
+  const program = validatePlannedProgram(baseline, candidate, source);
   if (travel(program) > travel(baseline) + 1e-9) return { ok: false, reason: 'longer_path' };
   const runtime = new HumanRuntime(program); runtime.start(); let now = 0;
   for (const step of program.steps) {

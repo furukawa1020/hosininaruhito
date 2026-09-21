@@ -19,7 +19,7 @@ experience = mountSession(document, window, { reach, trace });
 pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });
 let services = null;
 let busy = false;
-const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'Codex / 振付' };
+const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'AI / 振付' };
 const errors = {
   not_configured: 'サーバーの接続設定が不足しています。「接続の準備」を確認してください。',
   unauthorized: '開発アクセストークンが一致しません。入力を確認してください。',
@@ -88,7 +88,7 @@ async function loadStatus() {
     if (!request.isCurrent()) return;
     if (!response.ok || data.mode !== 'live' || !data.services ||
         !Object.keys(labels).every(key => typeof data.services[key] === 'boolean')) throw new Error('Invalid status');
-    services = data.services; experience.setServices(services); advice.setServices(services);
+    services = data.services; experience.setServices(services, data.plannerProvider); advice.setServices(services);
     showServices();
     notice(services.access && services.sky
       ? '星APIの設定を確認しました。観測地点を入力して接続してください。'
@@ -137,7 +137,7 @@ function renderSky(data) {
     $('constellations').append(button);
   }
   selectConstellation(rows[0], $('constellations').firstElementChild);
-  notice('星APIに接続しました。' + rows.length + '件の星座を高度順に表示しています。日時はAPIの既定値です。', 'success');
+  notice('星APIに接続しました。' + rows.length + '件の星座を高度順に表示しています。日時はJSTで送信しています。API側のタイムゾーンは未確認です。', 'success');
 }
 async function call(path, body) {
   const token = $('token').value;

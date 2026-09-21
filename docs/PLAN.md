@@ -261,3 +261,21 @@ capability追加やsandbox無効化は行わない。ツール無効のSDK生成
 仕様と未確認事項は[JEV.md](JEV.md)。依存追加なし、既存lockfileを維持。
 
 検証: npm run check（137件＋本番ビルド）成功。追加Jev画面5件がWindows/Edgeで成功。smoke:jevはnot_configuredを返し、実API成功とは扱わない。
+
+
+## 2026-09-21 Vertex AIクラウド経路と星APIライブ確認（#33 / #34）
+
+- [x] Cloud Runサービスアカウント/ADCでVertex AIのGeminiへ接続するproviderを実装。個人のCodexログインは配備しない
+- [x] プロバイダー明示選択、Google/OpenAI別の送信同意、ヘッダーで送信先を固定、出典をクライアントでも照合
+- [x] 星順序のみ変更、共通の決定論的検証、40秒・2試行・1024出力token、応答量/usage制限
+- [x] google-auth-library 11.1.0固定、インストール済み型と一次資料を確認、lockfile更新
+- [x] 星APIの必須日時/空errors配列を修正し、実アプリ経由のライブスモークで31星座取得
+- [x] 非root/read-only/通信なしコンテナの実APIサーバー起動・SIGTERMと、Vertex ADC未設定時の明示失敗
+- [x] 専用project向けCloud Run定義・秘密/IAM・非公開配備手順を作成
+- [ ] 課金接続・aiplatform API有効化・Cloud Run実配備・Vertex生成正常系
+
+npm run checkは155試験＋本番ビルド成功。画面試験でAI未使用時まで接続再確認で配置を消す回帰を発見し、同意済みAI計画だけを破棄するよう修正。修正後の画面検証とCI結果はPRへ記録する。
+
+実Vertex要求はADC認証後にHTTP403。専用projectはbillingEnabled=false、aiplatform APIも未有効。モデル利用可能性・正常生成は未確認。接続済み操作連携の検索ではCloud Run/Firebaseを操作できるものがなく、AGENTS.mdに従いCLI配備は確認待ち。
+
+星APIの日時は明示JST送信へ変更したが、提供側のタイムゾーンは未確認。fixtures/合成身体の試験とライブ疎通・実人体の試験は混同しない。Jev実トークン、実カメラ、Firebase Auth/App Check/利用者別上限、公開デプロイは残る。

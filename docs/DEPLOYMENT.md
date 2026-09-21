@@ -3,6 +3,10 @@
 配備先はユーザーの作成指示に基づく専用project `hosininaruhito-20260920`（766405647874）のみ。
 `.firebaserc` のdefaultもこのprojectに固定する。現時点では課金未接続、Firebase未初期化、Cloud Run未配備。
 
+クラウドの振付AIはVertex AI / ADCを選べる。Codex CLIのインストール・個人ログインを要求しない。
+非公開Cloud Run用サービス定義を `deploy/cloudrun.vertex.yaml` に用意した。[設定と適用順序](VERTEX.md)。
+Vertex経路ではコマンドsandboxを使用しない。従来Codex sandboxの失敗を成功に読み替えるものではない。
+
 ## 再現手順
 
 ```text
@@ -34,9 +38,9 @@ APIサーバー起動成功だけを作品全体やデプロイ成功とは扱�
 
 ## 配備前の残条件
 
-- #3: 星API実トークンとライブ観測。現在ブラウザー操作連携0件で取得先へのログイン不可
+- #3: 星API実トークン設定・ライブ観測は2026-09-21に成功。配備先Secret Managerへの登録が残る
 - #13/#14: Codex生成正常系・厳密な費用上限、Jevトークンと統合・実測
-- #16: Cloud Runのread-only sandboxと中断を実環境で確認
+- #16: 選択するAI経路のCloud Run実環境試験（Codex選択時はread-only sandboxも必要）
 - #17: Firebase Auth/App Check/ユーザー別上限
 - #20: 個別同意のもとで実カメラ・実人体を確認
 
