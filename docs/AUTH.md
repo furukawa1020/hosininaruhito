@@ -2,14 +2,30 @@
 
 Cloud Runは `HCR_AUTH_MODE=firebase` を必須とする。開発共有トークンへの切替は拒否する。
 Firebase Authenticationのメール/パスワードと、reCAPTCHA EnterpriseによるApp Checkを使用する。
-管理者が `hcrAccess: true` のcustom claimを付けた利用者だけがAPIを利用できる。
-自己作成したアカウントだけでは有料APIを呼べない。
+管理者が `hcrAccess: true` のcustom claimを付けた利用者、または明示的に許可したゲストがAPIを利用できる。
+ゲストはFirebaseの署名済みID tokenに `firebase.sign_in_provider=anonymous` がある場合だけ許可する。
+本番設定 `HCR_GUEST_ENABLED=true` が必要。省略/false時はゲストを拒否する。未招待のメールアカウントやcustom tokenをゲストと扱わない。
 
 ID tokenの署名/期限/失効/無効化に加え、project、issuer、招待claimを検証する。
 App Checkは署名/期限と対象appIdを確認する。失敗は401、設定不足は503で、秘密やSDK例外は返さない。
-ID tokenとパスワードはブラウザーの永続ストレージに保存しない。App CheckはSDKが端末内へ保存する場合がある。
+アカウントのID tokenとパスワードは永続ストレージに保存しない。ゲストの認証だけはFirebase SDKのsessionStorageでタブ内に保持する。App CheckはSDKが端末内へ保存する場合がある。
 Googleへの認証・不正利用対策の通信はログイン操作後に開始する。撮影・位置送信・振付AIの同意は独立。
 ログインの変更/ログアウト時は体験を停止し、古い応答を破棄する。
+
+## ゲストの体験
+
+「ゲストとしてはじめる」で実App Checkを確認した後、Firebase匿名認証を実行する。
+メール・パスワード・共有キーの入力は不要。全て既存のAPI/画面/AI/計測/captureへ接続し、ゲスト用fixtureや機能削減は設けない。
+未設定の任意Jevはアカウント利用時と同様に無効。
+タブを再読み込みして再び開始ボタンを押すと同じ匿名UIDを再利用する。カメラ・観測・AIの同意と身体データは復元しない。
+終了操作でSDKの認証を解除し、sessionStorageから消去する。タブを閉じてもセッションは消える。Firebase側の匿名アカウントは30日経過後の自動削除を有効化する。
+開始待ちの停止/Esc/非表示/取消では遅い認証結果も破棄する。SDKのログアウトが終わる前に次の認証を始めない。
+
+上限はアカウントと同じUID別・全体別の値。別タブ・終了後の再作成は別UIDになるため「同一人物」の識別ではないが、全体上限は新しいUIDでもリセットしない。
+ゲストだけ止める場合はCloud Runの `HCR_GUEST_ENABLED=false`、全員を止める場合は下記Firestoreスイッチを使う。
+Firebaseの匿名provider設定は専用projectの `signIn.anonymous.enabled=true`。`autodeleteAnonymousUsers=true` も設定する。
+
+一次資料: [匿名認証](https://firebase.google.com/docs/auth/web/anonymous-auth)、[タブ内の認証保持](https://firebase.google.com/docs/auth/web/auth-state-persistence)。インストール済み12.19.0のsignInAnonymouslyのUID再利用・browserSessionPersistence・authStateReadyを照合した。
 
 ## 永続的な制限
 

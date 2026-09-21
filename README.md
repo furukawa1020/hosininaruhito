@@ -20,7 +20,9 @@ APIキーはサーバー環境変数のみ。VITE_変数やGit、チャットへ
 画面に入力するのは`HCR_ACCESS_TOKEN`です。星APIのキーを画面へ入力しないでください。
 Jev・振付AIは任意の別設定で、星APIの観測だけなら不要です。クラウドでは `HCR_PLANNER_PROVIDER=vertex` を選び、Cloud Runサービスアカウントで認証できます。[Vertex AIの設定・配備準備](docs/VERTEX.md)。Codexを選ぶ場合は `CODEX_MODEL` に利用可能モデルを明示します。
 
-公開環境は招待済みFirebaseアカウントでログインします。開発トークンは使用しません。[認証・日次上限・緊急停止](docs/AUTH.md)。所有者のログイン情報はGit管理外の `.env` の `HCR_OWNER_EMAIL` / `HCR_OWNER_PASSWORD` にあり、チャットへ転記しないでください。
+公開環境は「ゲストとしてはじめる」で登録・入力なしに開始できます。星API、カメラ、手首推定、配置、保持による星座完成、Vertex AIはアカウント利用時と同じ機能です。撮影・位置送信・AI利用にはそれぞれ同意が必要です。ゲストも同じ日次上限を使います。
+
+「アカウントでログイン」から従来の招待済みFirebaseアカウントも使えます。開発トークンは使用しません。[認証・日次上限・緊急停止](docs/AUTH.md)。所有者のログイン情報はGit管理外の `.env` の `HCR_OWNER_EMAIL` / `HCR_OWNER_PASSWORD` にあり、チャットへ転記しないでください。
 
 ## 現在できること
 

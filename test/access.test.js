@@ -17,6 +17,32 @@ test('missing oversized expired and revoked tokens never become a development by
   await assert.rejects(verifyAccess('id','app',env,s),e=>e.code==='unauthorized'&&!e.message.includes('private'));
  }
 });
+test('guest access requires explicit enablement and verified anonymous provider with the same app and project',async()=>{
+ const guest={...user(),hcrAccess:false,firebase:{sign_in_provider:'anonymous'}};
+ const enabled={...env,HCR_GUEST_ENABLED:'true'};
+ assert.equal(await verifyAccess('id','app',enabled,sdk(guest)),'user1');
+ for(const flag of [undefined,'false','TRUE'])await assert.rejects(verifyAccess('id','app',{...env,HCR_GUEST_ENABLED:flag},sdk(guest)),{code:'unauthorized'});
+ for(const provider of [undefined,'password','custom','google.com'])await assert.rejects(verifyAccess('id','app',enabled,sdk({...guest,firebase:{sign_in_provider:provider}})),{code:'unauthorized'});
+ for(const invalid of [{...guest,aud:'other'},{...guest,iss:'other'},{...guest,uid:''}])await assert.rejects(verifyAccess('id','app',enabled,sdk(invalid)),{code:'unauthorized'});
+ await assert.rejects(verifyAccess('id','',enabled,sdk(guest)),{code:'unauthorized'});
+ await assert.rejects(verifyAccess('id','app',enabled,sdk(guest,{appId:'other'})),{code:'unauthorized'});
+ const broken=sdk(guest);broken.auth.verifyIdToken=async()=>{throw Error('revoked');};await assert.rejects(verifyAccess('id','app',enabled,broken),{code:'unauthorized'});
+});
+test('guest uses every existing API route and the same persistent quotas, with no provider bypass',async()=>{
+ const db=store(),enabled={...env,HCR_GUEST_ENABLED:'true'},guest={...user(),hcrAccess:false,firebase:{sign_in_provider:'anonymous'}};
+ let calls=0;const providers=Object.fromEntries(['observeSky','planProgram','decideReflex','projectConstellation','getConstellationCatalog'].map(k=>[k,async()=>({ok:++calls})]));
+ const access={verify:(id,app)=>verifyAccess(id,app,enabled,sdk(guest)),acquire:(uid,route)=>reserveUsage(db,uid,route,{now:()=>Date.UTC(2026,0,1)})};
+ const app=createApp(enabled,providers,access),headers={Authorization:'Bearer id','X-Firebase-AppCheck':'app','X-HCR-Planner':'codex','Content-Type':'application/json'};
+ for(const route of Object.keys(DAILY_LIMITS))assert.equal((await app.request('/api/'+route,{method:'POST',headers,body:'{}'})).status,200);
+ assert.equal(calls,5);assert.deepEqual(db.values.get('hcrUsage/2026-01-01-global'),{sky:1,program:1,reflex:1,project:1,catalog:1});
+ db.values.set('hcrUsage/2026-01-01-global',{sky:200});assert.equal((await app.request('/api/sky',{method:'POST',headers,body:'{}'})).status,429);assert.equal(calls,5);
+ db.values.set('hcrControl/runtime',{enabled:false});assert.equal((await app.request('/api/program',{method:'POST',headers,body:'{}'})).status,503);assert.equal(calls,5);
+});
+test('status advertises guest enablement only from the server setting',async()=>{
+ for(const enabled of [false,true]){
+  const status=await(await createApp({...env,HCR_GUEST_ENABLED:String(enabled)}).request('/api/status')).json();assert.equal(status.auth.guestEnabled,enabled);
+ }
+});
 // A serialized transactional store exercises competing consumers of shared data.
 function store(){const values=new Map([['hcrControl/runtime',{enabled:true}]]);let tail=Promise.resolve();return {values,doc:path=>({path}),runTransaction(fn){const job=tail.then(async()=>{const snapshot=new Map([...values].map(([k,v])=>[k,structuredClone(v)]));const read=r=>({data:()=>snapshot.get(r.path)});const result=await fn({get:async r=>read(r),getAll:async(...refs)=>refs.map(read),set:(r,v,o)=>snapshot.set(r.path,o?.merge?{...snapshot.get(r.path),...v}:v),delete:r=>snapshot.delete(r.path)});values.clear();for(const [k,v]of snapshot)values.set(k,v);return result;});tail=job.catch(()=>{});return job;}};}
 test('shared lease rejects concurrent instances, release preserves daily charge',async()=>{

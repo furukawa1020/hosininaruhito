@@ -30,7 +30,7 @@ export function mountSession(document, window, { reach, trace }) {
     unobserved_targets: '記録した動きから、各目標付近を通ったことを確認できません。無理に手を伸ばさず、別の星座を選ぶか楽な範囲で計測し直してください。',
     invalid_calibration: '動かせる範囲を計測し直してください。',
     narrow_range: '配置に使える広さを確認できませんでした。無理に広げず中断できます。',
-    unauthorized: '開発アクセストークンを確認してください。',
+    unauthorized: 'ゲスト開始またはログインをやり直してください。開発環境ではアクセストークンを確認してください。',
     busy: 'サーバーが処理中です。少し待ってから試してください。',
     not_configured: 'サーバーの設定が不足しています。',
     catalog_unavailable: '恒星カタログを利用できません。'
@@ -53,7 +53,7 @@ export function mountSession(document, window, { reach, trace }) {
   const prepare = async () => {
     if ($('session-prepare').disabled || !selected) return;
     const token = $('token').value;
-    if (!hasAccess(token)) { say('ログインまたは開発アクセストークンが必要です。', 'error'); return; }
+    if (!hasAccess(token)) { say('ゲストとしてはじめるか、ログインしてください。開発環境ではアクセストークンを入力してください。', 'error'); return; }
     const calibration = reach.result();
     if (!calibration) return;
     const request = requests.begin();

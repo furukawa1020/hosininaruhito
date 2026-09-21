@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import {guestAuth,guestSdk} from './guest-fixture.js';
 const videoPath=fileURLToPath(new URL('./.generated/camera.y4m',import.meta.url));
 test.use({launchOptions:{args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--enable-unsafe-swiftshader','--use-file-for-fake-video-capture='+videoPath]}});
 const projection=input=>({...input,ok:true,timeBasis:'explicit-utc-catalog-calculation',source:{catalog:'d3-celestial/XHIP',commit:'7e720a3de062059d4c5400a379146a601d9010e0',license:'BSD-3-Clause',calculation:'astronomy-engine@2.1.19'},
   projection:'gnomonic',coordinateSystem:'normalized-image-template',mirrored:false,excluded:[],
   stars:[{id:'a',x:.25,y:.25},{id:'b',x:.75,y:.25},{id:'c',x:.25,y:.75}],lines:[['a','b'],['b','c']]});
-async function setup(page, respond) {
+async function setup(page, respond, guest=false) {
   await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
-  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'codex',services:{access:true,sky:true,planner:false,reflex:false}}}));
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:guest?'vertex':'codex',services:{access:true,sky:true,planner:guest,reflex:false},...(guest?{auth:guestAuth}:{})}}));
+  if(guest)await guestSdk(page);
   await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験用星座',azimuthDeg:120,altitudeDeg:40}]}}));
   await page.route('**/api/project',respond|| (r=>r.fulfill({json:projection(r.request().postDataJSON())})));
   await page.addInitScript(()=>{
@@ -28,7 +30,9 @@ async function setup(page, respond) {
     };
   });
   await page.goto('/');
-  await page.locator('#lat').fill('36.56');await page.locator('#lng').fill('136.69');await page.locator('#token').fill('fixture-only');
+  if(guest){await page.locator('#auth-guest').click();await expect(page.locator('#auth-notice')).toContainText('ゲストとして開始');}
+  else await page.locator('#token').fill('fixture-only');
+  await page.locator('#lat').fill('36.56');await page.locator('#lng').fill('136.69');
   await page.locator('#consent').check();await page.locator('#sky').click();
   await expect(page.locator('#session-selection')).toContainText('試験用星座');
   await expect(page.locator('#session-prepare')).toBeDisabled();
@@ -59,6 +63,18 @@ test('fixture selection to measured captures completes, and reset removes all ca
   await page.locator('#lat').fill('35');await expect(page.locator('#trace-count')).toContainText('確定した星 0');
   await expect(page.locator('#session-selection')).toContainText('先に星API');
   await page.locator('#session-clear').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','idle');
+});
+test('guest uses the same camera calibration, consented Vertex plan and measured completion',async({page})=>{
+ const paths=[];page.on('request',r=>{if(r.method()==='POST'){expect(r.headers()['authorization']).toBe('Bearer guest-fixture');paths.push(new URL(r.url()).pathname);}});
+ await setup(page,undefined,true);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await page.route('**/api/program',r=>r.fulfill({json:{...r.request().postDataJSON().program,source:'vertex-live'}}));
+ await page.locator('#planner-consent').check();await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');await expect(page.locator('#session-notice')).toContainText('Vertex AI');
+ await page.locator('#trace-start').click();
+ for(let i=1;i<=3;i++){
+  const point=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100+.005,y:parseFloat(el.style.top)/100+.005}));await page.evaluate(p=>{window.sessionFixture.point=p;},point);await page.clock.runFor(900);await expect(page.locator('#trace-count')).toContainText('確定した星 '+i);
+ }
+ await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','complete');expect(paths).toEqual(['/api/sky','/api/project','/api/project','/api/program']);
+ await page.locator('#auth-logout').click();await expect(page.locator('#camera-notice')).not.toHaveAttribute('data-state','preview');await expect(page.locator('#trace-count')).toContainText('確定した星 0');
 });
 for(const action of ['loss','posture','location','consent','stop','hidden'])test('prepared session is invalidated by '+action,async({page})=>{
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');

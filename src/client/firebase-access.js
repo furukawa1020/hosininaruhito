@@ -1,21 +1,39 @@
 import {initializeApp} from 'firebase/app';
-import {initializeAuth,inMemoryPersistence,signInWithEmailAndPassword,signOut} from 'firebase/auth';
+import {initializeAuth,inMemoryPersistence,browserSessionPersistence,setPersistence,signInAnonymously,signInWithEmailAndPassword,signOut} from 'firebase/auth';
 import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken} from 'firebase/app-check';
 let auth,check,identity;
-export async function login(settings,email,password) {
-  const key=JSON.stringify(settings);
+async function prepare(settings,guest) {
+  const key=JSON.stringify({config:settings.config,siteKey:settings.siteKey});
   if(identity&&identity!==key)throw Error('Reload required');
   if(!auth){
     const app=initializeApp(settings.config);
-    auth=initializeAuth(app,{persistence:inMemoryPersistence});
+    auth=initializeAuth(app,{persistence:guest?browserSessionPersistence:inMemoryPersistence});
     check=initializeAppCheck(app,{provider:new ReCaptchaEnterpriseProvider(settings.siteKey),isTokenAutoRefreshEnabled:false});
     identity=key;
   }
-  const result=await signInWithEmailAndPassword(auth,email,password);
-  const claims=await result.user.getIdTokenResult();
-  if(claims.claims.hcrAccess!==true){await signOut(auth);throw Error('Not invited');}
+  await auth.authStateReady();
+  // Never persist an existing named account when switching to guest mode.
+  if(guest&&auth.currentUser&&!auth.currentUser.isAnonymous)await signOut(auth);
+  await setPersistence(auth,guest?browserSessionPersistence:inMemoryPersistence);
   await getToken(check);
-  return result.user;
+}
+export async function login(settings,email,password) {
+  try{
+    await prepare(settings,false);
+    const result=await signInWithEmailAndPassword(auth,email,password);
+    const claims=await result.user.getIdTokenResult();
+    if(claims.claims.hcrAccess!==true)throw Error('Not invited');
+    return result.user;
+  }catch(error){await logout();throw error;}
+}
+export async function guest(settings) {
+  if(settings?.guestEnabled!==true)throw Error('Guest access disabled');
+  try{
+    await prepare(settings,true);
+    const result=await signInAnonymously(auth);
+    if(!result.user.isAnonymous)throw Error('Guest identity required');
+    return result.user;
+  }catch(error){await logout();throw error;}
 }
 export async function headers(){
   if(!auth?.currentUser)throw Error('Sign in required');

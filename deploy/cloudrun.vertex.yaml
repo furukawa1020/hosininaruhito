@@ -38,6 +38,8 @@ spec:
               value: VERTEX_MODEL
             - name: HCR_AUTH_MODE
               value: firebase
+            - name: HCR_GUEST_ENABLED
+              value: 'true'
             - name: FIREBASE_PROJECT_ID
               value: hosininaruhito-20260920
             - name: FIREBASE_APP_ID

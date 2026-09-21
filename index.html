@@ -25,14 +25,18 @@
     <div class="workspace">
       <aside class="observation-panel">
         <section id="cloud-login" hidden aria-labelledby="auth-title">
-          <h2 id="auth-title">ログインして体験を始める</h2>
-          <p class="field-note">主催者から案内されたアカウントを使います。ログイン時はGoogleの認証と不正利用対策へ接続します。映像・観測地点は送りません。</p>
+          <h2 id="auth-title">あなたの身体で、星座をつくる。</h2>
+          <p class="field-note">登録なしで、星を探すところから星座づくりまで体験できます。開始時にGoogleの認証と不正利用対策へ接続します。ここでは映像・観測地点は送りません。</p>
+          <button id="auth-guest" type="button" class="primary" hidden>ゲストとしてはじめる <span aria-hidden="true">↗</span></button>
+          <details id="auth-account">
+          <summary class="text-button">アカウントでログイン</summary>
           <label for="auth-email">メールアドレス<input id="auth-email" type="email" autocomplete="username"></label>
           <label for="auth-password">パスワード<input id="auth-password" type="password" autocomplete="current-password"></label>
           <button id="auth-login" type="button" class="primary">ログイン</button>
+          </details>
           <button id="auth-logout" type="button" class="text-button" hidden>ログアウト</button>
           <p id="auth-notice" role="status" aria-live="polite"></p>
-          <p class="field-note">ログイン状態はページのメモリ内で保持します。再読み込み時は再ログインしてください。不正利用対策トークンはブラウザーに保存される場合があります。Googleの<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a>が適用されます。</p>
+          <p class="field-note">ゲストのログイン状態はこのタブ内に保持し、終了操作かタブを閉じると消去します。映像や身体の記録は保存しません。アカウントのログイン状態はページのメモリ内だけで保持します。不正利用対策トークンはブラウザーに保存される場合があります。Googleの<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a>が適用されます。</p>
         </section>
         <div class="section-heading"><span class="eyebrow">OBSERVATION POINT</span><span class="index">01</span></div>
         <h2>どこの空を見ますか</h2>
