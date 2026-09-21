@@ -97,7 +97,7 @@ test('empty successful response is distinct from failure and mobile has no horiz
   await page.locator('#consent').check();
   await page.locator('#sky').click();
   await expect(page.locator('#notice')).toContainText('星座が返されませんでした');
-  await expect(page.locator('#count')).toHaveText('0 CONSTELLATIONS');
+  await expect(page.locator('#count')).toHaveText('0 星座');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await expect(page.locator('#stop')).toBeInViewport();
   await page.screenshot({ path: 'test-results/observation-mobile.png', fullPage: true });

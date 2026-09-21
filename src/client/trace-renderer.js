@@ -17,7 +17,7 @@ export class TraceRenderer {
       canvas.addEventListener('webglcontextlost', this.loss);
       for (const [name, count, color, size, line] of [
         ['trail', MAX_TRAIL_POINTS, '#9abcaa', 5, false], ['targets', 12, '#8c713f', 5, false],
-        ['lines', 132, '#d1eaa4', 1, true], ['captures', 12, '#eaf5d4', 12, false], ['current', 1, '#f8cd90', 8, false]
+        ['lines', 132, '#d1eaa4', 1, true], ['captures', 12, '#eaf5d4', 14, false], ['current', 1, '#a8c9e7', 14, false]
       ]) {
         const geometry = new BufferGeometry();
         geometry.setAttribute('position', new BufferAttribute(new Float32Array(count * 3), 3).setUsage(DynamicDrawUsage));

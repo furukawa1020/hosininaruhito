@@ -3,165 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#101719">
-  <title>星にされる人 — 空を選ぶ</title>
+  <meta name="theme-color" content="#f6f3eb">
+  <title>星にされる人 — 手を動かして、星座をつくる</title>
 </head>
 <body>
+  <a class="skip-link" href="#start">体験の開始へ</a>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="星にされる人 ホーム"><span aria-hidden="true">✧</span> HUMAN CONSTELLATION</a>
-    <button id="stop" class="stop" type="button">停止 <kbd>Esc</kbd></button>
+    <a class="brand" href="/">✧ 星にされる人</a>
+    <a class="how-link" href="#how-to">遊び方</a>
+    <button id="stop" class="stop" type="button">■ 停止 <kbd>Esc</kbd></button>
   </header>
   <main>
-    <section class="intro">
-      <p class="eyebrow">01 / OBSERVE THE SKY</p>
-      <h1>星にされる人<span>まず、空を選ぶ。</span></h1>
-      <p class="lead">ひとりの身体を、時間をかけて星座にする。<br>その最初の一歩は、ある場所の空を知ること。</p>
-      <ol class="steps" aria-label="作品の進行">
-        <li aria-current="step"><span>01</span> 空を選ぶ</li>
-        <li><span>02</span> 身体を重ねる</li>
-        <li><span>03</span> 星座を残す</li>
-      </ol>
+    <section class="intro" aria-labelledby="intro-title">
+      <div class="intro-copy">
+        <p class="intro-note">カメラと片手であそぶ、星座づくり</p>
+        <h1 id="intro-title">その手のあとが、<br>星座になる。</h1>
+        <p class="lead">画面の輪に、あなたの手の光を重ねる。<br>少し止まると、ひとつの星が残ります。<br>今の空の星座を、つくりましょう。</p>
+        <a href="#start" class="primary intro-start">星座をつくってみる <span aria-hidden="true">↓</span></a>
+        <p class="field-note">登録不要。カメラのある端末で、座ったままあそべます。</p>
+      </div>
+      <figure class="play-illustration">
+        <svg viewBox="0 0 540 410" role="img" aria-labelledby="drawing-title drawing-desc">
+          <title id="drawing-title">手の光を輪に重ねると、星が残る</title>
+          <desc id="drawing-desc">遊び方の説明図。手首の光を目標の輪に合わせ、0.8秒止めると星になり、前の星と線でつながります。実際の星座データではありません。</desc>
+          <g fill="#9fb5ce"><circle cx="52" cy="85" r="2"/><circle cx="470" cy="60" r="2"/><circle cx="430" cy="345" r="1.5"/><circle cx="92" cy="290" r="1.5"/><circle cx="320" cy="32" r="1.5"/></g>
+          <path d="M90 205 180 100 305 145 410 90" fill="none" stroke="#e3ca87" stroke-width="2"/>
+          <g fill="#fff0bc"><circle cx="90" cy="205" r="5"/><circle cx="180" cy="100" r="6"/><circle cx="305" cy="145" r="5"/></g>
+          <circle cx="410" cy="90" r="25" fill="none" stroke="#e3ca87" stroke-width="2"/>
+          <circle cx="410" cy="90" r="36" fill="none" stroke="#e3ca87" stroke-opacity=".25"/>
+          <path d="M225 340C211 292 234 286 244 291L247 205Q249 184 260 195L265 253L275 236Q285 223 294 237L303 227Q316 219 321 235L334 231Q348 230 348 247L345 290Q343 312 329 340" fill="#25394e" stroke="#c4d1db" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M273 304Q331 222 362 172T410 90" fill="none" stroke="#a8c9e7" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+          <circle cx="273" cy="304" r="8" fill="#a8c9e7"/><circle cx="273" cy="304" r="17" fill="#a8c9e7" opacity=".12"/>
+          <g fill="#eef1f4" font-size="19" font-family="sans-serif"><text x="300" y="202">輪に重ねて、0.8秒</text><text x="63" y="249">残った星</text><text x="270" y="369">あなたの手の光</text></g>
+        </svg>
+        <figcaption>手を動かす → 輪で止める → 星が残る<span>遊び方のイメージ</span></figcaption>
+      </figure>
     </section>
-    <div class="workspace">
-      <aside class="observation-panel">
-        <section id="cloud-login" hidden aria-labelledby="auth-title">
-          <h2 id="auth-title">あなたの身体で、星座をつくる。</h2>
-          <p class="field-note">登録なしで、星を探すところから星座づくりまで体験できます。開始時にGoogleの認証と不正利用対策へ接続します。ここでは映像・観測地点は送りません。</p>
-          <button id="auth-guest" type="button" class="primary" hidden>ゲストとしてはじめる <span aria-hidden="true">↗</span></button>
-          <details id="auth-account">
-          <summary class="text-button">アカウントでログイン</summary>
+
+    <section id="how-to" class="how-to" aria-labelledby="how-title">
+      <h2 id="how-title">あそび方は、3つのステップ。</h2>
+      <ol class="steps" aria-label="作品の進行">
+        <li id="step-sky"><a href="#observe"><span class="step-number">1</span><strong>今の空から、選ぶ</strong><p>場所を決めて、つくりたい星座を選びます。</p></a></li>
+        <li id="step-body"><a href="#body"><span class="step-number">2</span><strong>手を映して、準備</strong><p>カメラで手を見つけ、楽に動かせる範囲を記録します。</p></a></li>
+        <li id="step-play"><a href="#play"><span class="step-number">3</span><strong>光を重ねて、つなぐ</strong><p>輪に手の光を重ねてひと呼吸。星がそろうと完成です。</p></a></li>
+      </ol>
+      <p class="comfort-note">端末を安定した場所に置き、顔と両手首が映るように座ってください。動かすのは片手だけ。つらいときは、いつでも右上の「停止」で休めます。</p>
+    </section>
+
+    <section id="start" class="start-panel" aria-labelledby="start-title">
+      <h2 id="start-title">準備ができたら、はじめましょう。</h2>
+      <section id="cloud-login" hidden aria-labelledby="auth-title">
+        <h3 id="auth-title">登録せずに、そのままあそべます。</h3>
+        <p>開始時にGoogleの認証と不正利用対策へ接続します。まだカメラや位置情報は使いません。</p>
+        <div class="auth-actions"><button id="auth-guest" type="button" class="primary" hidden>ゲストとしてはじめる <span aria-hidden="true">→</span></button><button id="auth-logout" type="button" class="text-button" hidden>ログアウト</button></div>
+        <p id="auth-notice" role="status" aria-live="polite"></p>
+        <details id="auth-account"><summary>アカウントでログイン</summary>
           <label for="auth-email">メールアドレス<input id="auth-email" type="email" autocomplete="username"></label>
           <label for="auth-password">パスワード<input id="auth-password" type="password" autocomplete="current-password"></label>
-          <button id="auth-login" type="button" class="primary">ログイン</button>
-          </details>
-          <button id="auth-logout" type="button" class="text-button" hidden>ログアウト</button>
-          <p id="auth-notice" role="status" aria-live="polite"></p>
-          <p class="field-note">ゲストのログイン状態はこのタブ内に保持し、終了操作かタブを閉じると消去します。映像や身体の記録は保存しません。アカウントのログイン状態はページのメモリ内だけで保持します。不正利用対策トークンはブラウザーに保存される場合があります。Googleの<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a>が適用されます。</p>
-        </section>
-        <div class="section-heading"><span class="eyebrow">OBSERVATION POINT</span><span class="index">01</span></div>
-        <h2>どこの空を見ますか</h2>
-        <p class="muted">現在地は自動取得しません。街の中心など、おおよその位置で始められます。</p>
-        <form id="sky-form">
-          <fieldset id="controls">
-            <legend class="sr-only">観測地点と接続設定</legend>
-            <div class="coordinate-fields">
-              <label for="lat">緯度 <span>LATITUDE</span><input id="lat" name="lat" type="number" step="any" min="-90" max="90" placeholder="35.68" required></label>
-              <label for="lng">経度 <span>LONGITUDE</span><input id="lng" name="lng" type="number" step="any" min="-180" max="180" placeholder="139.76" required></label>
-            </div>
-            <div id="development-token"><label for="token">開発アクセストークン<input id="token" type="password" autocomplete="off" spellcheck="false" required aria-describedby="token-help"></label>
-            <p id="token-help" class="field-note">サーバーの HCR_ACCESS_TOKEN を入力。ブラウザには保存しません。</p></div>
-            <label class="consent"><input id="consent" type="checkbox" required><span>入力した緯度・経度を「星をみるひとAPI」に送信することに同意します。</span></label>
-            <button id="sky" class="primary" type="submit" disabled>この場所の星座を探す <span aria-hidden="true">↗</span></button>
-          </fieldset>
-        </form>
-        <p class="field-note">日時はJSTで送信します。星API側のタイムゾーンは未確認です。</p>
-        <div class="connection">
-          <div class="section-heading"><h3>接続の準備</h3><button id="refresh" type="button" class="text-button">再確認</button></div>
-          <ul id="services" class="service-list"><li>サーバーを確認中…</li></ul>
-          <p class="field-note">「設定済み」は接続成功を意味しません。</p>
-        </div>
-      </aside>
-      <section class="sky-panel" aria-labelledby="sky-title">
-        <div class="section-heading"><h2 id="sky-title">この場所の星座</h2><span id="count" class="eyebrow">AWAITING OBSERVATION</span></div>
-        <p id="notice" role="status" aria-live="polite">観測地点を入力して、空との接続を始めましょう。</p>
-        <div id="empty" class="empty-state">
-          <div class="orbit" aria-hidden="true"><i></i><span>✧</span></div>
-          <p class="empty-title">まだ、星座は届いていません。</p>
-          <p>空を選ぶと、星座の名前と方位・高度がここに並びます。</p>
-        </div>
-        <div id="constellations" class="constellations"></div>
-        <article id="detail" class="constellation-detail" hidden aria-labelledby="detail-name">
-          <p id="detail-english" class="eyebrow"></p>
-          <h3 id="detail-name"></h3>
-          <p id="detail-angles" class="angles"></p>
-          <p id="detail-description"></p>
-          <details id="story-section"><summary>星座の物語を読む</summary><p id="detail-story"></p></details>
-        </article>
-        <p class="sky-note">表示する方位・高度は星座の代表値です。個々の恒星の位置や、身体を動かす目標位置ではありません。</p>
+          <button id="auth-login" type="button" class="secondary">ログイン</button>
+        </details>
+        <details class="fine-details"><summary>ログイン情報の扱い</summary><p>ゲストのログイン状態はこのタブ内に保持し、終了操作かタブを閉じると消去します。映像や身体の記録は保存しません。通常アカウントの認証はページのメモリ内だけで保持します。不正利用対策トークンはブラウザーに保存される場合があります。Googleの<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a>が適用されます。</p></details>
       </section>
-    </div>
-    <section class="camera-panel" aria-labelledby="camera-title">
-      <div class="camera-copy">
-        <p class="eyebrow">PREPARE YOUR CAMERA</p>
-        <h2 id="camera-title">身体を重ねる、その準備。</h2>
-        <p class="muted">まずはカメラの映り方を確かめます。カメラの確認後、端末内で手首の位置を推定できます。計測後、星座の配置を確認できます。座ったまま確認できます。</p>
-        <label class="consent"><input id="camera-consent" type="checkbox"><span>カメラで撮影し、この端末で映像の表示と手首の位置推定に利用することに同意します。映像の送信・保存は行いません。</span></label>
-        <button id="camera-start" class="primary" type="button" disabled>カメラを開始する <span aria-hidden="true">↗</span></button>
-        <p id="camera-notice" role="status" aria-live="polite"></p>
-        <div class="pose-controls">
-          <h3>手首の位置を確かめる</h3>
-          <p class="field-note">一人で、顔と両手首が映る楽な姿勢で確認してください。推定はこの端末内で行います。</p>
-          <button id="pose-start" class="secondary" type="button" disabled>手首の推定を開始・再開する</button>
-          <p id="pose-notice" role="status" aria-live="polite"></p>
-          <p class="pose-legend"><span>● 左手首</span><span>● 右手首</span><small id="pose-latency"></small></p>
-        </div>
-        <div class="reach-controls">
-          <h3>楽に動かせる範囲を記録する</h3>
-          <p class="field-note">座位でも立位でも、その場で楽な姿勢を選んでください。選んだ手を小さくゆっくり動かし、3秒以上を目安に「ここまでを使う」を押します。大きく伸ばす必要はありません。つらいときは中断してください。</p>
-          <div class="reach-options">
-            <label for="reach-posture">今の姿勢<select id="reach-posture"><option value="seated">座って行う</option><option value="standing">立って行う</option></select></label>
-            <label for="reach-joint">動かす手<select id="reach-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
-          </div>
-          <p class="field-note">動かすのは片手だけです。現在の推定では顔と両手首が映る必要があります。カメラや身体の位置・姿勢を変えたら計測し直してください。</p>
-          <button id="reach-start" class="secondary" type="button" disabled>楽に動かせる範囲を計測する</button>
-          <div class="reach-actions"><button id="reach-finish" class="secondary" type="button" disabled>ここまでを使う</button><button id="reach-clear" class="text-button" type="button" disabled>計測を中断・消去</button></div>
-          <p id="reach-notice" role="status" aria-live="polite"></p>
-          <p id="reach-progress" class="field-note"></p>
-          <p class="field-note">点は記録した手首の位置です。画面上の記録で、身体の安全や距離を判定するものではありません。記録は送信・保存せず、推定停止時に消去します。</p>
-        </div>
-        <p class="field-note">画面右上の「停止」・Esc・タブ切り替えで停止します。位置情報の同意やAPIの設定は不要です。</p>
+      <div id="development-token"><label for="token">開発アクセストークン<input id="token" type="password" autocomplete="off" spellcheck="false" required aria-describedby="token-help"></label><p id="token-help" class="field-note">ローカル開発用のHCR_ACCESS_TOKEN。ブラウザーには保存しません。</p></div>
+    </section>
+
+    <nav id="play-guide" class="play-guide" aria-label="次の操作">
+      <div><p class="guide-label">次にすること</p><p id="guide-message" role="status" aria-live="polite">ゲストとしてはじめると、場所を選べます。</p></div>
+      <a id="guide-next" class="secondary" href="#start">開始の操作へ ↓</a>
+    </nav>
+
+    <section id="observe" class="chapter" aria-labelledby="observe-title">
+      <div class="chapter-heading"><span class="chapter-number" aria-hidden="true">1</span><div><h2 id="observe-title">つくりたい星座を選ぶ</h2><p>今いる場所でも、気になる街でも。そこから見える星座を探します。</p></div></div>
+      <div class="workspace">
+        <aside class="observation-panel">
+          <h3>どこの空を見ますか？</h3>
+          <button id="locate" type="button" class="secondary">現在地を入力する</button>
+          <p id="location-notice" role="status" aria-live="polite" class="field-note">押すとブラウザーが位置情報の許可を尋ねます。下に緯度・経度を入力しても進めます。</p>
+          <form id="sky-form"><fieldset id="controls"><legend class="sr-only">観測する場所</legend>
+            <div class="coordinate-fields">
+              <label for="lat">緯度<input id="lat" name="lat" type="number" step="any" min="-90" max="90" placeholder="例 35.68" required></label>
+              <label for="lng">経度<input id="lng" name="lng" type="number" step="any" min="-180" max="180" placeholder="例 139.76" required></label>
+            </div>
+            <label class="consent"><input id="consent" type="checkbox" required><span>この場所の緯度・経度を「星をみるひとAPI」に送って、星座を探すことに同意します。</span></label>
+            <button id="sky" class="primary" type="submit" disabled>この場所の星座を探す <span aria-hidden="true">→</span></button>
+          </fieldset></form>
+          <p class="field-note">現在地は小数第2位に丸めて入力します。検索ボタンを押すまで星APIへ送りません。</p>
+          <details class="connection"><summary>接続状況と日時について</summary><div class="section-heading"><h3>接続の準備</h3><button id="refresh" type="button" class="text-button">再確認</button></div><ul id="services" class="service-list"><li>サーバーを確認中…</li></ul><p class="field-note">「設定済み」は接続成功を意味しません。日時はJSTで送信します。星API側のタイムゾーンは未確認です。</p></details>
+        </aside>
+        <section class="sky-panel" aria-labelledby="sky-title">
+          <div class="section-heading"><h3 id="sky-title">この場所の星座</h3><span id="count">検索前</span></div>
+          <p id="notice" role="status" aria-live="polite">場所を決めて「この場所の星座を探す」を押してください。</p>
+          <div id="empty" class="empty-state"><span aria-hidden="true">✧</span><p class="empty-title">どんな星座に、なろう。</p><p>見つかった星座がここに並びます。<br>気になる名前を押して選んでください。</p></div>
+          <div id="constellations" class="constellations" role="group" aria-label="星座を選ぶ"></div>
+          <article id="detail" class="constellation-detail" hidden aria-labelledby="detail-name">
+            <p class="selection-label">選んでいる星座</p><h3 id="detail-name"></h3><p id="detail-english"></p><p id="detail-angles" class="angles"></p>
+            <details><summary>この星座について</summary><p id="detail-description"></p><details id="story-section"><summary>星座の物語を読む</summary><p id="detail-story"></p></details></details>
+            <a class="primary" href="#body">この星座で、手の準備へ <span aria-hidden="true">↓</span></a>
+          </article>
+          <p class="sky-note">方位・高度は星座の代表値です。空へ手を伸ばす必要はありません。</p>
+        </section>
       </div>
-      <div class="camera-preview">
-        <div class="section-heading"><span id="camera-badge">カメラ停止</span><span>鏡像プレビュー</span></div>
-        <div class="camera-frame">
+    </section>
+
+    <section id="body" class="chapter" aria-labelledby="camera-title">
+      <div class="chapter-heading"><span class="chapter-number" aria-hidden="true">2</span><div><h2 id="camera-title">あなたの手を、光にする準備</h2><p>顔と両手首が映る位置に端末を置いて、楽な姿勢で進めてください。</p></div></div>
+      <div class="camera-panel">
+        <div class="camera-copy">
+          <div id="camera-setup" class="substep"><h3><span>①</span> カメラに映る</h3>
+            <label class="consent"><input id="camera-consent" type="checkbox"><span>カメラで撮影し、この端末で映像の表示と手首の位置推定に利用することに同意します。映像の送信・保存は行いません。</span></label>
+            <button id="camera-start" class="primary" type="button" disabled>カメラを開始する</button><p id="camera-notice" role="status" aria-live="polite"></p>
+          </div>
+          <div id="pose-setup" class="pose-controls substep"><h3><span>②</span> 手首に光をつける</h3><p>一人で、顔と両手首を映します。開始後に手首に色のついた点が出たら、次へ進めます。</p><button id="pose-start" class="secondary" type="button" disabled>手首の推定を開始・再開する</button><p id="pose-notice" role="status" aria-live="polite"></p><p class="pose-legend"><span>● 左手首</span><span>● 右手首</span><small id="pose-latency"></small></p></div>
+          <div id="reach-setup" class="reach-controls substep"><h3><span>③</span> 楽に動かせる範囲を教える</h3><p>「計測する」を押したら、選んだ手を上下・左右にゆっくり動かします。3秒以上動かして「ここまでを使う」を押してください。小さな範囲で大丈夫です。</p>
+            <div class="reach-options"><label for="reach-posture">今の姿勢<select id="reach-posture"><option value="seated">座って行う</option><option value="standing">立って行う</option></select></label><label for="reach-joint">動かす手<select id="reach-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label></div>
+            <button id="reach-start" class="secondary" type="button" disabled>楽に動かせる範囲を計測する</button><div class="reach-actions"><button id="reach-finish" class="primary" type="button" disabled>ここまでを使う</button><button id="reach-clear" class="text-button" type="button" disabled>計測を中断・消去</button></div><p id="reach-notice" role="status" aria-live="polite"></p><p id="reach-progress"></p>
+            <p class="field-note">両手首は映したまま、片手だけを動かします。無理に伸ばす必要はありません。姿勢や端末を動かしたら計測し直してください。</p>
+            <a id="body-next" class="primary" href="#arrange" hidden>準備できました。星の配置へ ↓</a>
+          </div>
+        </div>
+        <div class="camera-preview"><div class="section-heading"><span id="camera-badge">カメラ停止</span><span>鏡と同じ向き</span></div><div class="camera-frame">
           <video id="camera-video" muted playsinline hidden aria-label="カメラの鏡像プレビュー"></video>
           <svg id="reach-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" hidden role="img" aria-label="記録した手首の位置"><path id="reach-points" fill="none" stroke="#d1eaa4" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>
           <svg id="pose-overlay" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" hidden aria-label="推定した左右の手首" role="img"><circle id="left-wrist" fill="#d1eaa4"/><circle id="right-wrist" fill="#f8cd90"/></svg>
-          <div id="camera-placeholder"><span aria-hidden="true">◎</span><p>あなたの操作で、はじめる。</p><small>同意して開始するまで撮影しません</small></div>
+          <div id="camera-placeholder"><span aria-hidden="true">◎</span><p>ここに、あなたが映ります。</p><small>同意して開始するまで撮影しません</small></div>
+        </div><p class="field-note">映像はこの端末だけで使います。右上の「停止」やタブ切り替えで、カメラも止まります。</p></div>
+      </div>
+    </section>
+
+    <section id="play" class="chapter" aria-labelledby="play-title">
+      <div class="chapter-heading"><span class="chapter-number" aria-hidden="true">3</span><div><h2 id="play-title">輪に重ねて、星をつなぐ</h2><p>星座を動かせる範囲に置いたら、いよいよ始まります。</p></div></div>
+      <section id="arrange" class="session-panel" aria-labelledby="session-title">
+        <h3 id="session-title">まず、星の位置を準備しましょう。</h3><p id="session-selection">先に星APIで星座を選んでください。</p>
+        <label class="consent"><input id="planner-consent" type="checkbox"><span>AIに星をたどる順序を考えてもらう（任意）。星の目標配置を<span id="planner-destination">未確認のAIサービス</span>へ送ることに同意します。</span></label>
+        <p class="field-note">AIを選ばなくてもあそべます。AIに送るのは星IDと目標の画面内座標だけ。映像・手首の軌跡・観測地点は送りません。</p>
+        <div class="trace-actions"><button id="session-prepare" class="primary" type="button" disabled>配置を準備する</button><button id="session-clear" class="text-button" type="button">配置と星の記録を消す</button></div><p id="session-notice" role="status" aria-live="polite">星座選択と、動かせる範囲の確定を待っています。</p>
+        <a id="session-next" class="secondary" href="#draw" hidden>準備できました。星座づくりへ ↓</a>
+        <details class="fine-details"><summary>星の配置・計算について</summary><p>恒星カタログから計算した形を縮小し、計測範囲へ重ねます。身体の安全や距離を判定するものではありません。観測と同じ地点、準備時点のUTCで計算します。星APIの観測時刻との一致は未確認です。AIを選ぶと運営側の有料APIを利用し、日次上限があります。</p><p id="session-metadata"></p></details>
+      </section>
+      <section id="draw" class="trace-panel" aria-labelledby="trace-title">
+        <div class="trace-copy"><h3 id="trace-title">手を動かして、ひと呼吸。</h3><ol class="play-instructions"><li>「配置した星座を開始する」を押す。</li><li>手の光を、画面の輪に重ねる。</li><li>楽なら0.8秒止める。星が残ったら、次の輪へ。</li></ol><p>全部の星をつなぐと完成です。手が映らなくなったら止まるので、映り方を確認して準備し直せます。</p>
+          <label for="trace-joint">光を描く手<select id="trace-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
+          <div class="trace-actions"><button id="trace-start" class="primary" type="button" disabled>光の軌跡を描く</button><button id="trace-clear" class="text-button" type="button" disabled>軌跡を消す</button></div>
+          <p id="trace-notice" role="status" aria-live="polite"></p><p id="trace-count"></p><p id="trace-hold"></p>
+          <details class="fine-details"><summary>動きへの助言を追加する（任意）</summary><label class="consent"><input id="advice-consent" type="checkbox"><span>目標との差をTypeSafe AIへ送り、Jevの助言を受ける（有料API）</span></label><p>左右・上下の差を丸めて送ります。映像・観測地点・手首の座標そのものは送りません。最大2回/秒、実行ごと60回まで。星の確定は端末内で判定します。</p><p id="advice-notice" role="status" aria-live="polite"></p></details>
+          <p class="field-note">星を配置せず、手の光だけを試すこともできます。軌跡は直近4秒、確定した星はこの画面だけに残ります。撮影同意を外すと消去します。</p>
         </div>
-      </div>
+        <div class="trace-art"><div class="section-heading"><span>あなたがつくる星座</span><span>鏡と同じ向き</span></div><div id="trace-stage"><canvas id="trace-canvas" aria-label="選んだ手首の光の軌跡"></canvas><span id="trace-target" hidden aria-hidden="true"></span><p id="trace-empty">星を準備したら、ここから始まります。</p></div><p class="trace-legend"><span>● 手の光</span><span>◯ 次に重ねる場所</span><span>✧ 残った星</span></p></div>
+      </section>
     </section>
-    <section class="session-panel" aria-labelledby="session-title">
-      <p class="eyebrow">02 / PREPARE THE CONSTELLATION</p>
-      <h2 id="session-title">記録した範囲へ、星を置く。</h2>
-      <p id="session-selection">先に星APIで星座を選んでください。</p>
-      <p class="muted">星座を選び、カメラで動かせる範囲を記録したら配置を確認します。恒星カタログから計算した形を縮小して重ねます。空の方向へ手を伸ばす指示ではありません。</p>
-      <label class="consent"><input id="planner-consent" type="checkbox"><span>星の目標配置を<span id="planner-destination">未確認のAIサービス</span>へ送り、順序を計画してもらう（有料API）</span></label>
-      <p class="field-note">送るのは星IDと目標の画像内座標です。映像・実測した手首の軌跡・観測地点は送りません。撮影同意とは別に選べます。</p>
-      <div class="trace-actions"><button id="session-prepare" class="secondary" type="button" disabled>配置を準備する</button><button id="session-clear" class="text-button" type="button">配置と星の記録を消す</button></div>
-      <p id="session-notice" role="status" aria-live="polite">星座選択と、動かせる範囲の確定を待っています。</p>
-      <p class="field-note">計算には観測時と同じ地点を使います。計算時刻は準備した時点のUTCです。星APIの観測時刻との一致は未確認です。姿勢やカメラを変えたら計測し直してください。</p>
-    </section>
-    <section class="trace-panel" aria-labelledby="trace-title">
-      <div class="trace-copy">
-        <p class="eyebrow">BODY / LIGHT / TIME</p>
-        <h2 id="trace-title">手の軌跡を、光にする。</h2>
-        <p class="muted">手首の推定を開始したら、その場で楽に動かせる範囲の動きを光で確かめられます。直近4秒までの点をこの画面だけに描きます。</p>
-        <label for="trace-joint">光を描く手<select id="trace-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
-        <div class="trace-actions"><button id="trace-start" class="secondary" type="button" disabled>光の軌跡を描く</button><button id="trace-clear" class="text-button" type="button" disabled>軌跡を消す</button></div>
-        <label class="consent"><input id="advice-consent" type="checkbox"> 目標との差をTypeSafe AIへ送り、Jevの助言を受ける（有料API）</label>
-        <p class="field-note">画像内の左右・上下の差を小数第2位へ丸めて送ります。映像・観測地点・手首の座標そのものは送りません。最大2回/秒、1回の実行で60回まで。保持と確定は端末内で判定します。</p>
-        <p id="advice-notice" role="status" aria-live="polite"></p>
-        <p id="trace-notice" role="status" aria-live="polite"></p>
-        <p id="trace-count" class="field-note"></p><p id="trace-hold" class="field-note"></p>
-        <p class="field-note">「停止」・Esc・追跡ロストで静止します。再開では軌跡を描き直します。撮影への同意を外すと消去します。点の外部送信・保存はしません。</p>
-      </div>
-      <div class="trace-art">
-        <div class="section-heading"><span>手首の残像</span><span>鏡像 / 画面内の位置</span></div>
-        <div id="trace-stage"><canvas id="trace-canvas" aria-label="選んだ手首の光の軌跡"></canvas><span id="trace-target" hidden aria-hidden="true"></span><p id="trace-empty">まだ、光は残っていません。</p></div>
-        <p class="trace-legend"><span>● 今の手首</span><span>· 動いた跡</span></p>
-        <p class="field-note">配置を開始すると、次の目標を輪で示します。0.8秒の保持で実測点を確定します。軌跡だけでは星になりません。</p>
-      </div>
-    </section>
-    <details class="diagnostics">
-      <summary>開発用の接続確認</summary>
-      <p>Jevは低頻度の助言を担当します。以下は接続試験用の固定入力（dx=0.1、dy=0、tracked=true）です。身体の計測値ではありません。</p>
-      <button id="jev" type="button" class="secondary" disabled>Jevに試験入力を送信（有料）</button>
-      <pre id="result">実APIの応答をここに表示します。</pre>
-    </details>
-    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>星APIから選択し、記録した範囲へ配置します。AIによる順序計画を選べます。実機検証は準備中です。</span></footer>
+    <details class="diagnostics"><summary>開発用の接続確認</summary><p>Jevの接続試験用の固定入力（dx=0.1、dy=0、tracked=true）です。身体の計測値ではありません。</p><button id="jev" type="button" class="secondary" disabled>Jevに試験入力を送信（有料）</button><pre id="result">実APIの応答をここに表示します。</pre></details>
+    <footer><strong>星にされる人</strong><p>星の情報：星をみるひとAPI ／ 恒星カタログ：d3-celestial・XHIP<br>実カメラ・実人体での受入検証は継続中です。無理のない範囲でお楽しみください。</p><a href="#how-to">遊び方に戻る ↑</a></footer>
   </main>
   <script type="module" src="/src/client/main.js"></script>
 </body>
 </html>
-
