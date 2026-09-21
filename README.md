@@ -15,7 +15,7 @@ Node 22.12以上。
 既存の`.env`は上書きしないでください。環境変数を変更したらサーバーを再起動します。
 APIキーはサーバー環境変数のみ。VITE_変数やGit、チャットへ貼らないこと。
 画面に入力するのは`HCR_ACCESS_TOKEN`です。星APIのキーを画面へ入力しないでください。
-Jev・Codexは任意の別設定で、星APIの観測だけなら不要です。`CODEX_MODEL`には利用可能モデルを明示します。
+Jev・振付AIは任意の別設定で、星APIの観測だけなら不要です。クラウドでは `HCR_PLANNER_PROVIDER=vertex` を選び、Cloud Runサービスアカウントで認証できます。[Vertex AIの設定・配備準備](docs/VERTEX.md)。Codexを選ぶ場合は `CODEX_MODEL` に利用可能モデルを明示します。
 
 ## 現在できること
 
@@ -30,7 +30,7 @@ Jev・Codexは任意の別設定で、星APIの観測だけなら不要です。
 - 認証、16KiBの入力制限、同時実行1件、タイムアウト、応答のサイズ・型・範囲検証
 - Jevの助言API、Codex SDKの振付計画API、決定論的な保持/captureの基盤
 
-星APIの日時はprovider-defaultです。日時・タイムゾーン、`drowing`のID体系と線分の意味は未確認。
+星APIへサーバーの現在時刻をJSTのdate/hour/minとして明示送信します。API側のタイムゾーン、`drowing`のID体系と線分の意味は未確認。
 星座の代表方位・高度から恒星位置は生成しません。恒星カタログの読み込みAPIは実装済み（[出典とID対応](docs/CATALOG.md)）。星座選択→投影→計測範囲への配置→保持確定を接続しました（[セッション仕様](docs/SESSION.md)）。Codexの順序計画を個別同意で選べます（[仕様と実API確認](docs/AI-PLANNER.md)）。Jevの補助コメントも別同意で選べます（[送信内容と制限](docs/JEV.md)）。Three.jsによる手首の軌跡表示を追加しました（[表示・停止仕様](docs/TRACE.md)）。身体推定の実機精度は未確認です。
 fixturesはテスト専用で、実APIの失敗時にモックへ切り替えません。
 
@@ -47,7 +47,7 @@ fixturesはテスト専用で、実APIの失敗時にモックへ切り替えま
   - 初回は`npx playwright install chromium`で試験用ブラウザーを用意できます。
   - インストール済みEdgeを使うWindows環境では、PowerShellで`$env:HCR_BROWSER_CHANNEL='msedge'`を設定します。
 - `npm run smoke:jev`：固定の合成入力を1回だけ実Jevへ送る有料API試験。TYPESAFE_API_KEYが必要。
-- `npm run smoke:ai`：合成3目標を実Codexへ送る有料API試験。OPENAI_API_KEYとCODEX_MODELが必要。現在はAPI残高ゼロで生成成功を未確認。
+- `npm run smoke:ai`：合成3目標を選択した実AIへ送る有料API試験。VertexはADCと専用project/location/model、CodexはOPENAI_API_KEYとCODEX_MODELが必要。クラウド生成成功は未確認。
 - `npm run smoke:sky`：星APIへの実リクエスト。以下をローカルの`.env`に設定した場合だけ実行します。
   - `HCR_ACCESS_TOKEN`、`HOSHIMIRU_API_TOKEN`
   - `HCR_SMOKE_LAT`、`HCR_SMOKE_LNG`：送信してよい観測地点

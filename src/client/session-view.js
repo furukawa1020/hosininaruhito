@@ -6,8 +6,11 @@ export function mountSession(document, window, { reach, trace }) {
   const $ = id => document.getElementById(id);
   const requests = new RequestSession();
   let selected = null, pending = false, disposed = false, plannerAvailable = false;
+  let plannerProvider = null;
+  const plannerName = () => plannerProvider === 'vertex' ? 'Vertex AI' : 'Codex';
   const messages = {
-    upstream_quota: 'OpenAIのAPIクレジット・利用上限を確認してください。',
+    upstream_quota: 'AIサービスの課金・利用上限を確認してください。',
+    planner_destination_changed: 'AIの送信先が変わりました。接続を再確認し、送信先への同意を選び直してください。',
     planner_rejected: 'AIの提案が配置条件を満たしませんでした。配置は開始していません。',
     upstream_timeout: 'AIの計画が時間内に終わりませんでした。',
     planner_sandbox: 'サーバーの実行制限を確認できませんでした。',
@@ -69,9 +72,10 @@ export function mountSession(document, window, { reach, trace }) {
       if (!fitted.ok) throw new Error(messages[fitted.reason] || '記録した範囲へ配置できませんでした。');
       const useAI = $('planner-consent').checked;
       if (useAI) {
-        say('Codexが星の順序を計画しています…', 'loading');
+        const expectedSource = plannerProvider + '-live';
+        say(plannerName() + 'が星の順序を計画しています…', 'loading');
         const planned = await fetch('/api/program', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, 'X-HCR-Planner': plannerProvider },
           body: JSON.stringify({ program: fitted.program }),
           signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
         });
@@ -81,15 +85,15 @@ export function mountSession(document, window, { reach, trace }) {
         if (!reach.ready() || document.hidden || !$('planner-consent').checked ||
             !$('consent').checked || !$('camera-consent').checked) { invalidate(); return; }
         try {
-          const checked = validatePlannedProgram(fitted.program, candidate);
-          if (!evaluatePlan(fitted.program, checked).ok) throw Error();
+          const checked = validatePlannedProgram(fitted.program, candidate, expectedSource);
+          if (!evaluatePlan(fitted.program, checked, expectedSource).ok) throw Error();
           fitted.program = checked;
         } catch { throw new Error('AIの応答が元の配置条件と一致しません。配置は開始していません。'); }
       }
       trace.configureProgram(fitted);
       say('配置を準備しました。' + fitted.program.steps.length + '個の星 / 倍率 ' + fitted.scale.toFixed(2) +
         ' / 対象外 ' + fitted.excluded + '個。計算時刻 ' + fitted.at +
-        '。星APIの観測時刻との一致は未確認です。' + (useAI ? 'Codexの順序を検証しました。保持の判定は実測値で行います。' : 'カタログ順で実行します。'), 'ready');
+        '。星APIの観測時刻との一致は未確認です。' + (useAI ? plannerName() + 'の順序を検証しました。保持の判定は実測値で行います。' : 'カタログ順で実行します。'), 'ready');
     } catch (error) {
       if (request.isCurrent()) say(error.name === 'TimeoutError' ? '投影の取得が時間内に終わりませんでした。' :
         messages[error.message] || (error.name === 'Error' ? error.message : '投影の通信に失敗しました。'), 'error');
@@ -112,7 +116,18 @@ export function mountSession(document, window, { reach, trace }) {
       render();
     },
     reachChanged() { invalidate('計測が変わりました。範囲を確定したら配置を準備してください。'); },
-    setServices(services) { plannerAvailable = Boolean(services?.access && services?.planner); render(); },
+    setServices(services, provider) {
+      const next = ['codex','vertex'].includes(provider) ? provider : null;
+      plannerAvailable = Boolean(services?.access && services?.planner && next);
+      if (next !== plannerProvider || !plannerAvailable) {
+        const hadConsent = $('planner-consent').checked;
+        $('planner-consent').checked = false;
+        if (hadConsent) invalidate('AIの接続条件が変わりました。送信先を確認して配置を準備し直してください。');
+      }
+      plannerProvider = next;
+      $('planner-destination').textContent = next === 'vertex' ? 'Google Cloud / Vertex AI' : next === 'codex' ? 'OpenAI / Codex' : '未確認のAIサービス（接続を再確認してください）';
+      render();
+    },
     refresh: render,
     stop() { invalidate('停止しました。計測と配置を準備し直してください。'); },
     clearSelection() { invalidate('星APIで星座を選び直してください。', true); trace.configureProgram(null); }

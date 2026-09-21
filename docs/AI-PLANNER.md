@@ -1,4 +1,8 @@
-# Codexによる順序計画
+# AIによる順序計画
+
+クラウド用にVertex AIの経路を追加した。[ADC認証・設定・配備準備](VERTEX.md)を参照。
+以下のSDK隔離の説明はCodex選択時に適用する。両経路で順序検証・保持条件は共通。
+API呼出には同意した送信先の `X-HCR-Planner: codex` または `vertex` が必要。
 
 配置済みProgramV1を `POST /api/program {program}` に渡し、Codexは星IDの順序だけを構造化JSONで提案する。
 既存の `{constellation}` 入力も互換経路として受け付ける。両方の同時指定・未知のトップレベル項目は拒否する。
@@ -27,7 +31,7 @@ read-only、approval=never、networkAccessEnabled=false、web search無効、she
 
 ## 画面
 
-「星の目標配置をOpenAIへ送り…」への個別同意があるときだけ呼ぶ。
+ステータスの送信先に合わせて「OpenAI / Codex」または「Google Cloud / Vertex AI」を表示し、個別同意があるときだけ呼ぶ。
 送信内容は星IDと配置後の画像内目標座標。映像・実測手首・観測地点はAIへ送らない。
 ブラウザー→自サーバーには元のProgramの保持条件等も渡し、サーバーがAIへのペイロードを限定する。
 配置目標は計測範囲に合わせた値なので、一般カタログそのものと同一ではない。

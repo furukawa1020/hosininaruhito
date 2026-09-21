@@ -112,7 +112,7 @@
       <h2 id="session-title">記録した範囲へ、星を置く。</h2>
       <p id="session-selection">先に星APIで星座を選んでください。</p>
       <p class="muted">星座を選び、カメラで動かせる範囲を記録したら配置を確認します。恒星カタログから計算した形を縮小して重ねます。空の方向へ手を伸ばす指示ではありません。</p>
-      <label class="consent"><input id="planner-consent" type="checkbox"> 星の目標配置をOpenAIへ送り、Codexに順序を計画してもらう（有料API）</label>
+      <label class="consent"><input id="planner-consent" type="checkbox"><span>星の目標配置を<span id="planner-destination">未確認のAIサービス</span>へ送り、順序を計画してもらう（有料API）</span></label>
       <p class="field-note">送るのは星IDと目標の画像内座標です。映像・実測した手首の軌跡・観測地点は送りません。撮影同意とは別に選べます。</p>
       <div class="trace-actions"><button id="session-prepare" class="secondary" type="button" disabled>配置を準備する</button><button id="session-clear" class="text-button" type="button">配置と星の記録を消す</button></div>
       <p id="session-notice" role="status" aria-live="polite">星座選択と、動かせる範囲の確定を待っています。</p>
@@ -145,7 +145,7 @@
       <button id="jev" type="button" class="secondary" disabled>Jevに試験入力を送信（有料）</button>
       <pre id="result">実APIの応答をここに表示します。</pre>
     </details>
-    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>星APIから選択し、記録した範囲へ配置します。Codexによる順序計画を選べます。実機検証は準備中です。</span></footer>
+    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>星APIから選択し、記録した範囲へ配置します。AIによる順序計画を選べます。実機検証は準備中です。</span></footer>
   </main>
   <script type="module" src="/src/client/main.js"></script>
 </body>

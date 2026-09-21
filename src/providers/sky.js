@@ -5,7 +5,7 @@ function text(value, max = 200) {
 }
 
 export function normalizeSky(data) {
-  if (!data || typeof data !== 'object' || data.errors || !Array.isArray(data.results) || data.results.length > 88 ||
+  if (!data || typeof data !== 'object' || (data.errors != null && !(Array.isArray(data.errors) && data.errors.length === 0)) || !Array.isArray(data.results) || data.results.length > 88 ||
       (data.metadata?.status !== undefined && data.metadata.status !== 200)) {
     fail('Invalid sky response', 502, 'invalid_response');
   }
@@ -51,6 +51,16 @@ export async function observeSky(input, env, options = {}) {
   const url = new URL('https://app.livlog.xyz/hoshimiru/constellation');
   url.searchParams.set('lat', String(input.lat));
   url.searchParams.set('lng', String(input.lng));
-  return normalizeSky(await getJSON(url, { headers: { Authorization: 'Bearer ' + token } }, options));
+  // API requires wall-clock fields. We send JST explicitly but do not claim its
+  // undocumented server timezone agrees with JST or our separate UTC projection.
+  const at = options.now?.() ?? new Date();
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(at).map(p => [p.type, p.value]));
+  url.searchParams.set('date', `${parts.year}-${parts.month}-${parts.day}`);
+  url.searchParams.set('hour', parts.hour);
+  url.searchParams.set('min', parts.minute);
+  const result = normalizeSky(await getJSON(url, { headers: { Authorization: 'Bearer ' + token } }, options));
+  return { ...result, timeBasis: 'explicit-jst-provider-timezone-unverified', requestedAt: at.toISOString() };
 }
 
