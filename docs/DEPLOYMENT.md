@@ -1,0 +1,49 @@
+# コンテナ・デプロイ確認
+
+配備先はユーザーの作成指示に基づく専用project `hosininaruhito-20260920`（766405647874）のみ。
+`.firebaserc` のdefaultもこのprojectに固定する。現時点では課金未接続、Firebase未初期化、Cloud Run未配備。
+
+## 再現手順
+
+```text
+docker build --tag hcr-api:verification .
+npm run smoke:container
+```
+
+この試験は実APIキーを渡さず、実映像や観測地点も使わない。
+root以外のUID 1000、読み取り専用root filesystem、書込み可能な一時/tmp、ネットワークなし、
+512MiB/1CPU/128PID以内で実行する。コンテナ名は呼出ごとのUUIDで、終了・タイムアウト時にそのコンテナだけを削除する。
+
+1. 実際のsrc/server/index.jsをPORT=18080で起動し、status 200、未認証catalog 401、試験用認証でcatalog 200を照合。
+2. SIGTERMで正常終了することと、イメージ内に.envがないことを確認。
+3. インストール済みCodex CLIのread-only sandboxで読取りと/tmpへの書込み拒否を試す。
+
+外側のコンテナでは/tmpは書込み可能なので、3番はroot filesystemのread-onlyだけでは成功しない。
+外向き通信は外側のnetwork=noneで停止している。これをCodex自身のネットワーク隔離確認とは扱わない。
+
+## 2026-09-21の結果
+
+Docker Desktopを起動し、既存Dockerfileからイメージのビルドが成功。
+API試験はUID 1000、status=200、unauthorized=401、catalog=200、secretFile=false、SIGTERM正常終了で成功。
+Codexのコマンドsandbox試験は `namespace_unavailable` で失敗。
+bwrapが非特権の名前空間を作れないためで、capability追加・privileged化・sandbox無効化は行わない。
+
+これはローカルDockerでの再現結果。Cloud Runの実環境検証ではない。
+ツールを無効化したSDKの生成正常系も、OpenAI API残高ゼロにより未確認。
+APIサーバー起動成功だけを作品全体やデプロイ成功とは扱わない。
+
+## 配備前の残条件
+
+- #3: 星API実トークンとライブ観測。現在ブラウザー操作連携0件で取得先へのログイン不可
+- #13/#14: Codex生成正常系・厳密な費用上限、Jevトークンと統合・実測
+- #16: Cloud Runのread-only sandboxと中断を実環境で確認
+- #17: Firebase Auth/App Check/ユーザー別上限
+- #20: 個別同意のもとで実カメラ・実人体を確認
+
+Cloud Runの初回は非公開、hcr-api/asia-east1、max instances=1、concurrency=1、timeout=50秒を予定。
+秘密はSecret Manager、サービス専用SAに必要な秘密だけの参照権限を付ける。
+公開Hosting rewriteは認証・利用上限を確認してから有効化する。
+
+接続済みFirebase/Cloud Runの操作連携は見つかっていない。
+AGENTS.mdの「CLIでの認証・デプロイへ勝手に切り替えない」に従い、CLIでの配備は未実施。
+フルアクセスへの環境変更は、この配備経路の選択や課金接続の完了とは区別する。
