@@ -107,13 +107,31 @@
         </div>
       </div>
     </section>
+    <section class="trace-panel" aria-labelledby="trace-title">
+      <div class="trace-copy">
+        <p class="eyebrow">BODY / LIGHT / TIME</p>
+        <h2 id="trace-title">手の軌跡を、光にする。</h2>
+        <p class="muted">手首の推定を開始したら、その場で楽に動かせる範囲の動きを光で確かめられます。直近4秒までの点をこの画面だけに描きます。</p>
+        <label for="trace-joint">光を描く手<select id="trace-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
+        <div class="trace-actions"><button id="trace-start" class="secondary" type="button" disabled>光の軌跡を描く</button><button id="trace-clear" class="text-button" type="button" disabled>軌跡を消す</button></div>
+        <p id="trace-notice" role="status" aria-live="polite"></p>
+        <p id="trace-count" class="field-note"></p>
+        <p class="field-note">「停止」・Esc・追跡ロストで静止します。再開では軌跡を描き直します。撮影への同意を外すと消去します。点の外部送信・保存はしません。</p>
+      </div>
+      <div class="trace-art">
+        <div class="section-heading"><span>手首の残像</span><span>鏡像 / 画面内の位置</span></div>
+        <div id="trace-stage"><canvas id="trace-canvas" aria-label="選んだ手首の光の軌跡"></canvas><p id="trace-empty">まだ、光は残っていません。</p></div>
+        <p class="trace-legend"><span>● 今の手首</span><span>· 動いた跡</span></p>
+        <p class="field-note">星座の目標への誘導は準備中です。軌跡だけで星を確定することはありません。</p>
+      </div>
+    </section>
     <details class="diagnostics">
       <summary>開発用の接続確認</summary>
       <p>Jevは低頻度の助言を担当します。以下は接続試験用の固定入力（dx=0.1、dy=0、tracked=true）です。身体の計測値ではありません。</p>
       <button id="jev" type="button" class="secondary" disabled>Jevに試験入力を送信（有料）</button>
       <pre id="result">実APIの応答をここに表示します。</pre>
     </details>
-    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>星座への身体誘導・残像描画は準備中です。</span></footer>
+    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>手首の軌跡を表示できます。星座への身体誘導は準備中です。</span></footer>
   </main>
   <script type="module" src="/src/client/main.js"></script>
 </body>

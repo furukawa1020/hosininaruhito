@@ -1,4 +1,5 @@
 import './style.css';
+import { mountTrace } from './trace-view.js';
 import { mountReach } from './reach-view.js';
 import { mountCamera } from './camera-view.js';
 import { mountPose } from './pose-view.js';
@@ -9,7 +10,8 @@ const session = new RequestSession();
 let pose;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
 const reach = mountReach(document, window);
-pose = mountPose(document, window, { onSample: frame => reach.onFrame(frame) });
+const trace = mountTrace(document, window, { onFailure: () => { camera.stop('manual'); pose?.stop(); } });
+pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); } });
 let services = null;
 let busy = false;
 const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'Codex / 振付' };
@@ -44,6 +46,7 @@ function clearResults() {
   $('result').textContent = '実APIの応答をここに表示します。';
 }
 function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
+  trace.stop(cameraReason);
   camera.stop(cameraReason);
   pose.stop();
   session.cancel();
