@@ -4,7 +4,7 @@ import { isFreshPoseTime } from '../core/pose.js';
 const messages = {
   idle: '手首の推定を始めてから、計測できます。',
   collecting: '選んだ手を、楽に動かせる小さな範囲でゆっくり動かしてください。いつでも中断できます。',
-  ready: 'この姿勢での動きを一時的に記録しました。星座への配置と誘導は準備中です。',
+  ready: 'この姿勢での動きを一時的に記録しました。星座を選び、下の「配置を準備する」へ進めます。',
   manual: '計測を中断し、記録を消去しました。',
   changed: '姿勢・使う手を変更したため、記録を消去しました。',
   tracking_lost: '手首の推定が停止したため、記録を消去しました。再開後に計測し直してください。',
@@ -16,15 +16,16 @@ const messages = {
   invalid_setup: '映像を確認してから計測を開始してください。'
 };
 
-export function mountReach(document, window) {
+export function mountReach(document, window, { onChange = () => {} } = {}) {
   const $ = id => document.getElementById(id);
   const video = $('camera-video');
   const calibration = new ReachCalibration();
-  let lastFrame = null;
+  let lastFrame = null, published = null;
   const size = () => ({ width: video.videoWidth, height: video.videoHeight });
   const tracking = () => lastFrame && !document.hidden && isFreshPoseTime(lastFrame.at, window.performance.now());
   const render = () => {
     const snapshot = calibration.snapshot();
+    if (published !== calibration.result) { published = calibration.result; onChange(); }
     $('reach-start').disabled = !tracking() || snapshot.state === 'collecting';
     $('reach-finish').disabled = snapshot.state !== 'collecting';
     $('reach-clear').disabled = !['collecting', 'ready'].includes(snapshot.state);
@@ -53,6 +54,8 @@ export function mountReach(document, window) {
   for (const [id, event, handler] of handlers) $(id).addEventListener(event, handler);
   render();
   return {
+    ready: () => Boolean(calibration.result && tracking()),
+    result: () => calibration.result && tracking() ? structuredClone(calibration.result) : null,
     onFrame(frame) {
       lastFrame = frame;
       if (!frame) {

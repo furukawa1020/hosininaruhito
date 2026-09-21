@@ -1,4 +1,5 @@
 import './style.css';
+import { mountSession } from './session-view.js';
 import { mountTrace } from './trace-view.js';
 import { mountReach } from './reach-view.js';
 import { mountCamera } from './camera-view.js';
@@ -7,11 +8,13 @@ import { RequestSession, parseCoordinates } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
-let pose;
+let pose, experience;
+let observation = null;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
-const reach = mountReach(document, window);
+const reach = mountReach(document, window, { onChange: () => experience?.reachChanged() });
 const trace = mountTrace(document, window, { onFailure: () => { camera.stop('manual'); pose?.stop(); } });
-pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); } });
+experience = mountSession(document, window, { reach, trace });
+pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });
 let services = null;
 let busy = false;
 const labels = { access: '開発アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'Codex / 振付' };
@@ -39,6 +42,7 @@ function updateControls() {
   $('jev').disabled = busy || !(services?.access && services?.reflex);
 }
 function clearResults() {
+  observation = null; experience.clearSelection();
   $('constellations').replaceChildren();
   $('detail').hidden = true;
   $('empty').hidden = false;
@@ -46,6 +50,7 @@ function clearResults() {
   $('result').textContent = '実APIの応答をここに表示します。';
 }
 function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
+  experience.stop();
   trace.stop(cameraReason);
   camera.stop(cameraReason);
   pose.stop();
@@ -94,6 +99,7 @@ async function loadStatus() {
   }
 }
 function selectConstellation(row, button) {
+  experience.select(row, observation);
   for (const card of $('constellations').children) card.setAttribute('aria-pressed', String(card === button));
   $('detail').hidden = false;
   $('detail-english').textContent = row.englishName || 'CONSTELLATION / ' + row.id;
@@ -150,7 +156,7 @@ async function call(path, body) {
       $('result').textContent = 'HTTP ' + response.status + ' / ' + (data.code || 'request_failed');
       return;
     }
-    if (path === '/api/sky') renderSky(data);
+    if (path === '/api/sky') { observation = { ...body }; renderSky(data); }
     else notice('Jevへの接続を確認しました。結果は開発用の接続確認に表示しています。身体誘導には使っていません。', 'success');
     $('result').textContent = JSON.stringify(data, null, 2);
   } catch (error) {
@@ -171,6 +177,8 @@ $('sky-form').addEventListener('submit', event => {
 $('jev').addEventListener('click', () => {
   if (!busy && !document.hidden && services?.access && services?.reflex) call('/api/reflex', { dx: 0.1, dy: 0, tracked: true });
 });
+for (const id of ['lat', 'lng', 'token']) $(id).addEventListener('input', () => { session.cancel(); clearResults(); busy = false; updateControls(); });
+$('consent').addEventListener('change', () => { if (!$('consent').checked) { session.cancel(); clearResults(); busy = false; updateControls(); } });
 $('stop').addEventListener('click', () => stop());
 $('refresh').addEventListener('click', () => loadStatus());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') stop(); });

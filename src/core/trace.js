@@ -73,6 +73,9 @@ export class ConstellationTrace {
     return {
       state: this.state, reason: this.reason,
       current: this.current ? { ...this.current } : null,
+      activeTarget: this.runtime?.target ? structuredClone(this.runtime.target) : null,
+      holdProgress: this.state === 'running' && this.runtime?.holdSince !== null && this.runtime?.target
+        ? Math.min(1, (this.lastAt - this.runtime.holdSince) / this.runtime.target.holdMs) : 0,
       trail: this.trail.map(p => ({ ...p, brightness: .12 + .65 * Math.max(0, 1 - ((this.lastAt ?? p.at) - p.at) / TRAIL_DURATION_MS) })),
       captures,
       targets: (this.runtime?.program.steps || []).filter(step => !captured.has(step.starId))

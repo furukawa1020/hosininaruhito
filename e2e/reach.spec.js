@@ -1,18 +1,13 @@
+import { installPoseClock } from './pose-clock.js';
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 const videoPath = fileURLToPath(new URL('./.generated/camera.y4m', import.meta.url));
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--use-file-for-fake-video-capture=' + videoPath] } });
 
 async function setup(page, mode = 'moving') {
+  await installPoseClock(page);
   await page.addInitScript(mode => {
     window.reachFixtureMode = mode;
-    // UI fixture owns frame delivery as well as landmarks. Real video timing is
-    // covered separately by camera.spec.js / pose.spec.js and PoseSession tests.
-    HTMLVideoElement.prototype.requestVideoFrameCallback = function(callback) {
-      return setTimeout(() => { const at = performance.now(); callback(at, { captureTime: at }); }, 33);
-    };
-    HTMLVideoElement.prototype.cancelVideoFrameCallback = function(id) { clearTimeout(id); };
-
     const NativeWorker = window.Worker;
     window.Worker = class {
       constructor(url, options) {
@@ -39,16 +34,18 @@ async function setup(page, mode = 'moving') {
   await page.locator('#camera-consent').check();
   await page.locator('#camera-start').click();
   await expect(page.locator('#camera-notice')).toHaveAttribute('data-state', 'preview');
-  await page.locator('#pose-start').click();
+  await page.locator('#pose-start').click(); await page.clock.runFor(200);
   await expect(page.locator('#reach-start')).toBeEnabled();
 }
 async function begin(page) {
   await page.locator('#reach-joint').selectOption('leftWrist');
   await page.locator('#reach-start').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state', 'collecting');
+  await page.clock.runFor(100);
 }
 async function complete(page) {
-  await expect.poll(async () => parseFloat(await page.locator('#reach-progress').textContent()), { timeout: 7000 }).toBeGreaterThan(3.1);
+  await page.clock.runFor(3300);
+  expect(parseFloat(await page.locator('#reach-progress').textContent())).toBeGreaterThan(3.1);
   await page.locator('#reach-finish').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state', 'ready');
 }
@@ -75,7 +72,8 @@ test('fixture measurement requires tracking, enough time and selected left wrist
 test('static selected right hand reports a narrow range without claiming completion', async ({ page }) => {
   await setup(page);
   await page.locator('#reach-start').click();
-  await expect.poll(async () => parseFloat(await page.locator('#reach-progress').textContent()), { timeout: 7000 }).toBeGreaterThan(3.1);
+  await page.clock.runFor(3300);
+  expect(parseFloat(await page.locator('#reach-progress').textContent())).toBeGreaterThan(3.1);
   await page.locator('#reach-finish').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason', 'narrow_range');
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state', 'collecting');
@@ -88,14 +86,14 @@ for (const action of ['escape', 'consent', 'loss']) {
     await setup(page); await begin(page); await complete(page);
     if (action === 'escape') await page.keyboard.press('Escape');
     if (action === 'consent') await page.locator('#camera-consent').uncheck();
-    if (action === 'loss') await page.evaluate(() => { window.reachFixtureMode = 'lost'; });
+    if (action === 'loss') { await page.evaluate(() => { window.reachFixtureMode = 'lost'; }); await page.clock.runFor(100); }
     await expect(page.locator('#reach-notice')).toHaveAttribute('data-state', 'paused');
     await expect(page.locator('#reach-overlay')).toBeHidden();
     await expect(page.locator('#reach-points')).toHaveAttribute('d', '');
     await expect(page.locator('#reach-start')).toBeDisabled();
     if (action === 'loss') {
       await page.evaluate(() => { window.reachFixtureMode = 'moving'; });
-      await page.locator('#pose-start').click();
+      await page.locator('#pose-start').click(); await page.clock.runFor(200);
       await expect(page.locator('#reach-start')).toBeEnabled();
       await expect(page.locator('#reach-overlay')).toBeHidden();
     }

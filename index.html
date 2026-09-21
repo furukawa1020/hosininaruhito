@@ -18,8 +18,8 @@
       <p class="lead">ひとりの身体を、時間をかけて星座にする。<br>その最初の一歩は、ある場所の空を知ること。</p>
       <ol class="steps" aria-label="作品の進行">
         <li aria-current="step"><span>01</span> 空を選ぶ</li>
-        <li><span>02</span> 身体を重ねる <small>準備中</small></li>
-        <li><span>03</span> 星座を残す <small>準備中</small></li>
+        <li><span>02</span> 身体を重ねる</li>
+        <li><span>03</span> 星座を残す</li>
       </ol>
     </section>
     <div class="workspace">
@@ -70,7 +70,7 @@
       <div class="camera-copy">
         <p class="eyebrow">PREPARE YOUR CAMERA</p>
         <h2 id="camera-title">身体を重ねる、その準備。</h2>
-        <p class="muted">まずはカメラの映り方を確かめます。カメラの確認後、端末内で手首の位置を推定できます。星座への誘導は準備中です。座ったまま確認できます。</p>
+        <p class="muted">まずはカメラの映り方を確かめます。カメラの確認後、端末内で手首の位置を推定できます。計測後、星座の配置を確認できます。座ったまま確認できます。</p>
         <label class="consent"><input id="camera-consent" type="checkbox"><span>カメラで撮影し、この端末で映像の表示と手首の位置推定に利用することに同意します。映像の送信・保存は行いません。</span></label>
         <button id="camera-start" class="primary" type="button" disabled>カメラを開始する <span aria-hidden="true">↗</span></button>
         <p id="camera-notice" role="status" aria-live="polite"></p>
@@ -107,6 +107,15 @@
         </div>
       </div>
     </section>
+    <section class="session-panel" aria-labelledby="session-title">
+      <p class="eyebrow">02 / PREPARE THE CONSTELLATION</p>
+      <h2 id="session-title">記録した範囲へ、星を置く。</h2>
+      <p id="session-selection">先に星APIで星座を選んでください。</p>
+      <p class="muted">星座を選び、カメラで動かせる範囲を記録したら配置を確認します。恒星カタログから計算した形を縮小して重ねます。空の方向へ手を伸ばす指示ではありません。</p>
+      <div class="trace-actions"><button id="session-prepare" class="secondary" type="button" disabled>配置を準備する</button><button id="session-clear" class="text-button" type="button">配置と星の記録を消す</button></div>
+      <p id="session-notice" role="status" aria-live="polite">星座選択と、動かせる範囲の確定を待っています。</p>
+      <p class="field-note">計算には観測時と同じ地点を使います。計算時刻は準備した時点のUTCです。星APIの観測時刻との一致は未確認です。姿勢やカメラを変えたら計測し直してください。</p>
+    </section>
     <section class="trace-panel" aria-labelledby="trace-title">
       <div class="trace-copy">
         <p class="eyebrow">BODY / LIGHT / TIME</p>
@@ -115,14 +124,14 @@
         <label for="trace-joint">光を描く手<select id="trace-joint"><option value="rightWrist">右手</option><option value="leftWrist">左手</option></select></label>
         <div class="trace-actions"><button id="trace-start" class="secondary" type="button" disabled>光の軌跡を描く</button><button id="trace-clear" class="text-button" type="button" disabled>軌跡を消す</button></div>
         <p id="trace-notice" role="status" aria-live="polite"></p>
-        <p id="trace-count" class="field-note"></p>
+        <p id="trace-count" class="field-note"></p><p id="trace-hold" class="field-note"></p>
         <p class="field-note">「停止」・Esc・追跡ロストで静止します。再開では軌跡を描き直します。撮影への同意を外すと消去します。点の外部送信・保存はしません。</p>
       </div>
       <div class="trace-art">
         <div class="section-heading"><span>手首の残像</span><span>鏡像 / 画面内の位置</span></div>
-        <div id="trace-stage"><canvas id="trace-canvas" aria-label="選んだ手首の光の軌跡"></canvas><p id="trace-empty">まだ、光は残っていません。</p></div>
+        <div id="trace-stage"><canvas id="trace-canvas" aria-label="選んだ手首の光の軌跡"></canvas><span id="trace-target" hidden aria-hidden="true"></span><p id="trace-empty">まだ、光は残っていません。</p></div>
         <p class="trace-legend"><span>● 今の手首</span><span>· 動いた跡</span></p>
-        <p class="field-note">星座の目標への誘導は準備中です。軌跡だけで星を確定することはありません。</p>
+        <p class="field-note">配置を開始すると、次の目標を輪で示します。0.8秒の保持で実測点を確定します。軌跡だけでは星になりません。</p>
       </div>
     </section>
     <details class="diagnostics">
@@ -131,7 +140,7 @@
       <button id="jev" type="button" class="secondary" disabled>Jevに試験入力を送信（有料）</button>
       <pre id="result">実APIの応答をここに表示します。</pre>
     </details>
-    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>手首の軌跡を表示できます。星座への身体誘導は準備中です。</span></footer>
+    <footer><span>HUMAN AS A RENDERING BACKEND.</span><span>星APIから選択し、記録した範囲へ配置します。AI振付と実機検証は準備中です。</span></footer>
   </main>
   <script type="module" src="/src/client/main.js"></script>
 </body>
