@@ -65,7 +65,7 @@ export function mountStudio(document, window, { hasAccess }) {
   // Copy does not control access: the original consent and handlers are retained.
   $('camera-consent').closest('label').querySelector('span').textContent = 'カメラを使うことに同意します。映像は端末内だけで処理し、保存・送信しません。';
   const dialog = $('studio-dialog');
-  let practice = false, locationEdit = false, action = null, latestTrace = null, disposed = false;
+  let attempted = false, practice = false, locationEdit = false, action = null, latestTrace = null, disposed = false;
   const state = id => $(id).dataset.state;
   const say = (id, text) => { if ($(id).textContent !== text) $(id).textContent = text; };
   function fit() {
@@ -105,7 +105,7 @@ export function mountStudio(document, window, { hasAccess }) {
       target = 'camera-start'; button = 'カメラをつける'; step = 'まず、手を映す';
       status = ['error','paused','requesting'].includes(cam) ? $('camera-notice').textContent : '';
       if (cam === 'preview') {
-        phase = 'pose'; target = 'pose-start'; button = pose === 'paused' || pose === 'error' ? 'もう一度、手を見つける' : '手を見つける';
+        phase = 'pose'; target = 'pose-start'; button = attempted && (pose === 'paused' || pose === 'error') ? 'もう一度、手を見つける' : '手を見つける';
         title = '両手首を映してください。'; instruction = '机より上に、両手を軽く上げます。手首に色の点がつけば準備できます。';
         status = $('pose-notice').textContent;
         if (pose === 'loading' || pose === 'searching') { button = '手を探しています…'; }
@@ -183,7 +183,7 @@ export function mountStudio(document, window, { hasAccess }) {
   $('studio-action').addEventListener('click', () => {
     if ($('studio-action').disabled) return;
     if (action === 'setup') openSetup();
-    else if (action && !$(action).disabled) $(action).click();
+    else if (action && !$(action).disabled) { if (action === 'pose-start') attempted = true; $(action).click(); }
   });
   $('studio-practice').addEventListener('click', () => { practice = true; render(); });
   $('studio-settings').addEventListener('click', openSetup);

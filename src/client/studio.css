@@ -86,8 +86,8 @@ body.studio-open{overflow:hidden;background:#f4f0e6;color:#302f29}
  #studio-movement svg{max-height:40px}
  #studio-movement span{font-size:12px}
  #studio-progress{margin:0 0 7px}
- .studio-example{height:100%;width:auto;max-width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding-bottom:32px}
- .studio-example svg{max-height:calc(100% - 18px);width:auto;max-width:100%}
+ .studio-example{position:absolute;inset:12px 10px 36px;height:auto;width:auto;max-width:none;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+ .studio-example svg{width:100%;height:calc(100% - 20px);min-height:0;max-height:none;flex:1}
  .studio-example>span{font-size:11px}
  .studio-view-footer{font-size:10px;min-height:30px;padding:6px 10px}
  #studio-surface{inset:6px 6px 32px}

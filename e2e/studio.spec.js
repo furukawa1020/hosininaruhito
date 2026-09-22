@@ -54,6 +54,7 @@ for(const width of [1440,390])test('single screen '+width+' keeps camera, instru
  await page.setViewportSize({width,height:width===390?844:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await setup(page);
  await expect(page.locator('#studio-action')).toBeInViewport();await expect(page.locator('#stop')).toBeInViewport();
+ expect((await page.locator('.studio-example svg').boundingBox()).width).toBeGreaterThan(250);
  await page.screenshot({path:'test-results/studio-welcome-'+width+'.png'});
  await prepare(page);
  await expect(page.locator('#camera-video')).toBeInViewport();await expect(page.locator('#studio-title')).toBeInViewport();await expect(page.locator('#trace-target')).toBeInViewport();
