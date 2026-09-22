@@ -27,7 +27,7 @@ async function setup(page, { failure = false } = {}) {
       terminate(){}
     };
   });
-  await page.goto('/');
+  await page.goto('/?view=details');
   await expect(page.locator('#trace-start')).toBeDisabled();
   await page.locator('#camera-consent').check();await page.locator('#camera-start').click();
   await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
@@ -103,7 +103,7 @@ let bundle;
 async function harness(page){
   bundle??=build({configFile:false,logLevel:'silent',build:{write:false,minify:true,rollupOptions:{preserveEntrySignatures:'strict',input:fileURLToPath(new URL('./trace-harness.js',import.meta.url)),output:{inlineDynamicImports:true}}}}).then(result=>result.output.find(item=>item.type==='chunk').code);
   await page.route('**/trace-harness.js',async route=>route.fulfill({contentType:'text/javascript',body:await bundle}));
-  await page.goto('/');
+  await page.goto('/?view=details');
   await page.evaluate(async()=>{
     const {ConstellationTrace,TraceRenderer}=await import('/trace-harness.js');
     const program={version:1,constellationId:'test-only',source:'fixture',steps:[

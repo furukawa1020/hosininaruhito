@@ -29,7 +29,7 @@ async function setup(page, respond, guest=false) {
       } terminate(){}
     };
   });
-  await page.goto('/');
+  await page.goto('/?view=details');
   if(guest){await page.locator('#auth-guest').click();await expect(page.locator('#auth-notice')).toContainText('ゲストとして開始');}
   else await page.locator('#token').fill('fixture-only');
   await page.locator('#lat').fill('36.56');await page.locator('#lng').fill('136.69');

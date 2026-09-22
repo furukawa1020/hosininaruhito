@@ -1,3 +1,5 @@
+import { mountStudio } from './studio.js';
+import './studio.css';
 import { mountAdvice } from './advice-view.js';
 import {mountPlayGuide} from './play-guide.js';
 import {mountLocation} from './location-view.js';
@@ -12,11 +14,11 @@ import { RequestSession, parseCoordinates } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
-let pose, experience, advice;
+let pose, experience, advice, studio;
 let observation = null;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
 const reach = mountReach(document, window, { onChange: () => experience?.reachChanged() });
-const trace = mountTrace(document, window, { onState: state => advice?.update(state), onFailure: () => { camera.stop('manual'); pose?.stop(); } });
+const trace = mountTrace(document, window, { onState: state => { advice?.update(state); studio?.onTrace(state); }, onFailure: () => { camera.stop('manual'); pose?.stop(); } });
 advice = mountAdvice(document, window);
 experience = mountSession(document, window, { reach, trace });
 pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });
@@ -197,5 +199,6 @@ window.addEventListener('pagehide', () => { session.cancel(); $('token').value =
 mountAccess(document,()=>{stop('ログイン状態が変わりました。体験を準備し直してください。');clearResults();});
 mountLocation(document,window);
 mountPlayGuide(document,window,{hasAccess:()=>hasAccess($('token').value)});
+studio = mountStudio(document,window,{hasAccess:()=>hasAccess($('token').value)});
 loadStatus();
 

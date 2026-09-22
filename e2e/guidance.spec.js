@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {guestAuth,guestSdk} from './guest-fixture.js';
 async function setup(page){
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:guestAuth}}));
- await guestSdk(page);await page.goto('/');await expect(page.locator('#auth-guest')).toBeVisible();
+ await guestSdk(page);await page.goto('/?view=details');await expect(page.locator('#auth-guest')).toBeVisible();
 }
 test('Japanese play instructions, guest navigation, selection and withdrawal agree',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));

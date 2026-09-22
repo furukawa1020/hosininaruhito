@@ -29,7 +29,7 @@ async function setup(page, mode = 'moving') {
       terminate() {}
     };
   }, mode);
-  await page.goto('/');
+  await page.goto('/?view=details');
   await expect(page.locator('#reach-start')).toBeDisabled();
   await page.locator('#camera-consent').check();
   await page.locator('#camera-start').click();
