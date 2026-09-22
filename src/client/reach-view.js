@@ -32,6 +32,8 @@ export function mountReach(document, window, { onChange = () => {} } = {}) {
     $('reach-start').textContent = snapshot.state === 'ready' ? '計測をやり直す' : '楽に動かせる範囲を計測する';
     $('reach-notice').dataset.state = snapshot.state;
     $('reach-notice').dataset.reason = snapshot.reason;
+    $('reach-notice').dataset.elapsed = String(snapshot.elapsedMs);
+    $('reach-notice').dataset.count = String(snapshot.count);
     const message = messages[snapshot.reason] || messages.manual;
     // Avoid announcing every frame to screen readers.
     if ($('reach-notice').textContent !== message) $('reach-notice').textContent = message;

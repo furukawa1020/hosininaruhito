@@ -7,7 +7,7 @@ const fakeVideoPath = fileURLToPath(new URL('./.generated/camera.y4m', import.me
 test.use({ launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--use-file-for-fake-video-capture=' + fakeVideoPath] } });
 
 async function camera(page) {
-  await page.goto('/');
+  await page.goto('/?view=details');
   await page.locator('#camera-consent').check();
   await page.locator('#camera-start').click();
   await expect(page.locator('#camera-notice')).toHaveAttribute('data-state', 'preview');
@@ -51,7 +51,7 @@ test('real pinned SDK runs locally on blank synthetic input with no external req
   test.setTimeout(45000);
   const urls = [];
   context.on('request', request => urls.push(request.url()));
-  const response = await page.goto('/');
+  const response = await page.goto('/?view=details');
   expect(response.headers()['content-security-policy']).toContain("connect-src 'self'");
   const file = readdirSync('dist/assets').find(name => /^pose-worker-.*\.js$/.test(name));
   const result = await page.evaluate(async file => {

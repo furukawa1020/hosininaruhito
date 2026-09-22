@@ -33,7 +33,7 @@ test('separate camera consent, synthetic local preview, withdrawal and explicit 
   await watchCamera(page);
   const outbound = [];
   page.on('request', request => { if (request.method() !== 'GET') outbound.push(request.url()); });
-  await page.goto('/');
+  await page.goto('/?view=details');
   await expect(page.locator('#camera-start')).toBeDisabled();
   expect(await page.evaluate(() => window.cameraCalls)).toBe(0);
   await page.locator('#consent').check();
@@ -55,7 +55,7 @@ test('separate camera consent, synthetic local preview, withdrawal and explicit 
 for (const action of ['button', 'escape', 'hidden', 'pagehide']) {
   test('camera release on ' + action, async ({ page }) => {
     await watchCamera(page);
-    await page.goto('/');
+    await page.goto('/?view=details');
     await startCamera(page);
     if (action === 'button') await page.locator('#stop').click();
     if (action === 'escape') await page.keyboard.press('Escape');
@@ -88,7 +88,7 @@ for (const [error, message] of [
     await page.addInitScript(name => {
       navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('private hardware detail', name); };
     }, error);
-    await page.goto('/');
+    await page.goto('/?view=details');
     await page.locator('#camera-consent').check();
     await page.locator('#camera-start').click();
     await expect(page.locator('#camera-notice')).toContainText(message);
@@ -113,7 +113,7 @@ test('stopped pending permission releases late synthetic stream without showing 
       });
     };
   });
-  await page.goto('/');
+  await page.goto('/?view=details');
   await page.locator('#camera-consent').check();
   await page.locator('#camera-start').click();
   await page.locator('#stop').click();

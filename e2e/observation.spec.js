@@ -11,7 +11,7 @@ const sky = {
 };
 async function prepare(page) {
   await page.route('**/api/status', route => route.fulfill({ json: ready }));
-  await page.goto('/');
+  await page.goto('/?view=details');
   await expect(page.locator('#sky')).toBeEnabled();
   await page.locator('#lat').fill('0');
   await page.locator('#lng').fill('0');
@@ -20,7 +20,7 @@ async function prepare(page) {
 test('unconfigured server shows the real missing state and no fabricated stars', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/?view=details');
   await expect(page.locator('#services')).toContainText('未設定');
   await expect(page.locator('#sky')).toBeDisabled();
   await expect(page.locator('#empty')).toBeVisible();

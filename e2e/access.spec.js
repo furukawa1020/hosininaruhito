@@ -6,7 +6,7 @@ const status={mode:'live',services:{access:true,sky:true,reflex:false,planner:fa
 async function setup(page,fail=false){
  await page.route('**/api/status',r=>r.fulfill({json:status}));
  await page.route('**/assets/firebase-access-*.js',r=>r.fulfill({contentType:'text/javascript',body:`export async function login(){${fail?'throw Error("fixture failure")':'return {uid:"fixture"}'}}; export async function logout(){}; export async function headers(){return {Authorization:'Bearer fixture-id','X-Firebase-AppCheck':'fixture-app'}};`}));
- await page.goto('/');await expect(page.locator('#cloud-login')).toBeVisible();
+ await page.goto('/?view=details');await expect(page.locator('#cloud-login')).toBeVisible();
  await expect(page.locator('#development-token')).toBeHidden();
  await page.locator('#auth-email').fill('fixture@example.test');await page.locator('#auth-password').fill('fixture-password');
  await page.locator('#auth-login').click();
@@ -19,7 +19,7 @@ test('cloud login sends both credentials; logout clears results and prevents ano
 });
 async function prepareGuest(page,options){
  await page.route('**/api/status',r=>r.fulfill({json:{...status,auth:guestAuth}}));await guestSdk(page,options);
- await page.goto('/');await expect(page.locator('#auth-guest')).toBeVisible();
+ await page.goto('/?view=details');await expect(page.locator('#auth-guest')).toBeVisible();
  await expect(page.locator('#auth-email')).toBeHidden();await expect(page.locator('#development-token')).toBeHidden();
  await page.locator('#auth-guest').click();
 }

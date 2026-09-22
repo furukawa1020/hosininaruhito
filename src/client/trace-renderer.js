@@ -1,5 +1,5 @@
 import { WebGLRenderer, Scene, OrthographicCamera, BufferGeometry, BufferAttribute, DynamicDrawUsage,
-  PointsMaterial, Points, LineBasicMaterial, LineSegments, Color } from 'three';
+  PointsMaterial, Points, LineBasicMaterial, LineSegments } from 'three';
 import { MAX_TRAIL_POINTS } from '../core/trace.js';
 
 // Render-only mirroring. Core samples and captures remain in original image coordinates.
@@ -9,11 +9,12 @@ export class TraceRenderer {
     this.disposed = false; this.failed = false; this.layers = {};
     this.loss = event => { event.preventDefault(); this.fail('context_lost'); };
     this.scene = new Scene();
-    this.scene.background = new Color('#0b1318');
+    // Transparent stars can share the camera's exact image rectangle.
+    this.scene.background = null;
     this.camera = new OrthographicCamera(-.5, .5, .5, -.5, .1, 10);
     this.camera.position.z = 1;
     try {
-      this.renderer = createRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'low-power' });
+      this.renderer = createRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
       canvas.addEventListener('webglcontextlost', this.loss);
       for (const [name, count, color, size, line] of [
         ['trail', MAX_TRAIL_POINTS, '#9abcaa', 5, false], ['targets', 12, '#8c713f', 5, false],

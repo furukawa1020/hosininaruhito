@@ -87,3 +87,5 @@ Firebase Hosting + Cloud Runへデプロイ済みです。対象は専用project
 - https://hoshimiru.apidog.io/llms.txt
 - https://docs.typesafe.ai/introduction/quickstart
 - https://firebase.google.com/docs/hosting/cloud-run
+
+標準表示はスクロールせずにカメラと星座を見渡せる一画面です。「星座を選んではじめる」から場所・星座を決め、手を映す→動かせる範囲を教える→星をつなぐ、と同じ場所のボタンで進みます。画面内の方向の案内は鏡像表示の右/左です。詳細な操作・任意AI設定も準備画面から利用できます。従来の全操作ページは `?view=details` です。
