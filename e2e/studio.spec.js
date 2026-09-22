@@ -100,3 +100,11 @@ test('star request failure stays visible and consent is never selected by naviga
  await expect(page.locator('#studio-dialog-notice')).toContainText('接続できません');await expect(page.locator('#studio-location')).toBeVisible();expect(posts).toBe(1);
  await expect(page.locator('#camera-consent')).not.toBeChecked();
 });
+
+test('guest can end access from the compact settings without opening the full page',async({page})=>{
+ await setup(page);await choose(page);await page.locator('#studio-settings').click();
+ await expect(page.locator('#auth-logout')).toBeVisible();await page.locator('#auth-logout').click();
+ await expect(page.locator('#studio-access')).toBeVisible();await expect(page.locator('#camera-video')).toBeHidden();
+ await expect(page.locator('#studio-choose')).toBeHidden();
+ await page.locator('#studio-close').click();await expect(page.locator('#studio-dialog')).not.toBeVisible();
+});

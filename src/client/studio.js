@@ -44,10 +44,11 @@ export function mountStudio(document, window, { hasAccess }) {
       </aside>
     </div>
     <dialog id="studio-dialog" aria-labelledby="studio-dialog-title">
-      <header><h2 id="studio-dialog-title">はじめる</h2><button id="studio-close" type="button" aria-label="準備を閉じる">閉じる ×</button></header>
+      <header><h2 id="studio-dialog-title">はじめる</h2><button id="studio-close" type="button" aria-label="停止して準備を閉じる">停止して閉じる</button></header>
       <div id="studio-access"></div><div id="studio-location"></div><div id="studio-stars"></div>
       <p id="studio-dialog-notice" role="status"></p>
       <div class="studio-dialog-actions"><button id="studio-back" class="text-button" type="button">場所を変える</button><button id="studio-choose" class="primary" type="button">この星座で遊ぶ →</button></div>
+      <div id="studio-account-actions"></div>
       <details id="studio-extra"><summary>追加の設定・すべての操作</summary><div id="studio-ai"></div><a href="?view=details">すべての操作を表示する</a><p>星の情報：星をみるひとAPI ／ d3-celestial・XHIP</p></details>
     </dialog>`;
   document.body.append(root);
@@ -62,6 +63,7 @@ export function mountStudio(document, window, { hasAccess }) {
   move(document.querySelector('.observation-panel'), 'studio-location');
   move(document.querySelector('.sky-panel'), 'studio-stars');
   move($('planner-consent').closest('label'), 'studio-ai');
+  move($('auth-logout'), 'studio-account-actions');
   // Copy does not control access: the original consent and handlers are retained.
   $('camera-consent').closest('label').querySelector('span').textContent = 'カメラを使うことに同意します。映像は端末内だけで処理し、保存・送信しません。';
   const dialog = $('studio-dialog');
@@ -137,7 +139,7 @@ export function mountStudio(document, window, { hasAccess }) {
                   else {
                     const dx = latestTrace.current.x - latestTrace.activeTarget.target.x;
                     const dy = latestTrace.activeTarget.target.y - latestTrace.current.y;
-                    title = hand + 'を、画面の' + (Math.abs(dx) > Math.abs(dy) ? dx > 0 ? '右へ →' : '左へ ←' : dy > 0 ? '下へ ↓' : '上へ ↑');
+                    title = hand + 'を、\n画面の' + (Math.abs(dx) > Math.abs(dy) ? dx > 0 ? '右へ →' : '左へ ←' : dy > 0 ? '下へ ↓' : '上へ ↑');
                   }
                   status = 'つないだ星 ' + latestTrace.captures.length + ' / ' + (latestTrace.captures.length + latestTrace.targets.length);
                 }
@@ -187,7 +189,7 @@ export function mountStudio(document, window, { hasAccess }) {
   });
   $('studio-practice').addEventListener('click', () => { practice = true; render(); });
   $('studio-settings').addEventListener('click', openSetup);
-  $('studio-close').addEventListener('click', () => dialog.close());
+  $('studio-close').addEventListener('click', () => { $('stop').click(); dialog.close(); });
   $('studio-choose').addEventListener('click', () => { practice = true; dialog.close(); render(); $('studio-action').focus(); });
   $('studio-back').addEventListener('click', () => { locationEdit = true; renderDialog(); });
   $('sky-form').addEventListener('submit', () => { locationEdit = false; });
