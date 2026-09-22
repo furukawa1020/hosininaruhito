@@ -14,6 +14,7 @@ export function mountPlayGuide(document, window, {hasAccess}) {
         if(state('camera-notice')==='preview'){
           key='pose';target='pose-setup';label='手首を見つける';message='顔と両手首を映し、「手首の推定を開始・再開する」を押してください。';
           if(state('pose-notice')==='loading')message='手首を見つける準備中です。そのままお待ちください。';
+          if(state('pose-notice')==='searching')message='人物を探しています。顔・肩・両ひじ・両手首が映るように調整してください。見つかるまで計測は始まりません。';
           if(state('pose-notice')==='paused'||state('pose-notice')==='error')message='手首の追跡が止まりました。映り方を確認し、手首の推定を再開してください。';
           if(state('pose-notice')==='tracking'){
             key='reach';target='reach-setup';label='動かせる範囲を記録';message='動かす手を選び、計測を始めてください。上下・左右に、楽な範囲で動かします。';

@@ -12,7 +12,8 @@ self.onmessage = async ({ data }) => {
       model = await PoseLandmarker.createFromOptions(assets, {
         baseOptions: { modelAssetPath: new URL('/models/pose_landmarker_lite.task', self.location.origin).href, delegate: 'CPU' },
         runningMode: 'VIDEO', numPoses: 2, outputSegmentationMasks: false,
-        minPoseDetectionConfidence: 0.6, minPosePresenceConfidence: 0.8, minTrackingConfidence: 0.8
+        // Model candidates use SDK defaults; core wrist visibility 0.8 and age 150ms remain unchanged.
+        minPoseDetectionConfidence: 0.5, minPosePresenceConfidence: 0.5, minTrackingConfidence: 0.5
       });
       // Initialize the detector before accepting sensor timestamps.
       const blank = new OffscreenCanvas(256, 256);

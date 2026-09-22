@@ -1,4 +1,5 @@
 import { normalizePose, isFreshPoseTime, MAX_POSE_AGE_MS } from '../core/pose.js';
+export const PERSON_SEARCH_MS = 15000;
 
 export class PoseSession {
   constructor({ video, createWorker, createBitmap = () => createImageBitmap(video),
@@ -14,14 +15,27 @@ export class PoseSession {
     this.timer = null;
     this.inFlight = null;
     this.lastAt = null;
+    this.lastInputAt = null;
     this.disposed = false;
   }
-  get active() { return this.state === 'loading' || this.state === 'tracking'; }
+  get active() { return ['loading', 'searching', 'tracking'].includes(this.state); }
   snapshot() { return { state: this.state, reason: this.reason }; }
   notify() { if (!this.disposed) this.onChange(this.snapshot()); }
   deadline(ms, reason) {
     clearTimeout(this.timer);
     this.timer = setTimeout(() => this.stop(reason), ms);
+  }
+  searchAgain(reason) {
+    if (this.state !== 'searching') return false;
+    if (this.now() >= this.searchUntil) { this.stop('person_timeout'); return true; }
+    this.inFlight = null;
+    const next = 'searching_' + reason;
+    if (this.reason !== next) { this.reason = next; this.notify(); }
+    this.schedule(this.generation);
+    return true;
+  }
+  staleDuringSearch(at) {
+    return Number.isFinite(at) && at >= 0 && this.now() >= at && this.now() - at > MAX_POSE_AGE_MS && this.searchAgain('slow');
   }
   stop(reason = 'manual', state = 'paused') {
     this.generation++;
@@ -35,6 +49,7 @@ export class PoseSession {
     }
     this.inFlight = null;
     this.lastAt = null;
+    this.lastInputAt = null;
     this.state = state;
     this.reason = reason;
     this.onSample(null);
@@ -60,18 +75,26 @@ export class PoseSession {
         if (generation !== this.generation || worker !== this.worker) return;
         if (!this.isVisible()) { this.stop('hidden'); return; }
         if (data?.type === 'ready' && this.state === 'loading') {
-          this.state = 'tracking';
-          this.reason = 'tracking';
+          this.state = this.reason = 'searching';
+          this.searchUntil = this.now() + PERSON_SEARCH_MS;
           this.notify();
-          this.deadline(MAX_POSE_AGE_MS, 'frame_gap');
+          this.deadline(PERSON_SEARCH_MS, 'person_timeout');
           this.schedule(generation);
-        } else if (data?.type === 'pose' && this.state === 'tracking') {
+        } else if (data?.type === 'pose' && ['searching','tracking'].includes(this.state)) {
           if (!this.inFlight || data.id !== this.inFlight.id) return;
-          if (data.at !== this.inFlight.at || !isFreshPoseTime(data.at, this.now(), this.lastAt)) {
+          if (this.state === 'searching' && this.now() >= this.searchUntil) { this.stop('person_timeout'); return; }
+          if (data.at !== this.inFlight.at) { this.stop('stale_pose'); return; }
+          if (!isFreshPoseTime(data.at, this.now(), this.lastAt)) {
+            if (this.staleDuringSearch(data.at)) return;
             this.stop('stale_pose'); return;
           }
           const frame = normalizePose(data.result, data.at);
-          if (!frame.tracked) { this.stop(frame.reason); return; }
+          if (!frame.tracked) {
+            if (['no_person','occluded','multiple_people'].includes(frame.reason) && this.searchAgain(frame.reason)) return;
+            this.stop(frame.reason); return;
+          }
+          // Only a fresh valid measurement can mark the body as found.
+          if (this.state === 'searching') { this.state = this.reason = 'tracking'; this.notify(); }
           this.lastAt = frame.at;
           this.inFlight = null;
           this.onSample({ ...frame, latencyMs: this.now() - frame.at });
@@ -102,20 +125,23 @@ export class PoseSession {
   async capture(generation, metadata) {
     if (generation !== this.generation || this.inFlight) return;
     if (!this.isVisible()) { this.stop('hidden'); return; }
+    if (this.state === 'searching' && this.now() >= this.searchUntil) { this.stop('person_timeout'); return; }
     // All timestamps stay in the Window performance clock, never worker time.
     // captureTime is optional; presentationTime is the frame's browser arrival.
     const at = metadata?.captureTime ?? metadata?.presentationTime;
-    if (!isFreshPoseTime(at, this.now(), this.lastAt)) { this.stop('stale_pose'); return; }
+    if (this.lastInputAt !== null && at <= this.lastInputAt) { this.stop('stale_pose'); return; }
+    if (!isFreshPoseTime(at, this.now(), this.lastAt)) { if (!this.staleDuringSearch(at)) this.stop('stale_pose'); return; }
+    this.lastInputAt = at;
     const id = ++this.nextId;
     this.inFlight = { id, at };
-    this.deadline(Math.max(0, MAX_POSE_AGE_MS - (this.now() - at)), 'stale_pose');
+    if (this.state === 'tracking') this.deadline(Math.max(0, MAX_POSE_AGE_MS - (this.now() - at)), 'stale_pose');
     let bitmap;
     try {
       bitmap = await this.createBitmap();
       if (generation !== this.generation) { bitmap.close(); return; }
-      if (!this.isVisible() || !isFreshPoseTime(at, this.now(), this.lastAt)) {
-        bitmap.close(); this.stop('stale_pose'); return;
-      }
+      if (!this.isVisible()) { bitmap.close(); this.stop('hidden'); return; }
+      if (this.state === 'searching' && this.now() >= this.searchUntil) { bitmap.close(); this.stop('person_timeout'); return; }
+      if (!isFreshPoseTime(at, this.now(), this.lastAt)) { bitmap.close(); if (!this.staleDuringSearch(at)) this.stop('stale_pose'); return; }
       this.worker.postMessage({ type: 'frame', id, at, bitmap }, [bitmap]);
       // Ownership is transferred to the worker, which closes it in finally.
     } catch {
