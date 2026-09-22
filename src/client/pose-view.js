@@ -3,6 +3,12 @@ import { PoseSession } from './pose-session.js';
 const messages = {
   idle: 'カメラを開始すると、端末内で手首の位置を確認できます。',
   loading: '手首を推定する準備をしています…',
+  searching: '人物を探しています（最大15秒）。プレビューに顔・肩・両ひじ・両手首が入るよう、端末の向きを調整してください。',
+  searching_no_person: 'まだ人物を見つけられません。プレビューが暗い・レンズが隠れていないか確認し、顔から両手首までを映してください。探し続けています。',
+  searching_occluded: '人物は見つかりました。両手首が机や画面の外に隠れていないか確認してください。探し続けています。',
+  searching_multiple_people: '複数の人物が映っています。一人で映る状態に調整してください。探し続けています。',
+  searching_slow: '映像の処理を準備しています。古い結果は使わず、新しい映像で確認しています。',
+  person_timeout: '15秒以内に両手首を確認できませんでした。顔・肩・両ひじ・両手首がプレビューに入るよう調整し、もう一度開始してください。',
   tracking: '両手首を推定中です。星座への誘導はまだ行いません。',
   manual: '手首の推定を停止しました。',
   camera_stopped: 'カメラが停止したため、手首の推定も停止しました。',
@@ -25,7 +31,7 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
   let cameraReady = false;
   let pose;
   const render = state => {
-    $('pose-start').disabled = !cameraReady || state.state === 'loading' || state.state === 'tracking' || document.hidden;
+    $('pose-start').disabled = !cameraReady || ['loading','searching','tracking'].includes(state.state) || document.hidden;
     $('pose-notice').dataset.state = state.state;
     $('pose-notice').dataset.reason = state.reason;
     $('pose-notice').textContent = messages[state.reason] || messages.manual;

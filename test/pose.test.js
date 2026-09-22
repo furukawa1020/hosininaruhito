@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { normalizePose, isFreshPoseTime } from '../src/core/pose.js';
 import { HumanRuntime } from '../src/core/runtime.js';
 import { compileConstellation } from '../src/core/program.js';
-import { PoseSession } from '../src/client/pose-session.js';
+import { PoseSession, PERSON_SEARCH_MS } from '../src/client/pose-session.js';
 
 function detection() {
   const points = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 100, visibility: 1 }));
@@ -116,7 +116,7 @@ test('one worker and one frame in flight; explicit restart replaces ownership', 
   app.ready();
   app.workers[0].emit({ type: 'ready' });
   assert.equal(app.workers.length, 2);
-  assert.equal(app.session.state, 'tracking');
+  assert.equal(app.session.state, 'searching');
 });
 test('late ready or result after stop cannot resume or publish samples', async t => {
   const app = setup(t);
@@ -141,8 +141,8 @@ test('pending bitmap is released when stop wins the race', async t => {
 });
 test('stale inference, wrong timestamp and hidden tab release worker without samples', async t => {
   for (const mode of ['old', 'timestamp', 'hidden']) {
-    const app = setup(t); app.ready(); await app.frame();
-    if (mode === 'old') app.time(251);
+    const app = setup(t); app.ready(); await app.frame(); app.reply(); app.time(200); await app.frame();
+    if (mode === 'old') app.time(351);
     if (mode === 'hidden') app.hide();
     app.reply(detection(), mode === 'timestamp' ? { at: 99 } : {});
     assert.equal(app.session.state, 'paused');
@@ -159,7 +159,7 @@ test('unmatched worker response cannot consume the current request', async t => 
   assert.equal(app.samples.at(-1).tracked, true);
 });
 test('tracking loss stops until intentional restart, without automatic reacquisition', async t => {
-  const app = setup(t); app.ready(); await app.frame();
+  const app = setup(t); app.ready(); await app.frame(); app.reply(); app.time(133); await app.frame();
   app.reply({ landmarks: [] });
   assert.equal(app.session.reason, 'no_person');
   assert.equal(app.workers[0].terminated, 1);
@@ -177,13 +177,16 @@ test('model failure and worker crash expose only fixed reasons', t => {
   app.workers[1].onerror({ preventDefault() {} });
   assert.equal(app.session.reason, 'inference_failed');
 });
-test('deadlines stop absent frames and model loading without waiting for worker', t => {
+test('deadlines bound initial search and preserve tracking watchdog', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const app = setup(t);
   app.session.start();
   t.mock.timers.tick(20000);
   assert.equal(app.session.reason, 'model_timeout');
   app.ready();
+  t.mock.timers.tick(PERSON_SEARCH_MS);
+  assert.equal(app.session.reason, 'person_timeout');
+  app.ready(); await app.frame(); app.reply();
   t.mock.timers.tick(150);
   assert.equal(app.session.reason, 'frame_gap');
   assert.ok(app.workers.every(w => w.terminated === 1));
@@ -210,4 +213,65 @@ test('sensor capture time takes priority over later presentation time in the sam
   app.time(160);
   await app.frame({ captureTime: 170, presentationTime: 150 });
   assert.equal(app.session.reason, 'stale_pose');
+});
+
+test('initial absence, occlusion and multiple people can be corrected without reloading the worker', async t => {
+  const app=setup(t);app.ready();
+  assert.equal(app.session.state,'searching');
+  const hidden=detection();hidden.landmarks[0][15].visibility=.1;
+  let at=100;
+  for(const [result,reason] of [[{landmarks:[]},'no_person'],[hidden,'occluded'],[{landmarks:[...detection().landmarks,...detection().landmarks]},'multiple_people']]){
+    await app.frame();app.reply(result);
+    assert.equal(app.session.reason,'searching_'+reason);
+    assert.equal(app.samples.filter(Boolean).length,0);
+    assert.equal(app.workers[0].terminated,0);
+    app.time(at+=100);
+  }
+  await app.frame();app.reply();
+  assert.equal(app.session.state,'tracking');
+  assert.equal(app.samples.filter(Boolean).length,1);
+  assert.equal(app.workers.length,1);
+});
+test('slow first inference is discarded before a fresh measurement can start tracking',async t=>{
+  const app=setup(t);app.ready();await app.frame();app.time(400);app.reply();
+  assert.equal(app.session.state,'searching');assert.equal(app.session.reason,'searching_slow');
+  assert.equal(app.samples.filter(Boolean).length,0);assert.equal(app.callbacks.size,1);
+  await app.frame();app.time(430);app.reply();
+  assert.equal(app.samples.at(-1).at,400);assert.equal(app.samples.at(-1).latencyMs,30);
+});
+test('search timeout releases a hung worker and ignores a late successful detection',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const app=setup(t);app.ready();await app.frame();
+  t.mock.timers.tick(PERSON_SEARCH_MS);
+  assert.equal(app.session.reason,'person_timeout');assert.equal(app.workers[0].terminated,1);
+  app.reply();assert.equal(app.samples.filter(Boolean).length,0);assert.equal(app.callbacks.size,0);
+});
+test('repeated initial misses do not extend the original search deadline',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const app=setup(t);app.ready();
+  for(let i=0;i<14;i++){app.time(100+i*1000);await app.frame();app.reply({landmarks:[]});t.mock.timers.tick(1000);}
+  assert.equal(app.session.state,'searching');
+  t.mock.timers.tick(1000);assert.equal(app.session.reason,'person_timeout');
+});
+test('expired initial search cannot accept a result even when the timer has not run',async t=>{
+  const app=setup(t);app.ready();await app.frame();app.time(100+PERSON_SEARCH_MS);app.reply();
+  assert.equal(app.session.reason,'person_timeout');assert.equal(app.samples.filter(Boolean).length,0);
+});
+
+test('initial search rejects duplicate and reversed input timestamps after a miss',async t=>{
+  for(const at of [100,99]){
+    const app=setup(t);app.ready();await app.frame();app.reply({landmarks:[]});
+    app.time(110);await app.frame({presentationTime:at});
+    assert.equal(app.session.reason,'stale_pose');
+    assert.equal(app.workers[0].sent.filter(m=>m.type==='frame').length,1);
+    assert.equal(app.samples.filter(Boolean).length,0);
+  }
+});
+test('bitmap resolving after search deadline is closed without dispatch',async t=>{
+  let resolve;const bitmap={closed:0,close(){this.closed++;}};
+  const app=setup(t,{createBitmap:()=>new Promise(done=>{resolve=done;})});
+  app.ready();app.time(PERSON_SEARCH_MS+50);await app.frame();
+  app.time(PERSON_SEARCH_MS+100);resolve(bitmap);await Promise.resolve();
+  assert.equal(app.session.reason,'person_timeout');assert.equal(bitmap.closed,1);
+  assert.equal(app.workers[0].sent.filter(m=>m.type==='frame').length,0);
 });

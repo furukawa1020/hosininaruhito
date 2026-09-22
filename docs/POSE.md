@@ -69,3 +69,16 @@ WebAssembly用のwasm-unsafe-evalだけを許可し、JavaScript evalは許可�
 - [モデルカードとライセンス](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20BlazePose%20GHUM%203D.pdf)
 - インストール済みSDKのvision.d.ts：forVisionTasks(basePath, useModule)、NormalizedLandmark、
   PoseLandmarkerOptions、PoseLandmarkerResult.close、TaskRunner.closeを確認。
+
+## 2026-09-21 実機での初回検出失敗（#41）
+
+公開EdgeでUSBカメラの許可・実映像の到着（video readyState 4、liveな映像track、音声trackなし）を確認した。人物推定は開始直後のstale_pose/occluded/no_personで停止を繰り返し、利用者も先へ進めなかった。旧実装のtracking表示はWorker準備完了だけで出ていたため、人体検出成功の証拠とは扱わない。映像・顔・関節座標は記録していない。
+
+修正後はモデル準備後に最大15秒のsearchingへ入る。初回の人物不在/見切れ/複数人では映り方の案内を更新し、同じWorkerで一件ずつ再試行する。初回の遅い応答は捨て、新しいフレームで試す。期限は再試行で延長せず、無応答や期限後の結果も採用しない。計測へ渡す全フレームは従来どおり150ms以内・両手首visibility 0.8以上を必須とする。
+
+trackingへ入るのは最初の有効な計測が得られたときだけ。その後の追跡ロスト/遅延/無応答は即座に停止し、自動再検出しない。停止・カメラ終了・非表示ではsearchingも終了する。
+
+人物候補を得るSDK設定はGoogle公式とインストール済みvision.d.tsを照合し、minPoseDetectionConfidence/minPosePresenceConfidence/minTrackingConfidenceを既定値0.5にそろえた。身体の到達・安全・captureはこれらの確率で判断しない。
+一次資料: https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js
+
+単体と画面試験で探索→有効計測、探索期限、初回遅延、追跡後ロスト、停止を区別する。修正後の実人体正常系は参加者と再確認するまで未確認。
