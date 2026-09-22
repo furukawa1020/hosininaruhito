@@ -22,7 +22,7 @@ test('absence, multiple detections, occlusion and invalid SDK data yield no samp
     [{ landmarks: [...detection().landmarks, ...detection().landmarks] }, 'multiple_people'],
     [{ landmarks: [[]] }, 'invalid_pose']
   ];
-  for (const [key, value] of [['x', NaN], ['y', 1.01], ['x', -0.1], ['visibility', '1'], ['visibility', 1.1], ['visibility', 0.79]]) {
+  for (const [key, value] of [['x', NaN], ['x', Infinity], ['x', '0.5'], ['visibility', '1'], ['visibility', 1.1], ['visibility', 0.79]]) {
     const raw = detection(); raw.landmarks[0][15][key] = value;
     cases.push([raw, value === 0.79 ? 'occluded' : 'invalid_pose']);
   }
@@ -274,4 +274,37 @@ test('bitmap resolving after search deadline is closed without dispatch',async t
   app.time(PERSON_SEARCH_MS+100);resolve(bitmap);await Promise.resolve();
   assert.equal(app.session.reason,'person_timeout');assert.equal(bitmap.closed,1);
   assert.equal(app.workers[0].sent.filter(m=>m.type==='frame').length,0);
+});
+
+test('finite off-image wrists are framing loss, never clamped samples', () => {
+  for (const index of [15,16]) for (const axis of ['x','y']) for (const value of [-0.01,1.01]) {
+    const raw=detection();raw.landmarks[0][index][axis]=value;
+    const frame=normalizePose(raw,100);
+    assert.deepEqual(frame,{tracked:false,reason:'out_of_frame',at:100});
+    assert.equal(raw.landmarks[0][index][axis],value);
+  }
+  for(const value of [0,1]){
+    const raw=detection();raw.landmarks[0][15].x=value;
+    assert.equal(normalizePose(raw,100).wrists.leftWrist.x,value);
+  }
+});
+test('malformed opposite wrist cannot be hidden by a framing or visibility failure', () => {
+  for(const first of [{x:-.1},{visibility:.1}]){
+    const raw=detection();Object.assign(raw.landmarks[0][15],first);
+    raw.landmarks[0][16].x=NaN;
+    assert.equal(normalizePose(raw,100).reason,'invalid_pose');
+  }
+});
+test('framing can recover only before tracking; malformed frames still stop immediately',async t=>{
+  const outside=detection();outside.landmarks[0][16].y=1.1;
+  const app=setup(t);app.ready();await app.frame();app.reply(outside);
+  assert.equal(app.session.reason,'searching_out_of_frame');
+  assert.equal(app.samples.filter(Boolean).length,0);
+  app.time(200);await app.frame();app.reply();
+  assert.equal(app.session.state,'tracking');
+  app.time(300);await app.frame();app.reply(outside);
+  assert.equal(app.session.reason,'out_of_frame');
+  assert.equal(app.workers[0].terminated,1);assert.equal(app.samples.at(-1),null);
+  const invalid=setup(t);invalid.ready();await invalid.frame();invalid.reply({landmarks:[[]]});
+  assert.equal(invalid.session.reason,'invalid_pose');assert.equal(invalid.callbacks.size,0);
 });

@@ -82,3 +82,7 @@ trackingへ入るのは最初の有効な計測が得られたときだけ。そ
 一次資料: https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js
 
 単体と画面試験で探索→有効計測、探索期限、初回遅延、追跡後ロスト、停止を区別する。修正後の実人体正常系は参加者と再確認するまで未確認。
+
+## 2026-09-22 画面外と破損値の区別（#43）
+
+SDKの[LandmarkProjection実装](https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/calculators/util/landmark_projection_calculator.cc)は検出領域から画像へ座標変換し、x/yを画面内へクランプしない。有限だが0〜1外の手首はout_of_frameとしてサンプルを出さず、初回探索のみ画角の調整を案内して既存期限内で再試行する。NaN/Infinity/型不正/配列不正/visibility範囲不正は従来のinvalid_poseで停止する。両手首のデータ形式を先に検証する。追跡開始後の画面外は即停止・明示再開。公開#42で実両手首計測81msを一度確認したが、継続と身体での完成は未確認。今回報告のinvalid_poseが画面外由来かは再試験で確認する。

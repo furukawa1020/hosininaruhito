@@ -36,6 +36,8 @@ async function fixtureWorker(page, mode = 'normal') {
         points[15].x = 0.2;
         points[16].x = 0.7;
         if (window.poseMode === 'occluded') points[15].visibility = 0.1;
+        if (window.poseMode === 'out_of_frame') points[16].y = 1.1;
+        if (window.poseMode === 'invalid_pose') points[16].x = NaN;
         const landmarks = window.poseMode === 'no_person' ? [] :
           window.poseMode === 'multiple_people' ? [points, points] : [points];
         queueMicrotask(() => this.onmessage?.({ data: { type: 'pose', id: message.id, at: message.at, result: { landmarks } } }));
@@ -97,7 +99,7 @@ test('fixture wrists display mirrored positions once and stop clears overlay and
   expect(await page.evaluate(() => window.poseWorkers.every(w => w.terminated))).toBe(true);
 });
 
-for (const mode of ['no_person', 'multiple_people', 'occluded', 'stall']) {
+for (const mode of ['no_person', 'multiple_people', 'occluded', 'out_of_frame', 'stall']) {
   test('fixture ' + mode + ' stops inference and requires explicit restart', async ({ page }) => {
     await fixtureWorker(page);
     await camera(page);
@@ -181,7 +183,7 @@ test('synthetic frame loss still stops at the production deadline', async ({ pag
   await expect(page.locator('#pose-overlay')).toBeHidden();
 });
 
-for(const mode of ['no_person','occluded','multiple_people'])test('initial '+mode+' allows framing adjustment before any measurement',async({page})=>{
+for(const mode of ['no_person','occluded','multiple_people','out_of_frame'])test('initial '+mode+' allows framing adjustment before any measurement',async({page})=>{
  await fixtureWorker(page,mode);await camera(page);
  await page.locator('#pose-start').click();await page.clock.runFor(500);
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','searching');
@@ -206,4 +208,13 @@ test('stop during initial search releases camera and inference',async({page})=>{
  await page.locator('#stop').click();await page.clock.runFor(100);
  await expect(page.locator('#camera-video')).toBeHidden();await expect(page.locator('#pose-overlay')).toBeHidden();
  expect(await page.evaluate(()=>window.poseWorkers.every(w=>w.terminated))).toBe(true);
+});
+
+test('malformed initial pose does not enter the framing recovery path',async({page})=>{
+ await fixtureWorker(page,'invalid_pose');await camera(page);
+ await page.locator('#pose-start').click();await page.clock.runFor(100);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','invalid_pose');
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','paused');
+ await expect(page.locator('#pose-overlay')).toBeHidden();
+ await expect(page.locator('#reach-start')).toBeDisabled();
 });

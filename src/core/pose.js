@@ -13,8 +13,12 @@ export function normalizePose(result, at) {
   for (const [joint, index] of [['leftWrist', 15], ['rightWrist', 16]]) {
     const point = landmarks[index];
     if (!point || ![point.x, point.y, point.visibility].every(Number.isFinite) ||
-        point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1 ||
         point.visibility < 0 || point.visibility > 1) return lost('invalid_pose');
+  }
+  // Finite image coordinates can lie outside the camera crop. Never clamp them.
+  for (const [joint, index] of [['leftWrist', 15], ['rightWrist', 16]]) {
+    const point = landmarks[index];
+    if (point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return lost('out_of_frame');
     if (point.visibility < 0.8) return lost('occluded');
     wrists[joint] = { joint, x: point.x, y: point.y, confidence: point.visibility, at };
   }

@@ -90,7 +90,7 @@ export class PoseSession {
           }
           const frame = normalizePose(data.result, data.at);
           if (!frame.tracked) {
-            if (['no_person','occluded','multiple_people'].includes(frame.reason) && this.searchAgain(frame.reason)) return;
+            if (['no_person','occluded','multiple_people','out_of_frame'].includes(frame.reason) && this.searchAgain(frame.reason)) return;
             this.stop(frame.reason); return;
           }
           // Only a fresh valid measurement can mark the body as found.
