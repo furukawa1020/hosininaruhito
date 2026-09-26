@@ -1,99 +1,200 @@
-
-/* The default experience is a single surface. The full control page stays available explicitly. */
-body.studio-open{overflow:hidden;background:#f4f0e6;color:#302f29}
+/* One viewport per step, including setup. No nested scrolling surfaces. */
+body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:dark}
 .studio-open>main,.studio-open .how-link{display:none}
-.studio-open .topbar{height:64px;padding:0 28px;border-color:#d9d4c8}
-.studio-open .brand{font-size:22px;color:#302f29}
-.studio-open .stop{top:10px;right:24px;box-shadow:none;border-radius:3px;padding:8px 17px;background:#f4f0e6;min-height:44px}
-#studio{height:calc(100dvh - 64px);display:grid;grid-template-rows:48px minmax(0,1fr);padding:0 28px 24px}
-.studio-bar{display:flex;justify-content:space-between;align-items:center;font-size:15px}
-.studio-bar .text-button{color:#554f41;font-size:15px}
-.studio-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:38px;min-height:0}
-.studio-view{position:relative;min-height:0;background:#182728;border-radius:3px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-#studio-surface{position:absolute;inset:20px 20px 48px;display:flex;align-items:center;justify-content:center}
-#studio .camera-frame{aspect-ratio:auto;max-height:none;border-radius:0;flex:none;background:transparent}
-#studio #camera-placeholder{display:none}
+.studio-open .topbar{height:64px;padding:0 32px;border:0;background:transparent}
+.studio-open .brand{font-size:21px;color:#eff5ff}
+.studio-open .stop{top:12px;right:24px;min-height:42px;padding:8px 16px;border:1px solid #79849d;background:#131e35;color:#fff;border-radius:24px;box-shadow:none}
+#studio{height:calc(100dvh - 64px);padding:0 32px 24px;display:grid;grid-template-rows:44px minmax(0,1fr);background:radial-gradient(ellipse at 22% 48%,#18345955,transparent 65%)}
+.studio-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#b5c4dd;font-size:15px}
+.studio-open .text-button{color:#bcd5f4;text-decoration:none}
+.studio-open button,.studio-open select,.studio-open input{font-family:inherit}
+.studio-open button:focus-visible,.studio-open a:focus-visible,.studio-open input:focus-visible,.studio-open select:focus-visible{outline:3px solid #8fe7f3;outline-offset:4px}
+.studio-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(290px,360px);gap:40px;min-height:0}
+.studio-view{position:relative;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden;border:1px solid #8196bc33;border-radius:28px;background:radial-gradient(ellipse at 50% 30%,#142643,#090f21)}
+#studio-surface{position:absolute;inset:18px 18px 38px;display:flex;align-items:center;justify-content:center}
+#studio .camera-frame{aspect-ratio:auto;max-height:none;border-radius:14px;flex:none;background:transparent;overflow:hidden}
+#studio #camera-placeholder,#studio #trace-empty{display:none}
 #studio #trace-stage{position:absolute;inset:0;width:100%;height:100%;max-height:none;aspect-ratio:auto!important;border-radius:0;background:transparent;pointer-events:none}
-#studio #trace-empty{display:none}
-#studio #trace-target{border:3px solid #ffe6a1;box-shadow:0 0 0 5px #152a2b88,0 0 25px #ffd58066}
+#studio #trace-target{border:3px solid #ffe39c;box-shadow:0 0 0 6px #fff0b418,0 0 34px #ffd58088}
 #studio .studio-muted{visibility:hidden}
 #studio #camera-video{opacity:.8}
-.studio-example{width:min(85%,560px);position:relative;color:#ccc7b9;text-align:center;font-size:14px;pointer-events:none}
-.studio-example svg{display:block;width:100%;max-height:55dvh}
-.studio-view-footer{position:absolute;bottom:0;left:0;right:0;min-height:42px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 18px;color:#cccfc5;font-size:13px}
-.studio-coach{min-height:0;display:flex;flex-direction:column;justify-content:center;overflow:auto;scrollbar-width:thin;padding:10px 2px}
-.studio-step{font-size:15px;color:#766c55;margin:0 0 15px}
-#studio-title{white-space:pre-line;font-family:"Yu Mincho","Hiragino Mincho ProN",serif;font-size:34px;line-height:1.6;font-weight:600;margin:0 0 20px;letter-spacing:.02em}
-#studio-instruction{font-size:17px;line-height:1.9;margin:0 0 18px}
-#studio-consent .consent{font-size:14px;line-height:1.8;margin:0 0 16px}
-#studio-options .reach-options{margin:0 0 12px;gap:12px}
-#studio-options label{font-size:15px}
-#studio-options select{padding:8px;background:#faf7ee}
-#studio-status{font-size:14px;color:#6b5039;line-height:1.75;margin:6px 0 16px;overflow-wrap:anywhere}
+.studio-example{position:absolute;inset:12px 12px 42px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#b2c4df;font-size:12px}
+.studio-example svg{width:100%;min-height:0;max-height:90%;flex:1}
+.studio-view-footer{position:absolute;bottom:0;left:0;right:0;min-height:32px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 18px;color:#a1b6d5;font-size:12px}
+.studio-coach{min-height:0;display:flex;flex-direction:column;justify-content:center;overflow:visible}
+.studio-step{font-size:16px;color:#9cddf0;margin:0 0 14px}
+#studio-title{font-family:inherit;font-size:clamp(27px,3vw,42px);font-weight:750;line-height:1.45;letter-spacing:.015em;white-space:pre-line;margin:0 0 18px;color:#f5f7ff}
+#studio-instruction{font-size:17px;line-height:1.8;color:#b9c8e0;margin:0 0 16px}
+#studio-consent .consent{font-size:14px;line-height:1.65;color:#d4def0;margin:0 0 15px}
+#studio-options .reach-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 12px}
+#studio-options label{font-size:14px}
+.studio-open select,.studio-open input:not([type=checkbox]){background:#16243c;border:1px solid #65738d;color:#fff;border-radius:10px;padding:10px;min-width:0;width:100%}
+.studio-open input[type=checkbox]{accent-color:#8bd7ef;min-width:20px;width:20px;height:20px}
+#studio-status{font-size:14px;line-height:1.65;color:#ffdfa8;margin:4px 0 14px;overflow-wrap:anywhere}
 #studio-status:empty{display:none}
-.studio-actions{display:grid;gap:4px}
-#studio-action{width:100%;min-height:56px;border-radius:3px;background:#b95c36;border-color:#b95c36;color:white;justify-content:center;font-size:18px}
-#studio-action:hover:enabled{background:#984629}
-.studio-comfort{font-size:13px;line-height:1.7;color:#756e5e;margin:20px 0 0}
-#studio-movement{color:#9d6540;margin:0 0 10px}
-#studio-movement svg{display:block;width:100%;max-height:65px}
-#studio-movement span{font-size:13px;display:block}
+.studio-actions{display:grid;gap:6px}
+#studio-action,#studio-dialog .primary{border:1px solid #bddfec;background:#c3e8f4;color:#0b223a;border-radius:16px;min-height:54px;font-size:17px;font-weight:750;justify-content:center;width:100%;box-shadow:0 5px 26px #6598e121}
+#studio-action:hover:enabled,#studio-dialog .primary:hover:enabled{background:#e3f6ff;transform:translateY(-1px)}
+.studio-open button:disabled{opacity:.4;cursor:default}
+.studio-comfort{font-size:12px;line-height:1.6;color:#96a9c4;margin:14px 0 0}
+#studio-movement{color:#a1e5ef;margin:0 0 8px}
+#studio-movement svg{display:block;width:100%;max-height:48px}
+#studio-movement span{font-size:12px}
 .demo-hand{animation:hand-example 4s ease-in-out infinite}
 @keyframes hand-example{0%,100%{transform:translate(0,0)}25%{transform:translate(48px,-25px)}50%{transform:translate(100px,5px)}75%{transform:translate(160px,-15px)}}
-#studio-progress{margin:5px 0 15px;font-size:14px}
+#studio-progress{margin:4px 0 12px;font-size:14px}
 #studio-progress>div{display:flex;justify-content:space-between;gap:8px}
-#studio-meter{display:block;width:100%;height:9px;border:0;margin:8px 0;accent-color:#b95c36}
-#studio-dialog{color:#302f29;background:#f9f6ed;width:min(720px,calc(100vw - 28px));max-height:calc(100dvh - 36px);padding:24px 30px;border:1px solid #d0c8b9;border-radius:5px;box-shadow:0 20px 90px #0005;overflow:auto}
-#studio-dialog::backdrop{background:#182728aa}
-#studio-dialog>header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}
-#studio-dialog h2{font-size:27px;margin:0}
-#studio-close{background:none;border:0;padding:8px;min-height:44px;white-space:nowrap}
-#studio-dialog .start-panel{padding:0;margin:0;background:none}
-#studio-dialog #start-title,#studio-dialog #auth-title,#studio-dialog .observation-panel>h3,#studio-dialog .empty-state,#studio-dialog .sky-note,#studio-dialog .constellation-detail>a{display:none}
-#studio-dialog .observation-panel{padding:0;border:0}
-#studio-dialog .coordinate-fields{gap:16px}
-#studio-dialog .coordinate-fields label{margin:10px 0}
-#studio-dialog .consent{font-size:14px;line-height:1.7;margin:15px 0}
-#studio-dialog #location-notice{margin:7px 0;font-size:13px}
-#studio-dialog .field-note{font-size:13px;margin:8px 0}
-#studio-dialog .connection{margin-top:5px}
-#studio-dialog .sky-panel{padding:0;border:0}
-#studio-dialog .constellations{max-height:220px;grid-template-columns:repeat(2,minmax(0,1fr))}
-#studio-dialog .constellation-detail{padding-top:12px}
-#studio-dialog .constellation-detail h3{font-size:24px}
-#studio-dialog #notice{padding:8px 12px;margin:10px 0;font-size:13px}
-.studio-dialog-actions{display:flex;gap:14px;justify-content:space-between;margin-top:16px}
-#studio-dialog-notice{font-size:14px;margin:12px 0;color:#7f452d}
+#studio-meter{display:block;width:100%;height:10px;margin:10px 0;border:0;border-radius:8px;accent-color:#a9e7f2}
+#studio[data-phase=running] #studio-title{color:#ffe7aa}
+#studio[data-phase=complete] .studio-view{border-color:#ffe4a6;box-shadow:inset 0 0 90px #e3c76a12,0 0 40px #e3c76a15}
+#studio[data-phase=complete] #studio-title{color:#ffe7aa}
+#game-welcome-dome{position:absolute;inset:0}
+#studio:not([data-phase=welcome]) #game-welcome-dome{display:none}
+#studio[data-phase=welcome] .studio-view{border-color:transparent;background:transparent}
+#studio[data-phase=welcome] .studio-view-footer,#studio[data-phase=welcome] #studio-surface{display:none}
+#studio[data-phase=welcome] #studio-title{font-size:clamp(32px,3.5vw,48px);line-height:1.4}
+#game-dome{height:100%;width:100%;position:relative;min-height:0}
+#game-sphere{position:absolute;inset:0 0 55px;min-height:0}
+#game-sphere canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#game-sphere canvas:active{cursor:grabbing}
+#game-sphere[data-fallback=true]::after{content:'左右の矢印で星座を選べます';position:absolute;inset:40% 0;text-align:center;color:#b9d5e9}
+#game-dome-caption{position:absolute;bottom:30px;left:0;right:0;text-align:center;font-size:13px;color:#9db9d3;margin:0}
+#game-center{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:13px;white-space:nowrap;min-height:32px;padding:4px}
+#studio-dialog{position:fixed;inset:0;margin:0;width:100vw;max-width:none;height:100dvh;max-height:none;padding:20px 32px;overflow:hidden;border:0;border-radius:0;background:radial-gradient(ellipse at 28% 45%,#1a3051 0%,#0b142b 44%,#080e20 85%);color:#f1f4ff;box-sizing:border-box}
+#studio-dialog[open]{display:grid;grid-template-rows:48px minmax(0,1fr) 42px;gap:12px}
+#studio-dialog::backdrop{background:#080e20}
+#studio-dialog>header,#studio-dialog>footer{display:flex;justify-content:space-between;align-items:center;gap:14px;min-height:0}
+#studio-dialog>footer{flex-direction:row;padding:0;border:0;font-size:12px;color:#8ca2c0}
+#studio-dialog>footer button{font-size:13px;min-height:36px;padding:6px 10px}
+#studio-close,.game-back{min-height:42px;white-space:nowrap;border:1px solid #8199bd66;border-radius:24px;background:#101e36;color:#e4ecfa;padding:8px 16px;font-size:14px}
+.game-route{display:flex;list-style:none;gap:26px;padding:0;margin:0;counter-reset:route;font-size:15px;color:#7388aa}
+.game-route li{counter-increment:route}
+.game-route li::before{content:counter(route);display:inline-grid;place-items:center;border:1px solid currentColor;border-radius:50%;width:26px;height:26px;margin-right:9px}
+.game-route li[aria-current=true]{color:#d1ecf8}
+.game-menu-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,430px);gap:40px;min-height:0;max-width:1280px;width:100%;margin:auto;height:100%}
+#game-dome-slot{min-height:0}
+.game-page{min-height:0;display:flex;flex-direction:column;justify-content:center;gap:15px}
+#studio-dialog h2{font-size:34px;font-weight:750;line-height:1.4;margin:0 0 8px;outline:none}
+#studio-dialog .start-panel,#studio-dialog .observation-panel,#studio-dialog .sky-panel{padding:0;margin:0;border:0;background:none}
+#studio-dialog #start-title,#studio-dialog #auth-title,#studio-dialog .observation-panel>h3,#studio-dialog .empty-state,#studio-dialog .sky-note,#studio-dialog .constellation-detail>a,#studio-dialog .sky-panel>.section-heading,#studio-dialog #notice,#studio-dialog #constellations,#studio-dialog .selection-label,#studio-dialog #detail-english,#studio-dialog #detail>details,#studio-dialog .connection,#studio-dialog .observation-panel>.field-note:not(#location-notice),#studio-dialog #auth-account>summary,#studio-dialog #auth-notice{display:none}
+#studio-dialog #cloud-login>p:not(#auth-notice){font-size:15px;line-height:1.8;color:#b9c8e0;margin:0 0 22px}
+#studio-dialog .auth-actions{margin:0;display:block}
+#studio-dialog #auth-account{border:0;margin:0;padding:0}
+#studio-dialog #auth-account label{margin:0 0 12px;font-size:14px;display:block}
+#studio-dialog #auth-account input{margin-top:6px}
+#studio-dialog .secondary,#studio-dialog #refresh{background:#172840;border:1px solid #627b9e;border-radius:12px;color:#e6f3ff;min-height:44px;justify-content:center}
+#studio-dialog #locate{width:100%;margin:0 0 8px}
+#studio-dialog #location-notice{font-size:13px;line-height:1.5;color:#b8cbe1;margin:6px 0 12px}
+#studio-dialog .coordinate-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0}
+#studio-dialog .coordinate-fields label{font-size:14px;margin:0}
+#studio-dialog .coordinate-fields input{margin-top:6px}
+#studio-dialog .consent{font-size:14px;line-height:1.65;margin:16px 0;color:#d5e1f3}
+#studio-dialog fieldset{padding:0;border:0;margin:0;min-width:0}
+#studio-dialog .constellation-detail{border:0;padding:0;margin:0}
+#studio-dialog .constellation-detail h3{font-family:inherit;color:#ffe7aa;font-size:44px;line-height:1.3;margin:0 0 10px;overflow-wrap:anywhere}
+#studio-dialog .angles{color:#a9c0db;font-size:14px;margin:0}
+.game-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#abc6e3;font-size:16px}
+.game-pager button{width:54px;min-height:46px;background:#172c49;color:#d9edff;border:1px solid #5b779e;border-radius:15px;font-size:22px}
+#studio-dialog-notice{font-size:14px;line-height:1.65;color:#ffd59a;margin:0;overflow-wrap:anywhere}
 #studio-dialog-notice:empty{display:none}
-#studio-extra{border-top:1px solid #d9d4c8;margin-top:20px;font-size:14px}
-#studio-extra p{font-size:12px;color:#766c55}
-#studio[data-phase=running] #studio-title{color:#78421e}
-@media(max-width:1000px) and (min-width:701px){.studio-layout{grid-template-columns:minmax(0,1fr) 290px;gap:22px}#studio-title{font-size:28px}#studio-instruction{font-size:16px}}
-@media(max-width:700px){
- .studio-open .topbar{height:58px;padding:0 16px}.studio-open .brand{font-size:19px}.studio-open .stop{right:12px;top:7px;padding:8px 12px}
- #studio{height:calc(100dvh - 58px);padding:0 14px 12px;grid-template-rows:40px minmax(0,1fr)}
- .studio-bar{font-size:13px}.studio-bar .text-button{font-size:13px}
- .studio-layout{grid-template-columns:1fr;grid-template-rows:minmax(170px,1fr) auto;gap:14px}
- .studio-coach{display:grid;grid-template-columns:1fr;align-content:start;padding:0;max-height:55dvh}
- .studio-step{font-size:12px;margin:0 0 4px}
- #studio-title{font-size:25px;line-height:1.4;margin:0 0 9px}
- #studio-instruction{font-size:15px;line-height:1.7;margin:0 0 10px}
- #studio-status{font-size:13px;margin:4px 0 10px}
- #studio-action{min-height:49px;font-size:16px}
- .studio-comfort{font-size:12px;margin:8px 0 0}
- #studio-consent .consent{font-size:13px;line-height:1.6;margin-bottom:10px}
- #studio-options .reach-options{margin-bottom:8px}
- #studio-movement svg{max-height:40px}
- #studio-movement span{font-size:12px}
- #studio-progress{margin:0 0 7px}
- .studio-example{position:absolute;inset:12px 10px 36px;height:auto;width:auto;max-width:none;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
- .studio-example svg{width:100%;height:calc(100% - 20px);min-height:0;max-height:none;flex:1}
- .studio-example>span{font-size:11px}
- .studio-view-footer{font-size:10px;min-height:30px;padding:6px 10px}
- #studio-surface{inset:6px 6px 32px}
- #studio-dialog{padding:18px;max-height:calc(100dvh - 20px)}
- #studio-dialog h2{font-size:23px}
- #studio-dialog .constellations{max-height:180px}
- #studio-dialog .star-card strong{font-size:16px}
+#game-subnav{display:flex;flex-wrap:wrap;gap:8px 20px}
+#game-subnav button{font-size:13px;min-height:36px;padding:4px 0}
+#game-settings p,#game-reading-text{color:#bccbe3;font-size:16px;line-height:1.85;margin:0 0 18px}
+#game-settings #refresh{margin-top:12px}
+#game-reading{min-height:0}
+#game-reading-text{min-height:150px}
+#game-privacy-links{font-size:13px;margin-bottom:0}
+#game-privacy-links a{color:#b6e4fc}
+#game-account #auth-login{width:100%}
+@media(max-width:760px){
+ .studio-open .topbar{height:54px;padding:0 16px}.studio-open .brand{font-size:17px}.studio-open .stop{top:7px;right:12px;padding:6px 12px;min-height:38px;font-size:13px}
+ #studio{height:calc(100dvh - 54px);padding:0 16px 12px;grid-template-rows:34px minmax(0,1fr)}
+ .studio-bar{font-size:12px}.studio-bar button{font-size:12px;padding:4px}
+ .studio-layout{grid-template-columns:1fr;grid-template-rows:minmax(90px,1fr) auto;gap:14px}
+ .studio-view{border-radius:20px}
+ .studio-coach{justify-content:flex-end}
+ .studio-step{font-size:13px;margin:0 0 5px}
+ #studio-title{font-size:25px;line-height:1.35;margin:0 0 9px}
+ #studio-instruction{font-size:14px;line-height:1.6;margin:0 0 10px}
+ #studio-status{font-size:12px;line-height:1.5;margin:0 0 9px}
+ #studio-action{min-height:46px;font-size:15px;border-radius:13px}
+ .studio-comfort{font-size:11px;margin:8px 0 0}
+ #studio-consent .consent{font-size:12px;line-height:1.5;margin:0 0 10px}
+ #studio-options .reach-options{gap:12px;margin:0 0 8px}
+ #studio-options label{font-size:12px}#studio-options select{padding:7px}
+ #studio-movement svg{max-height:34px}#studio-movement span{font-size:11px}
+ #studio-progress{font-size:12px;margin:0 0 6px}#studio-meter{margin:6px 0;height:7px}
+ .studio-example{inset:8px 4px 30px}.studio-example>span{display:none}
+ .studio-view-footer{font-size:10px;min-height:24px;padding:6px 9px}
+ #studio-surface{inset:6px 6px 28px}
+ #studio[data-phase=welcome] #studio-title{font-size:36px}
+ #studio[data-phase=welcome] .studio-step{display:none}
+ #studio-dialog{padding:12px 16px}
+ #studio-dialog[open]{grid-template-rows:42px minmax(0,1fr) 34px;gap:8px}
+ .game-route{gap:8px;font-size:12px}.game-route li::before{display:none}
+ #studio-close,.game-back{font-size:12px;padding:6px 10px;min-height:38px}
+ .game-menu-layout{grid-template-columns:1fr;grid-template-rows:minmax(80px,1fr) auto;gap:16px}
+ .game-page{gap:11px;padding-bottom:5px}
+ #studio-dialog h2{font-size:25px;margin:0 0 5px}
+ #studio-dialog .constellation-detail h3{font-size:34px}
+ #studio-dialog .angles{font-size:13px}
+ #studio-dialog .primary{min-height:46px;font-size:15px;border-radius:13px}
+ #studio-dialog .consent{font-size:13px;line-height:1.6;margin:13px 0}
+ #studio-dialog #location-notice{font-size:12px;margin:3px 0 9px}
+ #studio-dialog .coordinate-fields input{padding:8px}
+ #studio-dialog-notice{font-size:12px;line-height:1.5}
+ #studio-dialog #cloud-login>p:not(#auth-notice){font-size:14px;margin-bottom:18px}
+ #game-dome-caption{font-size:11px;bottom:29px}
+ #game-sphere{inset:0 0 47px}
+ #game-subnav{gap:6px 16px}
+ #studio-dialog>footer{font-size:10px;gap:4px}
+ #studio-dialog>footer button{font-size:11px;padding:4px 6px}
+ #game-settings p,#game-reading-text{font-size:14px;line-height:1.75}
+ .game-pager button{min-height:42px;width:50px}
+}
+@media(max-height:700px) and (max-width:760px){
+ #studio-dialog:not([data-page=stars]) #game-dome-slot{display:none}
+ #studio-dialog:not([data-page=stars]) .game-menu-layout{display:flex;align-items:center}
+ #studio-dialog:not([data-page=stars]) .game-page{width:100%}
+ #studio[data-phase=welcome] #studio-title{font-size:29px}
+ .studio-step,.studio-comfort{display:none}
+ #studio-title{font-size:22px;margin-bottom:6px}
+ #studio-instruction{font-size:13px;margin-bottom:7px}
+ .studio-layout{gap:10px}
+ #studio-movement span{display:none}
+ #studio-action{min-height:44px}
+ #studio-dialog .consent{font-size:12px;margin:10px 0}
+ .game-page{gap:8px}
+}
+@media(max-height:500px) and (min-width:600px){
+ .studio-open .topbar{height:46px}
+ #studio{height:calc(100dvh - 46px);grid-template-rows:26px minmax(0,1fr);padding-bottom:10px}
+ .studio-layout{grid-template-columns:minmax(0,1fr) minmax(270px,42%);grid-template-rows:1fr;gap:20px}
+ .studio-step,.studio-comfort,#studio-movement,.studio-view-footer{display:none}
+ #studio-title{font-size:22px;line-height:1.25;margin:0 0 6px}
+ #studio[data-phase=welcome] #studio-title{font-size:30px}
+ #studio-instruction{font-size:13px;line-height:1.45;margin:0 0 7px}
+ #studio-status{font-size:12px;line-height:1.4;margin:0 0 6px}
+ #studio-consent .consent{font-size:12px;line-height:1.45}
+ #studio-surface{inset:6px}
+ #studio-dialog{padding:8px 18px}
+ #studio-dialog[open]{grid-template-rows:38px minmax(0,1fr) 30px;gap:4px}
+ .game-menu-layout{grid-template-columns:minmax(160px,1fr) minmax(300px,1fr);grid-template-rows:1fr;gap:24px}
+ .game-page{gap:6px}
+ #studio-dialog h2{font-size:23px;margin:0}
+ #studio-dialog #location-notice{display:none}
+ #studio-dialog .consent{font-size:12px;line-height:1.35;margin:7px 0}
+ #studio-dialog #locate{min-height:34px;padding:4px;margin:0 0 6px}
+ #studio-dialog .coordinate-fields input{padding:5px;margin-top:3px}
+ #studio-dialog .primary{min-height:38px;font-size:14px;padding:7px}
+ #studio-dialog .constellation-detail h3{font-size:30px;margin:0}
+ #game-subnav button{min-height:28px}
+ #studio-dialog #auth-account label{margin:0 0 6px}
+ #studio-dialog #auth-account input{padding:7px}
+ #game-reading-text{font-size:13px;line-height:1.5;min-height:100px;margin-bottom:8px}
+ #game-settings p{font-size:12px;line-height:1.5;margin-bottom:4px}
+ #studio-dialog-notice{font-size:11px;line-height:1.35}
 }
 @media(prefers-reduced-motion:reduce){.demo-hand{animation:none}}
+
+@media(max-width:380px){.game-route{gap:4px}.game-route li{font-size:0}.game-route li::before{display:inline-grid;font-size:11px;width:20px;height:20px;margin:0}.game-route li{white-space:nowrap}}
