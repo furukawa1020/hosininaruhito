@@ -135,6 +135,9 @@ function renderSky(data) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'star-card';
+    button.dataset.skyId = row.id;
+    button.dataset.azimuth = String(row.azimuthDeg);
+    button.dataset.altitude = String(row.altitudeDeg);
     button.setAttribute('aria-pressed', 'false');
     button.setAttribute('aria-controls', 'detail');
     const name = document.createElement('strong');

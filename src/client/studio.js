@@ -1,3 +1,4 @@
+import {mountGameMenu} from './game-menu.js';
 // A presentation layer over the existing controls. It never supplies sensor samples.
 export function mountStudio(document, window, { hasAccess }) {
   if (new URLSearchParams(window.location.search).get('view') === 'details') return null;
@@ -8,7 +9,7 @@ export function mountStudio(document, window, { hasAccess }) {
   root.innerHTML = `
     <div class="studio-bar"><span id="studio-selection">手を動かして、星座をつくる</span><button id="studio-settings" class="text-button" type="button">星座・設定</button></div>
     <div class="studio-layout">
-      <div class="studio-view">
+      <div class="studio-view"><div id="game-welcome-dome"></div>
         <div id="studio-surface"></div>
         <div id="studio-example" class="studio-example">
           <svg viewBox="0 0 560 400" role="img" aria-labelledby="studio-example-title">
@@ -43,14 +44,7 @@ export function mountStudio(document, window, { hasAccess }) {
         <p class="studio-comfort">手は楽な高さで。つらいときは右上の「停止」。</p>
       </aside>
     </div>
-    <dialog id="studio-dialog" aria-labelledby="studio-dialog-title">
-      <header><h2 id="studio-dialog-title">はじめる</h2><button id="studio-close" type="button" aria-label="停止して準備を閉じる">停止して閉じる</button></header>
-      <div id="studio-access"></div><div id="studio-location"></div><div id="studio-stars"></div>
-      <p id="studio-dialog-notice" role="status"></p>
-      <div class="studio-dialog-actions"><button id="studio-back" class="text-button" type="button">場所を変える</button><button id="studio-choose" class="primary" type="button">この星座で遊ぶ →</button></div>
-      <div id="studio-account-actions"></div>
-      <details id="studio-extra"><summary>追加の設定・すべての操作</summary><div id="studio-ai"></div><a href="?view=details">すべての操作を表示する</a><p>星の情報：星をみるひとAPI ／ d3-celestial・XHIP</p></details>
-    </dialog>`;
+    <dialog id="studio-dialog" aria-labelledby="studio-dialog-title"></dialog>`;
   document.body.append(root);
   document.body.classList.add('studio-open');
   const move = (node, parent) => $(parent).append(node);
@@ -59,15 +53,9 @@ export function mountStudio(document, window, { hasAccess }) {
   cameraFrame.append($('trace-stage'));
   move($('camera-consent').closest('label'), 'studio-consent');
   move(document.querySelector('.reach-options'), 'studio-options');
-  move($('start'), 'studio-access');
-  move(document.querySelector('.observation-panel'), 'studio-location');
-  move(document.querySelector('.sky-panel'), 'studio-stars');
-  move($('planner-consent').closest('label'), 'studio-ai');
-  move($('auth-logout'), 'studio-account-actions');
   // Copy does not control access: the original consent and handlers are retained.
   $('camera-consent').closest('label').querySelector('span').textContent = 'カメラを使うことに同意します。映像は端末内だけで処理し、保存・送信しません。';
-  const dialog = $('studio-dialog');
-  let attempted = false, practice = false, locationEdit = false, action = null, latestTrace = null, disposed = false;
+  let attempted = false, practice = false, action = null, latestTrace = null, disposed = false;
   const state = id => $(id).dataset.state;
   const say = (id, text) => { if ($(id).textContent !== text) $(id).textContent = text; };
   function fit() {
@@ -77,30 +65,14 @@ export function mountStudio(document, window, { hasAccess }) {
     const width = Math.max(0, Math.min(bounds.width, bounds.height * ratio));
     cameraFrame.style.width = width + 'px'; cameraFrame.style.height = width / ratio + 'px';
   }
-  function openSetup() {
-    if (state('trace-notice') === 'running' || state('reach-notice') === 'collecting') $('stop').click();
-    locationEdit = false;
-    render();
-    if (!dialog.open) dialog.showModal();
-  }
-  function renderDialog() {
-    const access = hasAccess();
-    const choices = access && !locationEdit && $('constellations').children.length > 0;
-    $('studio-access').hidden = access;
-    $('studio-location').hidden = !access || choices;
-    $('studio-stars').hidden = !choices;
-    $('studio-choose').hidden = !choices;
-    $('studio-choose').disabled = $('detail').hidden;
-    $('studio-back').hidden = !choices;
-    say('studio-dialog-title', !access ? '登録なしで、はじめる' : choices ? 'どの星座をつくる？' : 'どこの空にする？');
-    say('studio-dialog-notice', access && !choices ? $('notice').textContent : '');
-  }
+  const menu = mountGameMenu(document, window, {hasAccess, render, stop: () => $('stop').click()});
+  function openSetup() { menu.open(); }
   function render() {
     if (disposed) return;
     const cam = state('camera-notice'), pose = state('pose-notice'), reach = state('reach-notice'), session = state('session-notice'), trace = state('trace-notice');
     const selected = !$('detail').hidden;
     const hand = $('reach-joint').value === 'leftWrist' ? '左手' : '右手';
-    let phase = 'welcome', title = 'その手で、星をつなごう。', instruction = '画面の輪に、手首の光を重ねる。少し止めると、そこに星が残ります。',
+    let phase = 'welcome', title = 'その手で、\n星をつなごう。', instruction = '画面の輪に、手首の光を重ねる。少し止めると、そこに星が残ります。',
       button = '星座を選んではじめる', target = 'setup', status = '', step = '手でつくる、今夜の星座';
     if (selected || practice) {
       phase = 'camera'; title = '両手を、胸の前に。'; instruction = '座ったままで大丈夫。顔・肩・ひじ・両手首が映るように、カメラを置いてください。';
@@ -161,7 +133,7 @@ export function mountStudio(document, window, { hasAccess }) {
     say('studio-camera-label', cam === 'preview' ? 'カメラ使用中・映像はこの端末だけ' : 'カメラ停止中');
     $('studio-consent').hidden = phase !== 'camera';
     $('studio-options').hidden = phase !== 'reach';
-    $('studio-example').hidden = !['welcome','camera'].includes(phase);
+    $('studio-example').hidden = phase !== 'camera';
     $('studio-movement').hidden = !['reach','collecting'].includes(phase);
     $('studio-practice').hidden = phase !== 'welcome';
     $('studio-action').hidden = !target;
@@ -180,7 +152,7 @@ export function mountStudio(document, window, { hasAccess }) {
       say('studio-progress-label', phase === 'collecting' ? '動かせる範囲を記録中' : '輪の中で、少し止める');
       say('studio-progress-value', phase === 'collecting' ? (elapsed/1000).toFixed(1) + '秒' : Math.round(progress*100) + '%');
     }
-    renderDialog();
+    menu.render();
   }
   $('studio-action').addEventListener('click', () => {
     if ($('studio-action').disabled) return;
@@ -189,12 +161,6 @@ export function mountStudio(document, window, { hasAccess }) {
   });
   $('studio-practice').addEventListener('click', () => { practice = true; render(); });
   $('studio-settings').addEventListener('click', openSetup);
-  $('studio-close').addEventListener('click', () => { $('stop').click(); dialog.close(); });
-  $('studio-choose').addEventListener('click', () => { practice = true; dialog.close(); render(); $('studio-action').focus(); });
-  $('studio-back').addEventListener('click', () => { locationEdit = true; renderDialog(); });
-  $('sky-form').addEventListener('submit', () => { locationEdit = false; });
-  // Esc keeps the existing global stop path, including while a dialog is open.
-  dialog.addEventListener('cancel', () => $('stop').click());
   $('reach-joint').addEventListener('change', render);
   $('reach-posture').addEventListener('change', render);
   $('camera-consent').addEventListener('change', render);

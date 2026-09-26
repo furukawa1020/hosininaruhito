@@ -1,6 +1,8 @@
 import {test,expect} from '@playwright/test';
 import {fileURLToPath} from 'node:url';
 import {guestAuth,guestSdk} from './guest-fixture.js';
+// Multiple setup pages, screenshots and three sensor holds share one end-to-end test.
+test.setTimeout(60000);
 const videoPath=fileURLToPath(new URL('./.generated/camera.y4m',import.meta.url));
 test.use({launchOptions:{args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--enable-unsafe-swiftshader','--use-file-for-fake-video-capture='+videoPath]}});
 const projection=input=>({...input,ok:true,timeBasis:'explicit-utc-catalog-calculation',source:{catalog:'d3-celestial/XHIP',commit:'7e720a3de062059d4c5400a379146a601d9010e0',license:'BSD-3-Clause',calculation:'astronomy-engine@2.1.19'},
@@ -35,12 +37,13 @@ async function choose(page){
  await expect(page.locator('#studio-choose')).toBeVisible();await page.locator('#studio-choose').click();
 }
 async function prepare(page){
- await choose(page);
+ await choose(page);await noScroll(page,['camera-consent','studio-action']);
  await expect(page.locator('#studio-action')).toBeDisabled();
  await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
  await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
  await expect(page.locator('#studio-action')).toHaveText('手を見つける');
  await page.locator('#studio-action').click();await page.clock.runFor(200);
+ await noScroll(page,['reach-joint','reach-posture','studio-action']);
  await page.locator('#reach-joint').selectOption('leftWrist');
  await expect(page.locator('#studio-title')).toContainText('左手');
  await page.locator('#studio-action').click();await page.clock.runFor(2000);
@@ -50,13 +53,13 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#studio-action')).toHaveText('星をつなぎはじめる');
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
-for(const width of [1440,390])test('single screen '+width+' keeps camera, instruction and measured completion together',async({page})=>{
- await page.setViewportSize({width,height:width===390?844:900});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+for(const [width,height] of [[1440,900],[390,844],[320,568],[844,390]])test('single screen '+width+' keeps camera, instruction and measured completion together',async({page})=>{
+ await page.setViewportSize({width,height});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await setup(page);
  await expect(page.locator('#studio-action')).toBeInViewport();await expect(page.locator('#stop')).toBeInViewport();
- expect((await page.locator('.studio-example svg').boundingBox()).width).toBeGreaterThan(250);
+ expect((await page.locator('#game-sphere canvas').boundingBox()).width).toBeGreaterThan(250);
  await page.screenshot({path:'test-results/studio-welcome-'+width+'.png'});
- await prepare(page);
+ await prepare(page);await noScroll(page,['studio-title','stop']);
  await expect(page.locator('#camera-video')).toBeInViewport();await expect(page.locator('#studio-title')).toBeInViewport();await expect(page.locator('#trace-target')).toBeInViewport();
  expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight&&document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const rects=await page.evaluate(()=>['camera-video','trace-stage'].map(id=>{const r=document.getElementById(id).getBoundingClientRect();return [r.x,r.y,r.width,r.height];}));
@@ -107,4 +110,69 @@ test('guest can end access from the compact settings without opening the full pa
  await expect(page.locator('#studio-access')).toBeVisible();await expect(page.locator('#camera-video')).toBeHidden();
  await expect(page.locator('#studio-choose')).toBeHidden();
  await page.locator('#studio-close').click();await expect(page.locator('#studio-dialog')).not.toBeVisible();
+});
+
+async function noScroll(page, controls=[]){
+ expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1&&document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ for(const selector of ['#studio-dialog','.game-page','.studio-coach']){
+  const el=page.locator(selector);
+  if(await el.isVisible())expect(await el.evaluate(e=>({x:e.scrollWidth<=e.clientWidth+1,y:e.scrollHeight<=e.clientHeight+1})),selector).toEqual({x:true,y:true});
+ }
+ for(const id of controls)await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+}
+for(const [width,height] of [[1440,900],[390,844],[320,568],[844,390],[1024,600]])test('paged setup never needs scrolling '+width+'x'+height,async({page})=>{
+ await page.setViewportSize({width,height});await setup(page);
+ await noScroll(page,['studio-action','stop']);
+ await page.locator('#studio-action').click();
+ await noScroll(page,['auth-guest','studio-close','game-login']);
+ await page.screenshot({path:'test-results/game-access-'+width+'.png'});
+ await page.locator('#game-login').click();
+ await noScroll(page,['auth-email','auth-password','auth-login','studio-back']);
+ await page.locator('#studio-back').click();
+ await page.locator('#game-privacy').click();
+ await noScroll(page,['game-text-next','studio-back']);
+ await page.locator('#game-text-next').click();
+ await page.locator('#studio-back').click();
+ await page.locator('#auth-guest').click();
+ await expect(page.locator('#studio-location')).toBeVisible();
+ await noScroll(page,['locate','lat','lng','consent','sky','studio-close']);
+ await page.screenshot({path:'test-results/game-location-'+width+'.png'});
+ await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');
+ await page.locator('#consent').check();await page.locator('#sky').click();
+ await expect(page.locator('#studio-choose')).toBeVisible();
+ await noScroll(page,['game-prev','game-next','studio-choose','studio-back']);
+ await page.screenshot({path:'test-results/game-stars-'+width+'.png'});
+ await page.locator('#game-about').click();await noScroll(page,['studio-back']);
+ await page.locator('#studio-back').click();
+ await page.locator('#game-options').click();
+ await noScroll(page,['planner-consent','refresh','auth-logout','studio-back']);
+ await page.locator('#studio-back').click();
+ await page.locator('#studio-choose').click();
+ await noScroll(page,['camera-consent','studio-action','stop']);
+});
+
+test('dome reflects API directions and selection works with arrows, drag and keyboard',async({page})=>{
+ await setup(page);
+ const rows=[{id:'a',name:'南の星座',azimuthDeg:180,altitudeDeg:40},{id:'b',name:'北の星座',azimuthDeg:0,altitudeDeg:10},{id:'c',name:'地平線の下の星座',azimuthDeg:90,altitudeDeg:-20}];
+ await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:rows}}));
+ await page.locator('#studio-action').click();await page.locator('#auth-guest').click();
+ await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');await page.locator('#consent').check();await page.locator('#sky').click();
+ await expect(page.locator('#game-sphere')).toHaveAttribute('data-markers','3');
+ await expect(page.locator('#detail-name')).toHaveText('南の星座');
+ await page.locator('#game-next').click();await expect(page.locator('#detail-name')).toHaveText('北の星座');
+ await expect(page.locator('#game-sphere')).toHaveAttribute('data-orientation','0.000,0.175');
+ await page.keyboard.press('ArrowRight');await expect(page.locator('#detail-name')).toHaveText('地平線の下の星座');
+ await expect(page.locator('#game-page-count')).toHaveText('3 / 3');
+ const before=await page.locator('#game-sphere').getAttribute('data-orientation');
+ const r=await page.locator('#game-sphere canvas').boundingBox();
+ await page.mouse.move(r.x+r.width*.4,r.y+r.height*.4);await page.mouse.down();await page.mouse.move(r.x+r.width*.6,r.y+r.height*.5);await page.mouse.up();
+ expect(await page.locator('#game-sphere').getAttribute('data-orientation')).not.toBe(before);
+ await page.locator('#game-center').click();await expect(page.locator('#game-sphere')).toHaveAttribute('data-orientation',before);
+ await page.locator('#game-next').click();await expect(page.locator('#game-page-count')).toHaveText('1 / 3');
+ await page.screenshot({path:'test-results/game-dome.png'});
+});
+
+test('dome failure keeps the star selection and consent path usable',async({page})=>{
+ await page.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type==='2d'?null:original.call(this,type,...args);};});
+ await setup(page);await choose(page);await expect(page.locator('#camera-consent')).not.toBeChecked();await expect(page.locator('#studio-action')).toBeDisabled();
 });
