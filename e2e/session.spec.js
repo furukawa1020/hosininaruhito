@@ -38,7 +38,7 @@ async function setup(page, respond, guest=false) {
   await expect(page.locator('#session-prepare')).toBeDisabled();
   await page.locator('#camera-consent').check();await page.locator('#camera-start').click();
   await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
-  await page.locator('#pose-start').click();await page.clock.runFor(200);
+  await page.locator('#pose-start').click();await page.clock.runFor(800);
   await page.locator('#reach-joint').selectOption('leftWrist');await page.locator('#reach-start').click();
   await page.clock.runFor(6600);await page.locator('#reach-finish').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');

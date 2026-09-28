@@ -98,6 +98,9 @@ function setup(t, options = {}) {
     }
   };
 }
+async function establish(app, start=100) {
+  for(let i=0;i<=5;i++){app.time(start+i*100);await app.frame();app.reply();}
+}
 test('one worker and one frame in flight; explicit restart replaces ownership', async t => {
   const app = setup(t);
   app.ready();
@@ -107,7 +110,9 @@ test('one worker and one frame in flight; explicit restart replaces ownership', 
   assert.equal(app.callbacks.size, 0);
   assert.equal(app.workers[0].sent.filter(m => m.type === 'frame').length, 1);
   app.reply();
-  assert.equal(app.samples.at(-1).wrists.rightWrist.at, 100);
+  assert.equal(app.samples.at(-1), null);
+  await establish(app,200);
+  assert.equal(app.samples.at(-1).wrists.rightWrist.at, 700);
   assert.equal(app.callbacks.size, 1);
   app.session.stop();
   assert.equal(app.workers[0].terminated, 1);
@@ -141,8 +146,8 @@ test('pending bitmap is released when stop wins the race', async t => {
 });
 test('stale inference, wrong timestamp and hidden tab release worker without samples', async t => {
   for (const mode of ['old', 'timestamp', 'hidden']) {
-    const app = setup(t); app.ready(); await app.frame(); app.reply(); app.time(200); await app.frame();
-    if (mode === 'old') app.time(351);
+    const app = setup(t); app.ready(); await establish(app); app.time(700); await app.frame();
+    if (mode === 'old') app.time(851);
     if (mode === 'hidden') app.hide();
     app.reply(detection(), mode === 'timestamp' ? { at: 99 } : {});
     assert.equal(app.session.state, 'paused');
@@ -156,10 +161,12 @@ test('unmatched worker response cannot consume the current request', async t => 
   assert.notEqual(app.session.inFlight, null);
   assert.equal(app.samples.at(-1), null);
   app.reply();
+  assert.equal(app.samples.at(-1), null);
+  await establish(app,200);
   assert.equal(app.samples.at(-1).tracked, true);
 });
 test('tracking loss stops until intentional restart, without automatic reacquisition', async t => {
-  const app = setup(t); app.ready(); await app.frame(); app.reply(); app.time(133); await app.frame();
+  const app = setup(t); app.ready(); await establish(app); app.time(633); await app.frame();
   app.reply({ landmarks: [] });
   assert.equal(app.session.reason, 'no_person');
   assert.equal(app.workers[0].terminated, 1);
@@ -186,13 +193,13 @@ test('deadlines bound initial search and preserve tracking watchdog', async t =>
   app.ready();
   t.mock.timers.tick(PERSON_SEARCH_MS);
   assert.equal(app.session.reason, 'person_timeout');
-  app.ready(); await app.frame(); app.reply();
+  app.ready(); await establish(app);
   t.mock.timers.tick(150);
   assert.equal(app.session.reason, 'frame_gap');
   assert.ok(app.workers.every(w => w.terminated === 1));
 });
 test('duplicate frame timestamps and unavailable video APIs fail closed', async t => {
-  const app = setup(t); app.ready(); await app.frame(); app.reply();
+  const app = setup(t); app.ready(); await establish(app);
   await app.frame();
   assert.equal(app.session.reason, 'stale_pose');
   const unsupported = setup(t);
@@ -204,14 +211,14 @@ test('duplicate frame timestamps and unavailable video APIs fail closed', async 
 
 test('sensor capture time takes priority over later presentation time in the same clock', async t => {
   const app = setup(t);
-  app.time(140);
-  app.ready();
-  await app.frame({ captureTime: 100, presentationTime: 130 });
+  app.ready(); await establish(app);
+  app.time(740);
+  await app.frame({ captureTime: 700, presentationTime: 730 });
   app.reply();
-  assert.equal(app.samples.at(-1).at, 100);
+  assert.equal(app.samples.at(-1).at, 700);
   assert.equal(app.samples.at(-1).latencyMs, 40);
-  app.time(160);
-  await app.frame({ captureTime: 170, presentationTime: 150 });
+  app.time(760);
+  await app.frame({ captureTime: 770, presentationTime: 750 });
   assert.equal(app.session.reason, 'stale_pose');
 });
 
@@ -227,7 +234,7 @@ test('initial absence, occlusion and multiple people can be corrected without re
     assert.equal(app.workers[0].terminated,0);
     app.time(at+=100);
   }
-  await app.frame();app.reply();
+  await establish(app,400);
   assert.equal(app.session.state,'tracking');
   assert.equal(app.samples.filter(Boolean).length,1);
   assert.equal(app.workers.length,1);
@@ -237,7 +244,9 @@ test('slow first inference is discarded before a fresh measurement can start tra
   assert.equal(app.session.state,'searching');assert.equal(app.session.reason,'searching_slow');
   assert.equal(app.samples.filter(Boolean).length,0);assert.equal(app.callbacks.size,1);
   await app.frame();app.time(430);app.reply();
-  assert.equal(app.samples.at(-1).at,400);assert.equal(app.samples.at(-1).latencyMs,30);
+  assert.equal(app.samples.at(-1),null);
+  for(let at=500;at<=900;at+=100){app.time(at);await app.frame();app.time(at+30);app.reply();}
+  assert.equal(app.samples.at(-1).at,900);assert.equal(app.samples.at(-1).latencyMs,30);
 });
 test('search timeout releases a hung worker and ignores a late successful detection',async t=>{
   t.mock.timers.enable({apis:['setTimeout']});
@@ -300,11 +309,52 @@ test('framing can recover only before tracking; malformed frames still stop imme
   const app=setup(t);app.ready();await app.frame();app.reply(outside);
   assert.equal(app.session.reason,'searching_out_of_frame');
   assert.equal(app.samples.filter(Boolean).length,0);
-  app.time(200);await app.frame();app.reply();
+  await establish(app,200);
   assert.equal(app.session.state,'tracking');
-  app.time(300);await app.frame();app.reply(outside);
+  app.time(800);await app.frame();app.reply(outside);
   assert.equal(app.session.reason,'out_of_frame');
   assert.equal(app.workers[0].terminated,1);assert.equal(app.samples.at(-1),null);
   const invalid=setup(t);invalid.ready();await invalid.frame();invalid.reply({landmarks:[[]]});
   assert.equal(invalid.session.reason,'invalid_pose');assert.equal(invalid.callbacks.size,0);
+});
+
+test('one good frame followed by framing loss stays in initial search without samples',async t=>{
+ const app=setup(t);app.ready();await app.frame();app.reply();
+ assert.equal(app.session.reason,'searching_stable');assert.equal(app.samples.filter(Boolean).length,0);
+ const hidden=detection();hidden.landmarks[0][15].visibility=.1;
+ const outside=detection();outside.landmarks[0][16].x=1.1;
+ let at=200;
+ for(const result of [{landmarks:[]},hidden,outside,{landmarks:[...detection().landmarks,...detection().landmarks]}]){
+  app.time(at);await app.frame();app.reply(result);
+  assert.equal(app.session.state,'searching');assert.equal(app.workers[0].terminated,0);
+  app.time(at+100);await app.frame();app.reply();
+  assert.equal(app.session.reason,'searching_stable');assert.equal(app.samples.filter(Boolean).length,0);
+  at+=200;
+ }
+ await establish(app,at);
+ assert.equal(app.session.state,'tracking');assert.equal(app.workers.length,1);
+});
+test('initial stable window uses sensor time and cannot be completed by sparse fresh frames',async t=>{
+ const app=setup(t);app.ready();
+ for(const at of [100,300,500,700]){app.time(at);await app.frame();app.reply();}
+ assert.equal(app.session.state,'searching');assert.equal(app.samples.filter(Boolean).length,0);
+ for(const at of [800,900,1000,1100]){app.time(at);await app.frame();app.reply();}
+ assert.equal(app.samples.filter(Boolean).length,0);
+ app.time(1200);await app.frame();app.reply();
+ assert.equal(app.samples.filter(Boolean).length,1);assert.equal(app.samples.at(-1).at,1200);
+});
+test('stopping during stable acquisition discards pending results and does not auto-start',async t=>{
+ const app=setup(t);app.ready();await app.frame();app.reply();
+ app.time(200);await app.frame();app.session.stop();app.reply();
+ assert.equal(app.session.state,'paused');assert.equal(app.samples.filter(Boolean).length,0);
+ assert.equal(app.workers[0].terminated,1);
+});
+
+test('fresh results with delivery gaps cannot briefly enable tracking before the watchdog stops it',async t=>{
+ const app=setup(t);app.ready();
+ for(let at=100;at<=800;at+=100){app.time(at);await app.frame();app.time(at+80);app.reply();}
+ assert.equal(app.session.state,'searching');assert.equal(app.session.reason,'searching_slow');
+ assert.equal(app.samples.filter(Boolean).length,0);
+ await establish(app,900);
+ assert.equal(app.session.state,'tracking');
 });

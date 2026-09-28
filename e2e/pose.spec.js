@@ -83,7 +83,7 @@ test('real pinned SDK runs locally on blank synthetic input with no external req
 test('fixture wrists display mirrored positions once and stop clears overlay and worker', async ({ page }) => {
   await fixtureWorker(page);
   await camera(page);
-  await page.locator('#pose-start').click(); await page.clock.runFor(250);
+  await page.locator('#pose-start').click(); await page.clock.runFor(800);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   const coordinates = await page.evaluate(() => ({
     width: document.getElementById('camera-video').videoWidth,
@@ -103,7 +103,7 @@ for (const mode of ['no_person', 'multiple_people', 'occluded', 'out_of_frame', 
   test('fixture ' + mode + ' stops inference and requires explicit restart', async ({ page }) => {
     await fixtureWorker(page);
     await camera(page);
-    await page.locator('#pose-start').click(); await page.clock.runFor(100);
+    await page.locator('#pose-start').click(); await page.clock.runFor(800);
     await expect(page.locator('#pose-overlay')).toBeVisible();
     await page.evaluate(value=>{window.poseMode=value;},mode);await page.clock.runFor(250);
     await expect(page.locator('#pose-notice')).toHaveAttribute('data-state', 'paused');
@@ -113,7 +113,7 @@ for (const mode of ['no_person', 'multiple_people', 'occluded', 'out_of_frame', 
     expect(await page.evaluate(() => window.poseWorkers.every(w => w.terminated))).toBe(true);
     expect(await page.evaluate(() => window.poseWorkers.length)).toBe(1);
     await page.evaluate(() => { window.poseMode = 'normal'; });
-    await page.locator('#pose-start').click(); await page.clock.runFor(250);
+    await page.locator('#pose-start').click(); await page.clock.runFor(800);
     await expect(page.locator('#pose-overlay')).toBeVisible();
     expect(await page.evaluate(() => window.poseWorkers.length)).toBe(2);
   });
@@ -131,7 +131,7 @@ test('real model download failure is visible without fake tracking', async ({ pa
 test('hidden tab cancels fixture inference; return does not resume', async ({ page }) => {
   await fixtureWorker(page);
   await camera(page);
-  await page.locator('#pose-start').click(); await page.clock.runFor(250);
+  await page.locator('#pose-start').click(); await page.clock.runFor(800);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, value: true });
@@ -163,7 +163,7 @@ test('mobile fixture overlay fits preview and consent withdrawal releases infere
   await page.setViewportSize({ width: 390, height: 844 });
   await fixtureWorker(page);
   await camera(page);
-  await page.locator('#pose-start').click(); await page.clock.runFor(250);
+  await page.locator('#pose-start').click(); await page.clock.runFor(800);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('.camera-panel').screenshot({ path: 'test-results/pose-fixture-mobile.png' });
@@ -175,7 +175,7 @@ test('mobile fixture overlay fits preview and consent withdrawal releases infere
 
 test('synthetic frame loss still stops at the production deadline', async ({ page }) => {
   await fixtureWorker(page); await camera(page);
-  await page.locator('#pose-start').click(); await page.clock.runFor(100);
+  await page.locator('#pose-start').click(); await page.clock.runFor(800);
   await expect(page.locator('#pose-overlay')).toBeVisible();
   await page.evaluate(() => { window.poseFixtureFrames = false; });
   await page.clock.runFor(200);
@@ -185,12 +185,12 @@ test('synthetic frame loss still stops at the production deadline', async ({ pag
 
 for(const mode of ['no_person','occluded','multiple_people','out_of_frame'])test('initial '+mode+' allows framing adjustment before any measurement',async({page})=>{
  await fixtureWorker(page,mode);await camera(page);
- await page.locator('#pose-start').click();await page.clock.runFor(500);
+ await page.locator('#pose-start').click();await page.clock.runFor(800);
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','searching');
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','searching_'+mode);
  await expect(page.locator('#pose-start')).toBeDisabled();await expect(page.locator('#reach-start')).toBeDisabled();
  await expect(page.locator('#trace-start')).toBeDisabled();await expect(page.locator('#pose-overlay')).toBeHidden();
- await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(100);
+ await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(800);
  await expect(page.locator('#pose-overlay')).toBeVisible();await expect(page.locator('#reach-start')).toBeEnabled();
  expect(await page.evaluate(()=>window.poseWorkers.length)).toBe(1);
 });
@@ -198,13 +198,13 @@ test('initial search timeout offers explicit retry without reviving on its own',
  await fixtureWorker(page,'no_person');await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(15100);
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','person_timeout');
  await expect(page.locator('#pose-start')).toBeEnabled();
- await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(100);
+ await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(800);
  await expect(page.locator('#pose-overlay')).toBeHidden();
- await page.locator('#pose-start').click();await page.clock.runFor(100);
+ await page.locator('#pose-start').click();await page.clock.runFor(800);
  await expect(page.locator('#pose-overlay')).toBeVisible();
 });
 test('stop during initial search releases camera and inference',async({page})=>{
- await fixtureWorker(page,'occluded');await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(100);
+ await fixtureWorker(page,'occluded');await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(800);
  await page.locator('#stop').click();await page.clock.runFor(100);
  await expect(page.locator('#camera-video')).toBeHidden();await expect(page.locator('#pose-overlay')).toBeHidden();
  expect(await page.evaluate(()=>window.poseWorkers.every(w=>w.terminated))).toBe(true);
@@ -212,9 +212,22 @@ test('stop during initial search releases camera and inference',async({page})=>{
 
 test('malformed initial pose does not enter the framing recovery path',async({page})=>{
  await fixtureWorker(page,'invalid_pose');await camera(page);
- await page.locator('#pose-start').click();await page.clock.runFor(100);
+ await page.locator('#pose-start').click();await page.clock.runFor(800);
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','invalid_pose');
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','paused');
  await expect(page.locator('#pose-overlay')).toBeHidden();
  await expect(page.locator('#reach-start')).toBeDisabled();
+});
+
+test('fleeting valid detection does not end initial framing or enable measurements',async({page})=>{
+ await fixtureWorker(page);await camera(page);
+ await page.locator('#pose-start').click();await page.clock.runFor(200);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','searching_stable');
+ await expect(page.locator('#pose-overlay')).toBeHidden();await expect(page.locator('#reach-start')).toBeDisabled();
+ await page.evaluate(()=>{window.poseMode='occluded';});await page.clock.runFor(100);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','searching_occluded');
+ await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(400);
+ await expect(page.locator('#pose-overlay')).toBeHidden();
+ await page.clock.runFor(300);await expect(page.locator('#pose-overlay')).toBeVisible();
+ expect(await page.evaluate(()=>window.poseWorkers.length)).toBe(1);
 });
