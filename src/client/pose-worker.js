@@ -1,4 +1,5 @@
 import { FilesetResolver, PoseLandmarker } from '@mediapipe/tasks-vision';
+import {createPoseModel} from './pose-model.js';
 
 
 let model;
@@ -9,16 +10,10 @@ self.onmessage = async ({ data }) => {
     initializing = true;
     try {
       const assets = await FilesetResolver.forVisionTasks(new URL('/pose/wasm', self.location.origin).href, true);
-      model = await PoseLandmarker.createFromOptions(assets, {
-        baseOptions: { modelAssetPath: new URL('/models/pose_landmarker_lite.task', self.location.origin).href, delegate: 'CPU' },
-        runningMode: 'VIDEO', numPoses: 2, outputSegmentationMasks: false,
-        // Model candidates use SDK defaults; core wrist visibility 0.8 and age 150ms remain unchanged.
-        minPoseDetectionConfidence: 0.5, minPosePresenceConfidence: 0.5, minTrackingConfidence: 0.5
+      model = await createPoseModel({
+        create: options => PoseLandmarker.createFromOptions(assets, options),
+        modelAssetPath: new URL('/models/pose_landmarker_lite.task', self.location.origin).href
       });
-      // Initialize the detector before accepting sensor timestamps.
-      const blank = new OffscreenCanvas(256, 256);
-      blank.getContext('2d').fillRect(0, 0, 256, 256);
-      model.detectForVideo(blank, 0).close();
       self.postMessage({ type: 'ready' });
     } catch {
       model?.close();

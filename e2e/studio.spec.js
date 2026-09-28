@@ -42,7 +42,7 @@ async function prepare(page){
  await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
  await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
  await expect(page.locator('#studio-action')).toHaveText('手を見つける');
- await page.locator('#studio-action').click();await page.clock.runFor(200);
+ await page.locator('#studio-action').click();await page.clock.runFor(800);
  await noScroll(page,['reach-joint','reach-posture','studio-action']);
  await page.locator('#reach-joint').selectOption('leftWrist');
  await expect(page.locator('#studio-title')).toContainText('左手');
@@ -82,7 +82,7 @@ test('framing, loss and explicit restart are available without scrolling',async(
  await page.locator('#camera-consent').check();await page.locator('#studio-action').click();await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
  await page.evaluate(()=>{window.sessionFixture.lost=true;});await page.locator('#studio-action').click();await page.clock.runFor(300);
  await expect(page.locator('#studio-status')).toContainText('まだ人物');await expect(page.locator('#studio-action')).toBeDisabled();
- await page.evaluate(()=>{window.sessionFixture.lost=false;});await page.clock.runFor(100);
+ await page.evaluate(()=>{window.sessionFixture.lost=false;});await page.clock.runFor(800);
  await expect(page.locator('#studio-action')).toHaveText('動かせる範囲を教える');
  await page.evaluate(()=>{window.sessionFixture.lost=true;});await page.clock.runFor(100);
  await expect(page.locator('#studio-action')).toHaveText('もう一度、手を見つける');await expect(page.locator('#studio-action')).toBeInViewport();

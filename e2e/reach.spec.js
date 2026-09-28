@@ -34,7 +34,7 @@ async function setup(page, mode = 'moving') {
   await page.locator('#camera-consent').check();
   await page.locator('#camera-start').click();
   await expect(page.locator('#camera-notice')).toHaveAttribute('data-state', 'preview');
-  await page.locator('#pose-start').click(); await page.clock.runFor(200);
+  await page.locator('#pose-start').click(); await page.clock.runFor(800);
   await expect(page.locator('#reach-start')).toBeEnabled();
 }
 async function begin(page) {
@@ -93,7 +93,7 @@ for (const action of ['escape', 'consent', 'loss']) {
     await expect(page.locator('#reach-start')).toBeDisabled();
     if (action === 'loss') {
       await page.evaluate(() => { window.reachFixtureMode = 'moving'; });
-      await page.locator('#pose-start').click(); await page.clock.runFor(200);
+      await page.locator('#pose-start').click(); await page.clock.runFor(800);
       await expect(page.locator('#reach-start')).toBeEnabled();
       await expect(page.locator('#reach-overlay')).toBeHidden();
     }

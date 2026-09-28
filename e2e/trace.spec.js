@@ -31,7 +31,7 @@ async function setup(page, { failure = false } = {}) {
   await expect(page.locator('#trace-start')).toBeDisabled();
   await page.locator('#camera-consent').check();await page.locator('#camera-start').click();
   await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
-  await page.locator('#pose-start').click();await page.clock.runFor(200);
+  await page.locator('#pose-start').click();await page.clock.runFor(800);
   await expect(page.locator('#trace-start')).toBeEnabled();
   await page.locator('#trace-joint').selectOption('leftWrist');
   await page.locator('#trace-start').click();
@@ -51,7 +51,7 @@ test('local wrist trail stays distinct from captured stars; stop freezes, restar
   await page.clock.runFor(250);
   await expect(page.locator('#trace-count')).toHaveText(count);
   await expect(page.locator('#trace-start')).toBeDisabled();
-  await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(200);
+  await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(800);
   await expect(page.locator('#trace-start')).toBeEnabled();
   await page.locator('#trace-start').click();
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
@@ -79,7 +79,7 @@ test('real WebGL context loss stops camera and requires explicit restart',async(
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason','context_lost');
   await expect(page.locator('#camera-notice')).not.toHaveAttribute('data-state','preview');
   await expect(page.locator('#trace-start')).toBeDisabled();
-  await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(200);
+  await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(800);
   await expect(page.locator('#trace-start')).toBeEnabled();await page.locator('#trace-start').click();
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
 });

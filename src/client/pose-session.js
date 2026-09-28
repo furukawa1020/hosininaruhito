@@ -1,8 +1,10 @@
 import { normalizePose, isFreshPoseTime, MAX_POSE_AGE_MS } from '../core/pose.js';
+import {createPoseBitmap} from './pose-bitmap.js';
 export const PERSON_SEARCH_MS = 15000;
+export const INITIAL_STABLE_MS = 500;
 
 export class PoseSession {
-  constructor({ video, createWorker, createBitmap = () => createImageBitmap(video),
+  constructor({ video, createWorker, createBitmap = () => createPoseBitmap(video),
     now = () => performance.now(), isVisible = () => !document.hidden,
     onChange = () => {}, onSample = () => {} }) {
     Object.assign(this, { video, createWorker, createBitmap, now, isVisible, onChange, onSample });
@@ -16,6 +18,8 @@ export class PoseSession {
     this.inFlight = null;
     this.lastAt = null;
     this.lastInputAt = null;
+    this.stableSince = null;
+    this.stableCount = 0;
     this.disposed = false;
   }
   get active() { return ['loading', 'searching', 'tracking'].includes(this.state); }
@@ -29,6 +33,7 @@ export class PoseSession {
     if (this.state !== 'searching') return false;
     if (this.now() >= this.searchUntil) { this.stop('person_timeout'); return true; }
     this.inFlight = null;
+    this.stableSince = null; this.stableCount = 0;
     const next = 'searching_' + reason;
     if (this.reason !== next) { this.reason = next; this.notify(); }
     this.schedule(this.generation);
@@ -50,6 +55,8 @@ export class PoseSession {
     this.inFlight = null;
     this.lastAt = null;
     this.lastInputAt = null;
+    this.stableSince = null;
+    this.stableCount = 0;
     this.state = state;
     this.reason = reason;
     this.onSample(null);
@@ -93,8 +100,24 @@ export class PoseSession {
             if (['no_person','occluded','multiple_people','out_of_frame'].includes(frame.reason) && this.searchAgain(frame.reason)) return;
             this.stop(frame.reason); return;
           }
-          // Only a fresh valid measurement can mark the body as found.
-          if (this.state === 'searching') { this.state = this.reason = 'tracking'; this.notify(); }
+          // A single lucky frame must not end the framing period. Require a
+          // continuous fresh sequence before enabling calibration or capture.
+          if (this.state === 'searching') {
+            const deliveryGap = this.stableSince !== null && this.lastAt !== null && this.now() - this.lastAt > MAX_POSE_AGE_MS;
+            if (this.stableSince === null || deliveryGap) {
+              this.stableSince = frame.at; this.stableCount = 0;
+            }
+            this.stableCount++;
+            this.lastAt = frame.at;
+            this.inFlight = null;
+            if (frame.at - this.stableSince < INITIAL_STABLE_MS || this.stableCount < 5) {
+              const reason = deliveryGap ? 'searching_slow' : 'searching_stable';
+              if (this.reason !== reason) { this.reason = reason; this.notify(); }
+              this.schedule(generation);
+              return;
+            }
+            this.state = this.reason = 'tracking'; this.notify();
+          }
           this.lastAt = frame.at;
           this.inFlight = null;
           this.onSample({ ...frame, latencyMs: this.now() - frame.at });

@@ -76,7 +76,7 @@ WebAssembly用のwasm-unsafe-evalだけを許可し、JavaScript evalは許可�
 
 修正後はモデル準備後に最大15秒のsearchingへ入る。初回の人物不在/見切れ/複数人では映り方の案内を更新し、同じWorkerで一件ずつ再試行する。初回の遅い応答は捨て、新しいフレームで試す。期限は再試行で延長せず、無応答や期限後の結果も採用しない。計測へ渡す全フレームは従来どおり150ms以内・両手首visibility 0.8以上を必須とする。
 
-trackingへ入るのは最初の有効な計測が得られたときだけ。その後の追跡ロスト/遅延/無応答は即座に停止し、自動再検出しない。停止・カメラ終了・非表示ではsearchingも終了する。
+trackingへ入る前に、鮮度条件を満たす有効な計測が0.5秒以上・5件以上続くことを確認する。単発の検出では計測を開始しない。その後の追跡ロスト/遅延/無応答は即座に停止し、自動再検出しない。停止・カメラ終了・非表示ではsearchingも終了する。
 
 人物候補を得るSDK設定はGoogle公式とインストール済みvision.d.tsを照合し、minPoseDetectionConfidence/minPosePresenceConfidence/minTrackingConfidenceを既定値0.5にそろえた。身体の到達・安全・captureはこれらの確率で判断しない。
 一次資料: https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js
@@ -86,3 +86,11 @@ trackingへ入るのは最初の有効な計測が得られたときだけ。そ
 ## 2026-09-22 画面外と破損値の区別（#43）
 
 SDKの[LandmarkProjection実装](https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/calculators/util/landmark_projection_calculator.cc)は検出領域から画像へ座標変換し、x/yを画面内へクランプしない。有限だが0〜1外の手首はout_of_frameとしてサンプルを出さず、初回探索のみ画角の調整を案内して既存期限内で再試行する。NaN/Infinity/型不正/配列不正/visibility範囲不正は従来のinvalid_poseで停止する。両手首のデータ形式を先に検証する。追跡開始後の画面外は即停止・明示再開。公開#42で実両手首計測81msを一度確認したが、継続と身体での完成は未確認。今回報告のinvalid_poseが画面外由来かは再試験で確認する。
+
+## 2026-09-27 開始直後停止への対策（#50）
+
+一度だけ正常なフレームが返ると探索を終了していたため、次の見切れで即停止していた。初回15秒の探索内で、有効計測が0.5秒以上・5件以上続いてからtrackingへ入る。初回の見切れ・人物不在・遅い応答・150msを超えるサンプル間隔は安定確認をやり直し、探索期限は延長しない。追跡開始後のロスト/古い計測の停止と明示再開、visibility 0.8、capture 0.8秒は維持する。
+
+推論用ImageBitmapは画像全体を長辺640px以内に縮小し、切り取り・鏡像変換はしない。正規化座標とプレビューの対応を保持。実CPUモデルを空の画像でウォームアップしてからカメラの計測を開始する。初期化/ウォームアップに失敗したら解放してmodel_failedとし、疑似検出しない。起動全体は既存の20秒上限でWorkerごと終了できる。GPU優先は実モデルのブラウザー試験で起動待ちが発生したため採用しない。SDK 1.0.1の型定義と[公式Webガイド](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js)を確認した。
+
+利用者の複数の停止理由をすべて特定したわけではない。合成試験と実モデルの起動を検証し、実人体で継続して完成できるかは別途受入確認する。
