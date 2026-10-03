@@ -2,6 +2,7 @@ import { normalizePose, isFreshPoseTime, MAX_POSE_AGE_MS } from '../core/pose.js
 import {createPoseBitmap} from './pose-bitmap.js';
 export const PERSON_SEARCH_MS = 15000;
 export const INITIAL_STABLE_MS = 500;
+export const MODEL_LOAD_MS = 20000;
 
 export class PoseSession {
   constructor({ video, createWorker, createBitmap = () => createPoseBitmap(video),
@@ -74,13 +75,34 @@ export class PoseSession {
       this.stop('unsupported', 'error'); return;
     }
     this.stop('loading', 'loading');
-    const generation = this.generation;
+    this.startupUntil = this.now() + 2 * MODEL_LOAD_MS;
+    this.loadWorker(this.generation, 'GPU');
+  }
+  loadWorker(generation, delegate) {
+    if (generation !== this.generation || this.state !== 'loading') return;
+    if (this.now() >= this.startupUntil) { this.stop('model_timeout'); return; }
+    const loadUntil = Math.min(this.startupUntil, this.now() + MODEL_LOAD_MS);
+    let worker = null;
+    const fail = (reason, state = 'error') => {
+      if (generation !== this.generation || worker !== this.worker) return;
+      clearTimeout(this.timer);
+      if (!this.isVisible()) { this.stop('hidden'); return; }
+      if (delegate === 'GPU' && this.state === 'loading') {
+        // Termination cancels a blocked GPU initializer before CPU work begins.
+        try { worker?.postMessage({ type: 'close' }); } catch { /* already closed */ }
+        worker?.terminate();
+        this.worker = null;
+        this.reason = 'loading_cpu'; this.notify();
+        this.loadWorker(generation, 'CPU');
+      } else this.stop(reason, state);
+    };
     try {
-      const worker = this.createWorker();
+      worker = this.createWorker();
       this.worker = worker;
       worker.onmessage = ({ data }) => {
         if (generation !== this.generation || worker !== this.worker) return;
         if (!this.isVisible()) { this.stop('hidden'); return; }
+        if (this.state === 'loading' && this.now() >= loadUntil) { fail('model_timeout', 'paused'); return; }
         if (data?.type === 'ready' && this.state === 'loading') {
           this.state = this.reason = 'searching';
           this.searchUntil = this.now() + PERSON_SEARCH_MS;
@@ -124,19 +146,19 @@ export class PoseSession {
           this.deadline(Math.max(0, MAX_POSE_AGE_MS - (this.now() - frame.at)), 'frame_gap');
           this.schedule(generation);
         } else if (data?.type === 'error') {
-          this.stop(data.reason === 'model_failed' ? 'model_failed' : 'inference_failed', 'error');
+          fail(data.reason === 'model_failed' ? 'model_failed' : 'inference_failed');
         }
       };
       worker.onerror = event => {
         event.preventDefault?.();
-        if (generation === this.generation) this.stop('inference_failed', 'error');
+        fail('inference_failed');
       };
       worker.onmessageerror = () => {
-        if (generation === this.generation) this.stop('invalid_pose', 'error');
+        if (generation === this.generation && worker === this.worker) this.stop('invalid_pose', 'error');
       };
-      this.deadline(20000, 'model_timeout');
-      worker.postMessage({ type: 'init' });
-    } catch { this.stop('unsupported', 'error'); }
+      this.timer = setTimeout(() => fail('model_timeout', 'paused'), Math.max(0, loadUntil - this.now()));
+      worker.postMessage({ type: 'init', delegate });
+    } catch { fail('unsupported'); }
   }
   schedule(generation) {
     if (generation !== this.generation || this.inFlight) return;

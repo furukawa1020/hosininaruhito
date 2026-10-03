@@ -12,7 +12,7 @@
 - モデルをリポジトリへ同梱。ビルド・開発開始時にサイズとハッシュ、SDKの版を検証する。
 - SDKのModule用WASM/loaderをnpm配布物からpublic/pose/wasmへコピーする。生成物はGitに含めない。
 - SDK・モデルはApache-2.0。配布時のライセンスと出典はpublic/third-partyに同梱。
-- 初期化時だけモデルを読み込み、推論はCPU delegate、VIDEO mode、numPoses=2。分割マスクは取得しない。
+- 初期化時だけモデルを読み込み、推論はGPU delegateを優先し、起動に失敗したときだけCPUへ切り替える。VIDEO mode、numPoses=2。分割マスクは取得しない。
 - 同時に処理する画像は1枚。取り込み待ちに停止した場合も、返ってきたImageBitmapを閉じる。
 - 各結果のマスク資源と画像をcloseし、停止時はフレーム予約・タイマーを解除してWorkerを終了する。
 
@@ -29,7 +29,7 @@ visibilityは計測を採用しないための条件であり、身体の安全�
 時刻はWindow側のperformance時計を使う。requestVideoFrameCallbackのcaptureTimeがあれば採用し、
 なければpresentationTimeを使う。後者はブラウザのフレーム提示時刻で、カメラの露光時刻ではない。
 Workerの別時計や推論終了時刻で付け替えない。150msを超えた結果、未来・重複・逆行時刻は破棄する。
-結果が来なくても150msの監視で停止する。モデル初期化は20秒で中断する。
+結果が来なくても150msの監視で停止する。モデル初期化はGPU/CPU各20秒・全体40秒を上限に中断する。
 
 追跡ロストや遅延では手首表示と推論を停止し、自動復帰しない。カメラのプレビューは映り方を直すため継続する。
 常設停止・Esc・非表示・同意撤回・ページ離脱ではカメラも停止する。
@@ -94,3 +94,9 @@ SDKの[LandmarkProjection実装](https://github.com/google-ai-edge/mediapipe/blo
 推論用ImageBitmapは画像全体を長辺640px以内に縮小し、切り取り・鏡像変換はしない。正規化座標とプレビューの対応を保持。実CPUモデルを空の画像でウォームアップしてからカメラの計測を開始する。初期化/ウォームアップに失敗したら解放してmodel_failedとし、疑似検出しない。起動全体は既存の20秒上限でWorkerごと終了できる。GPU優先は実モデルのブラウザー試験で起動待ちが発生したため採用しない。SDK 1.0.1の型定義と[公式Webガイド](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js)を確認した。
 
 利用者の複数の停止理由をすべて特定したわけではない。合成試験と実モデルの起動を検証し、実人体で継続して完成できるかは別途受入確認する。
+
+## 2026-10-01 GPUと起動失敗時のCPU切替（#54）
+
+GPU処理はSDK 1.0.1のVisionTaskOptions.canvasに専用OffscreenCanvasを渡す。ウォームアップ画像の2Dキャンバスとは共有しない。GPU初期化/ウォームアップ失敗または20秒超過はWorkerを終了してからCPUを作る。全体40秒の期限を超えて新しいモデルを作らない。readyより前にフレームを送らず、両方失敗したら明示エラー。停止/非表示や古いWorkerのready/error/messageerrorで切替や復帰をしない。初期化が終わってからのロスト・遅延ではバックエンドを切り替えず従来どおり停止する。
+
+実機CPU版は本人参加時60件すべて150ms超過。専用キャンバス付きGPUの合成入力では起動18,286ms/推論18msだったが、これは実人体の精度・継続・完成の証拠ではない。一次資料はインストール済みvision.d.tsのVisionTaskOptions（GPUではcanvas必須）と[公式Web実装ガイド](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js)。

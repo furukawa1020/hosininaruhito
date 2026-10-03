@@ -1,9 +1,11 @@
-// Warm the real CPU model before accepting camera measurements.
-export async function createPoseModel({create, modelAssetPath, createCanvas = () => new OffscreenCanvas(256,256)}) {
+// Warm the selected real model before accepting camera measurements.
+export async function createPoseModel({create, modelAssetPath, delegate = 'GPU', createCanvas = () => new OffscreenCanvas(256,256)}) {
   let model;
   try {
+    if (!['GPU', 'CPU'].includes(delegate)) throw new Error('unsupported_delegate');
     model = await create({
-      baseOptions: {modelAssetPath, delegate:'CPU'},
+      baseOptions: {modelAssetPath, delegate},
+      ...(delegate === 'GPU' ? {canvas: createCanvas()} : {}),
       runningMode:'VIDEO', numPoses:2, outputSegmentationMasks:false,
       minPoseDetectionConfidence:.5, minPosePresenceConfidence:.5, minTrackingConfidence:.5
     });

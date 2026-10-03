@@ -12,6 +12,7 @@ self.onmessage = async ({ data }) => {
       const assets = await FilesetResolver.forVisionTasks(new URL('/pose/wasm', self.location.origin).href, true);
       model = await createPoseModel({
         create: options => PoseLandmarker.createFromOptions(assets, options),
+        delegate: data.delegate === 'CPU' ? 'CPU' : 'GPU',
         modelAssetPath: new URL('/models/pose_landmarker_lite.task', self.location.origin).href
       });
       self.postMessage({ type: 'ready' });

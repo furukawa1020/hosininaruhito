@@ -175,19 +175,21 @@ test('tracking loss stops until intentional restart, without automatic reacquisi
   app.ready();
   assert.equal(app.workers.length, 2);
 });
-test('model failure and worker crash expose only fixed reasons', t => {
-  const app = setup(t);
-  app.session.start();
-  app.workers[0].emit({ type: 'error', reason: 'model_failed', detail: 'private details' });
-  assert.deepEqual(app.session.snapshot(), { state: 'error', reason: 'model_failed' });
-  app.session.start();
-  app.workers[1].onerror({ preventDefault() {} });
-  assert.equal(app.session.reason, 'inference_failed');
+test('model failures and worker crashes fall back once, then expose only fixed reasons', t => {
+ for(const crash of [false,true]){
+  const app=setup(t);app.session.start();
+  const fail=w=>crash?w.onerror({preventDefault(){}}):w.emit({type:'error',reason:'model_failed',detail:'private details'});
+  fail(app.workers[0]);assert.equal(app.session.reason,'loading_cpu');
+  fail(app.workers[1]);assert.deepEqual(app.session.snapshot(),{state:'error',reason:crash?'inference_failed':'model_failed'});
+  assert.ok(app.workers.every(w=>w.terminated===1));
+ }
 });
 test('deadlines bound initial search and preserve tracking watchdog', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const app = setup(t);
   app.session.start();
+  t.mock.timers.tick(20000);
+  assert.equal(app.session.reason, 'loading_cpu');
   t.mock.timers.tick(20000);
   assert.equal(app.session.reason, 'model_timeout');
   app.ready();
@@ -357,4 +359,44 @@ test('fresh results with delivery gaps cannot briefly enable tracking before the
  assert.equal(app.samples.filter(Boolean).length,0);
  await establish(app,900);
  assert.equal(app.session.state,'tracking');
+});
+
+test('GPU initialization failure terminates it before CPU and ignores every late GPU event', async t => {
+ const app=setup(t);app.session.start();const gpu=app.workers[0];
+ assert.equal(gpu.sent[0].delegate,'GPU');
+ gpu.emit({type:'error',reason:'model_failed'});
+ assert.equal(gpu.terminated,1);assert.equal(app.session.reason,'loading_cpu');
+ const cpu=app.workers[1];assert.equal(cpu.sent[0].delegate,'CPU');
+ gpu.emit({type:'ready'});gpu.onerror({preventDefault(){}});gpu.onmessageerror();
+ assert.equal(app.session.reason,'loading_cpu');assert.equal(app.callbacks.size,0);
+ cpu.emit({type:'ready'});await establish(app);
+ assert.equal(app.session.state,'tracking');assert.equal(app.samples.filter(Boolean).length,1);
+});
+test('a GPU ready arriving after its deadline starts CPU even before its timer fires', t => {
+ const app=setup(t);app.session.start();app.time(20100);
+ app.workers[0].emit({type:'ready'});
+ assert.equal(app.workers[0].terminated,1);assert.equal(app.workers.length,2);
+ assert.equal(app.session.reason,'loading_cpu');assert.equal(app.callbacks.size,0);
+});
+test('delayed callbacks cannot extend the total model startup deadline', t => {
+ const app=setup(t);app.session.start();app.time(40100);
+ app.workers[0].emit({type:'ready'});
+ assert.equal(app.workers.length,1);assert.equal(app.workers[0].terminated,1);
+ assert.equal(app.session.reason,'model_timeout');assert.equal(app.samples.filter(Boolean).length,0);
+});
+test('stop or hidden during GPU initialization never creates a fallback worker', t => {
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const hidden of [false,true]){
+  const app=setup(t);app.session.start();const gpu=app.workers[0];
+  if(hidden){app.hide();gpu.onerror({preventDefault(){}});}else app.session.stop();
+  t.mock.timers.tick(40000);gpu.emit({type:'error',reason:'model_failed'});
+  assert.equal(app.workers.length,1);assert.equal(gpu.terminated,1);
+  assert.equal(app.session.reason,hidden?'hidden':'manual');
+ }
+});
+test('inference failure after GPU ready stops without backend switching', async t => {
+ const app=setup(t);app.ready();await establish(app);
+ app.workers[0].emit({type:'error',reason:'inference_failed'});
+ assert.equal(app.session.reason,'inference_failed');assert.equal(app.workers.length,1);
+ assert.equal(app.workers[0].terminated,1);
 });

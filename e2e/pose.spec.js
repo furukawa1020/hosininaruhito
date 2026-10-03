@@ -27,7 +27,11 @@ async function fixtureWorker(page, mode = 'normal') {
         window.poseWorkers.push(this);
       }
       postMessage(message) {
-        if (message.type === 'init') queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } }));
+        if (message.type === 'init') {
+          if(window.poseMode==='gpu_stall' && message.delegate==='GPU')return;
+          const data=window.poseMode==='gpu_fail' && message.delegate==='GPU'?{type:'error',reason:'model_failed'}:{type:'ready'};
+          queueMicrotask(()=>this.onmessage?.({data}));
+        }
         if (message.type !== 'frame') return;
         this.frames++;
         message.bitmap.close();
@@ -47,7 +51,7 @@ async function fixtureWorker(page, mode = 'normal') {
   }, mode);
 }
 
-test('real pinned SDK runs locally on blank synthetic input with no external requests', async ({ page, context }) => {
+test('real pinned CPU SDK runs locally on blank synthetic input with no external requests', async ({ page, context }) => {
   test.setTimeout(45000);
   const urls = [];
   context.on('request', request => urls.push(request.url()));
@@ -72,7 +76,7 @@ test('real pinned SDK runs locally on blank synthetic input with no external req
             resolve({ type: data.type, reason: data.reason, count: data.result?.landmarks?.length });
           }
         };
-        worker.postMessage({ type: 'init' });
+        worker.postMessage({ type: 'init', delegate: 'CPU' });
       });
     } finally { worker.postMessage({ type: 'close' }); worker.terminate(); }
   }, file);
@@ -148,9 +152,10 @@ test('hidden tab cancels fixture inference; return does not resume', async ({ pa
 });
 
 test('real model on synthetic camera reports initial absence without claiming tracking', async ({ page }) => {
+  test.setTimeout(55000);
   await camera(page);
   await page.locator('#pose-start').click();
-  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason', 'searching_no_person', { timeout: 20000 });
+  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason', 'searching_no_person', { timeout: 45000 });
   await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','searching');
   await expect(page.locator('#pose-overlay')).toBeHidden();
   await expect(page.locator('#pose-start')).toBeDisabled();
@@ -230,4 +235,14 @@ test('fleeting valid detection does not end initial framing or enable measuremen
  await expect(page.locator('#pose-overlay')).toBeHidden();
  await page.clock.runFor(300);await expect(page.locator('#pose-overlay')).toBeVisible();
  expect(await page.evaluate(()=>window.poseWorkers.length)).toBe(1);
+});
+
+for(const mode of ['gpu_fail','gpu_stall'])test(mode+' replaces the worker before measurements and recovers through CPU',async({page})=>{
+ await fixtureWorker(page,mode);await camera(page);await page.locator('#pose-start').click();
+ if(mode==='gpu_stall')await page.clock.runFor(20000);
+ await page.clock.runFor(800);
+ await expect(page.locator('#pose-overlay')).toBeVisible();
+ expect(await page.evaluate(()=>({workers:window.poseWorkers.length,firstStopped:window.poseWorkers[0].terminated,secondStopped:window.poseWorkers[1].terminated}))).toEqual({workers:2,firstStopped:true,secondStopped:false});
+ await page.locator('#stop').click();
+ expect(await page.evaluate(()=>window.poseWorkers.every(w=>w.terminated))).toBe(true);
 });
