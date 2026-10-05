@@ -100,3 +100,5 @@ SDKの[LandmarkProjection実装](https://github.com/google-ai-edge/mediapipe/blo
 GPU処理はSDK 1.0.1のVisionTaskOptions.canvasに専用OffscreenCanvasを渡す。ウォームアップ画像の2Dキャンバスとは共有しない。GPU初期化/ウォームアップ失敗または20秒超過はWorkerを終了してからCPUを作る。全体40秒の期限を超えて新しいモデルを作らない。readyより前にフレームを送らず、両方失敗したら明示エラー。停止/非表示や古いWorkerのready/error/messageerrorで切替や復帰をしない。初期化が終わってからのロスト・遅延ではバックエンドを切り替えず従来どおり停止する。
 
 実機CPU版は本人参加時60件すべて150ms超過。専用キャンバス付きGPUの合成入力では起動18,286ms/推論18msだったが、これは実人体の精度・継続・完成の証拠ではない。一次資料はインストール済みvision.d.tsのVisionTaskOptions（GPUではcanvas必須）と[公式Web実装ガイド](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js)。
+
+2026-10-04: 初回CIでGPUとして起動できても合成カメラの全応答が古くなる環境を検出（114成功・実モデル1件失敗）。起動後に長辺640pxの空画像で追加の実推論を測定し、100msを超えるGPUはready前に解放してCPUへ切り替える。これは性能選択だけであり、カメラ計測の鮮度150msと到達判定は緩めない。画面試験の期待値を緩めず修正する。
