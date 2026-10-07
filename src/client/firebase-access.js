@@ -2,7 +2,7 @@ import {initializeApp} from 'firebase/app';
 import {initializeAuth,inMemoryPersistence,browserSessionPersistence,setPersistence,signInAnonymously,signInWithEmailAndPassword,signOut} from 'firebase/auth';
 import {initializeAppCheck,ReCaptchaEnterpriseProvider,getToken} from 'firebase/app-check';
 let auth,check,identity;
-async function prepare(settings,guest) {
+async function prepare(settings,guest,progress) {
   const key=JSON.stringify({config:settings.config,siteKey:settings.siteKey});
   if(identity&&identity!==key)throw Error('Reload required');
   if(!auth){
@@ -15,21 +15,23 @@ async function prepare(settings,guest) {
   // Never persist an existing named account when switching to guest mode.
   if(guest&&auth.currentUser&&!auth.currentUser.isAnonymous)await signOut(auth);
   await setPersistence(auth,guest?browserSessionPersistence:inMemoryPersistence);
+  progress('verification');
   await getToken(check);
+  progress('identity');
 }
-export async function login(settings,email,password) {
+export async function login(settings,email,password,progress=()=>{}) {
   try{
-    await prepare(settings,false);
+    await prepare(settings,false,progress);
     const result=await signInWithEmailAndPassword(auth,email,password);
     const claims=await result.user.getIdTokenResult();
     if(claims.claims.hcrAccess!==true)throw Error('Not invited');
     return result.user;
   }catch(error){await logout();throw error;}
 }
-export async function guest(settings) {
+export async function guest(settings,progress=()=>{}) {
   if(settings?.guestEnabled!==true)throw Error('Guest access disabled');
   try{
-    await prepare(settings,true);
+    await prepare(settings,true,progress);
     const result=await signInAnonymously(auth);
     if(!result.user.isAnonymous)throw Error('Guest identity required');
     return result.user;
