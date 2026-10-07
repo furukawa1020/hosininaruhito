@@ -18,6 +18,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <div id="game-reading" hidden><p id="game-reading-text"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
         <div id="game-star-pager" class="game-pager"><button id="game-prev" type="button" aria-label="前の星座">←</button><span id="game-page-count"></span><button id="game-next" type="button" aria-label="次の星座">→</button></div>
         <p id="studio-dialog-notice" role="status"></p>
+        <div id="game-auth-recovery"></div>
         <button id="studio-choose" class="primary" type="button">この星座で遊ぶ →</button>
         <div id="game-subnav"><button id="game-login" class="text-button" type="button">アカウントでログイン</button><button id="game-privacy" class="text-button" type="button">ログイン情報について</button><button id="game-about" class="text-button" type="button">この星座について</button></div>
       </section>
@@ -30,6 +31,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   move($('planner-consent').closest('label'),'studio-ai');
   move($('auth-logout'),'studio-account-actions');
   move($('auth-account'),'game-account');$('auth-account').open=true;
+  move($('auth-recovery'),'game-auth-recovery');
   move($('refresh'),'game-reconnect');
   const privacy=document.querySelector('#cloud-login .fine-details');
   const privacyText=privacy.querySelector('p').textContent;privacy.hidden=true;
@@ -58,6 +60,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',about:'この星座のお話',privacy:'ログイン情報について'};
     say('studio-dialog-title',titles[page]);
     say('studio-dialog-notice',page==='location'?$('notice').textContent:['access','account'].includes(page)?$('auth-notice').textContent:page==='settings'?$('notice').textContent:'');
+    $('game-auth-recovery').hidden=!['access','account'].includes(page)||$('auth-recovery').hidden;
     const buttons=cards(),key=buttons.map(b=>b.dataset.skyId).join('|'),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
     if(key!==rowKey){rowKey=key;rows=buttons.map(b=>({name:b.querySelector('strong').textContent,azimuthDeg:Number(b.dataset.azimuth),altitudeDeg:Number(b.dataset.altitude)}));}
     if(selection!==index||domeRows!==rows){selection=index;domeRows=rows;dome.update(rows,index);}
