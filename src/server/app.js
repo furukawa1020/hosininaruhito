@@ -7,8 +7,9 @@ import { getConstellationCatalog } from '../providers/catalog.js';
 import { observeSky, decideReflex } from '../providers/live.js';
 import { planProgram, plannerStatus } from '../providers/planning.js';
 import { accessConfigured, verifyAccess, acquireAccess } from '../providers/access.js';
+import {challengeConfigured,verifyChallenge} from '../providers/challenge.js';
 
-export function createApp(env = process.env, providers = { observeSky, decideReflex, planProgram, getConstellationCatalog, projectConstellation }, access = {verify:verifyAccess,acquire:acquireAccess}) {
+export function createApp(env = process.env, providers = { observeSky, decideReflex, planProgram, getConstellationCatalog, projectConstellation }, access = {verify:verifyAccess,acquire:acquireAccess,challenge:verifyChallenge}) {
   const app = new Hono();
   app.use('*', async (c, next) => {
     c.header('Content-Security-Policy', browserPolicy);
@@ -29,7 +30,7 @@ export function createApp(env = process.env, providers = { observeSky, decideRef
       reflex: configured('TYPESAFE_API_KEY'), planner: planner.configured
     };
     return c.json({ mode: 'live', configured: Object.values(services).every(Boolean), services, plannerProvider: planner.provider,
-      auth: cloud && accessConfigured(env) ? {mode:'firebase',guestEnabled:env.HCR_GUEST_ENABLED==='true',config:{apiKey:env.FIREBASE_WEB_API_KEY,projectId:env.FIREBASE_PROJECT_ID,appId:env.FIREBASE_APP_ID,authDomain:env.FIREBASE_PROJECT_ID+'.firebaseapp.com'},siteKey:env.RECAPTCHA_SITE_KEY} : {mode:validMode&&!cloud?'development':'unavailable'} });
+      auth: cloud && accessConfigured(env) ? {mode:'firebase',guestEnabled:env.HCR_GUEST_ENABLED==='true',config:{apiKey:env.FIREBASE_WEB_API_KEY,projectId:env.FIREBASE_PROJECT_ID,appId:env.FIREBASE_APP_ID,authDomain:env.FIREBASE_PROJECT_ID+'.firebaseapp.com'},siteKey:env.RECAPTCHA_SITE_KEY,...(challengeConfigured(env)?{checkboxSiteKey:env.RECAPTCHA_CHECKBOX_SITE_KEY}:{})} : {mode:validMode&&!cloud?'development':'unavailable'} });
   });
   let busy = false;
   app.use('/api/*', async (c, next) => {
@@ -40,6 +41,16 @@ export function createApp(env = process.env, providers = { observeSky, decideRef
   app.use('/api/*', async (c, next) => {
     if(!validMode)return c.json({error:'Authentication not configured',code:'not_configured'},503);
     if(env.HCR_API_ENABLED==='false')return c.json({error:'Service paused',code:'service_paused'},503);
+    return next();
+  });
+  app.post('/api/challenge',bodyLimit({maxSize:12288,onError:c=>c.json({error:'Payload too large',code:'payload_too_large'},413)}),async c=>{
+    if(!cloud||!challengeConfigured(env))return c.json({error:'Guest verification unavailable',code:'not_configured'},503);
+    const bearer=c.req.header('Authorization')||'';
+    if(!bearer.startsWith('Bearer '))return c.json({error:'Sign in required',code:'unauthorized'},401);
+    let input;try{input=await c.req.json();}catch{return c.json({error:'Invalid JSON',code:'invalid_json'},400);}
+    return c.json(await access.challenge(bearer.slice(7),input,env,{origin:c.req.header('Origin'),signal:c.req.raw.signal}));
+  });
+  app.use('/api/*', async (c, next) => {
     if(cloud){
       const bearer=c.req.header('Authorization')||'';
       if(!bearer.startsWith('Bearer '))return c.json({error:'Sign in required',code:'unauthorized'},401);

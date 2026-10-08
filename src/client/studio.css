@@ -198,3 +198,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 @media(prefers-reduced-motion:reduce){.demo-hand{animation:none}}
 
 @media(max-width:380px){.game-route{gap:4px}.game-route li{font-size:0}.game-route li::before{display:inline-grid;font-size:11px;width:20px;height:20px;margin:0}.game-route li{white-space:nowrap}}
+.human-check{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:#0a152b;color:#e4ecfa;padding:16px;overflow:auto}
+.human-check>div{width:min(100%,360px);display:grid;gap:16px;justify-items:center;text-align:center}
+.human-check h2{font-size:26px;margin:0;outline:none}.human-check p{font-size:15px;line-height:1.6;margin:0}
+.human-check button{min-height:44px;border:1px solid #8199bd;border-radius:14px;background:#172840;color:#e4ecfa;padding:10px 20px}

@@ -33,7 +33,7 @@ test('guest uses every existing API route and the same persistent quotas, with n
  let calls=0;const providers=Object.fromEntries(['observeSky','planProgram','decideReflex','projectConstellation','getConstellationCatalog'].map(k=>[k,async()=>({ok:++calls})]));
  const access={verify:(id,app)=>verifyAccess(id,app,enabled,sdk(guest)),acquire:(uid,route)=>reserveUsage(db,uid,route,{now:()=>Date.UTC(2026,0,1)})};
  const app=createApp(enabled,providers,access),headers={Authorization:'Bearer id','X-Firebase-AppCheck':'app','X-HCR-Planner':'codex','Content-Type':'application/json'};
- for(const route of Object.keys(DAILY_LIMITS))assert.equal((await app.request('/api/'+route,{method:'POST',headers,body:'{}'})).status,200);
+ for(const route of Object.keys(DAILY_LIMITS).filter(r=>r!=='challenge'))assert.equal((await app.request('/api/'+route,{method:'POST',headers,body:'{}'})).status,200);
  assert.equal(calls,5);assert.deepEqual(db.values.get('hcrUsage/2026-01-01-global'),{sky:1,program:1,reflex:1,project:1,catalog:1});
  db.values.set('hcrUsage/2026-01-01-global',{sky:200});assert.equal((await app.request('/api/sky',{method:'POST',headers,body:'{}'})).status,429);assert.equal(calls,5);
  db.values.set('hcrControl/runtime',{enabled:false});assert.equal((await app.request('/api/program',{method:'POST',headers,body:'{}'})).status,503);assert.equal(calls,5);
@@ -67,6 +67,15 @@ test('expired old lease cannot release a newer request and faults fail closed',a
  db.values.set('hcrControl/runtime',{enabled:false});await assert.rejects(reserveUsage(db,'a','sky',options),{code:'service_paused'});
  db.values.delete('hcrControl/runtime');await assert.rejects(reserveUsage(db,'a','sky',options),{code:'service_paused'});
  await assert.rejects(reserveUsage({...db,runTransaction:async()=>{throw Error('private');}},'a','sky',options),e=>e.code==='quota_unavailable'&&!e.message.includes('private'));
+});
+
+test('checkbox assessments use persistent per-guest and global limits even with new guest IDs',async()=>{
+ const db=store(),options={now:()=>Date.UTC(2026,9,8)};
+ for(let n=0;n<5;n++)await(await reserveUsage(db,'same','challenge',options))();
+ await assert.rejects(reserveUsage(db,'same','challenge',options),{code:'daily_limit'});
+ db.values.set('hcrUsage/2026-10-08-global',{challenge:50,sky:7});
+ await assert.rejects(reserveUsage(db,'new-guest','challenge',options),{code:'daily_limit'});
+ assert.equal(db.values.get('hcrUsage/2026-10-08-global').sky,7);
 });
 test('Cloud Run rejects development mode even if a shared token is configured',async()=>{
  for(const mode of [undefined,'development','typo']){
