@@ -5,7 +5,17 @@
 2026-09-21の配備環境で星API31星座取得、Vertex実生成、未認証拒否を確認した。
 公開環境の認証・利用上限・緊急停止は[AUTH.md](AUTH.md)。以下のsandbox履歴はCodex経路の記録。
 
-## 公開記録（2026-09-21）
+## 最新の公開記録（2026-10-08）
+
+- PR #59 / main `981931c26f050f47a1c6a2b21a7a5d0c03d17134`、211単体＋135ブラウザー試験が成功。
+- Hosting version: `3285f4a66a8a876a`、公開URL: https://hosininaruhito-20260920.web.app
+- Hosting rewriteのtag: `checkbox-20261008` → Cloud Run `hcr-api-00008-bef`（100% traffic）。
+- イメージ: `asia-east1-docker.pkg.dev/hosininaruhito-20260920/hcr/api@sha256:61c2921d1a38c6e36f602e461d2857a930cabdc8074cca2a6b642b0f55e27abe`
+- 公開Edgeの実Google確認経路でゲスト参加し、実 `/api/sky` がHTTP 200で28件の星座を返した。カメラ同意画面まで到達。この試験ではカメラを起動していない。
+- 自動App Checkの拒否条件は維持。「画面で確認して参加する」はGoogleの本人確認を経て既存の認証・利用上限へ合流する。
+- 実人体の追跡継続・星座完成は未確認（#20 / #50）。今回の配備でVertex実生成を再試験してはいない。
+
+## 過去の公開記録（2026-09-21）
 
 - Hosting: https://hosininaruhito-20260920.web.app
 - Cloud Run: `hcr-api` / `asia-east1`、専用SA `hcr-runtime`、maxScale 1 / concurrency 1 / timeout 50秒
@@ -26,7 +36,7 @@ gcloud run services update hcr-api --image=IMAGE_DIGEST --region=asia-east1 --pr
 firebase deploy --only hosting --project hosininaruhito-20260920 --non-interactive
 ```
 
-現在のHosting versionは `e536cb985268b584`、Cloud Run tagは `fh-e536cb985268b584` → `hcr-api-00002-dpz`。
+2026-09-21当時のHosting versionは `e536cb985268b584`、Cloud Run tagは `fh-e536cb985268b584` → `hcr-api-00002-dpz`。
 検証済み旧versionは `ade252aa15c5f980`、tagは `fh-1fcf6f987e11a1c5` → `hcr-api-00001-mw8`。
 復旧試験で旧tagの欠落を発見して復元した。参照中のtag/revisionを削除しない。
 戻す場合は検証済みHosting releaseへロールバックし、紐づくCloud Run tagを確認する。
@@ -39,6 +49,23 @@ firebase deploy --only hosting --project hosininaruhito-20260920 --non-interacti
 クラウドの振付AIはVertex AI / ADCを選べる。Codex CLIのインストール・個人ログインを要求しない。
 非公開Cloud Run用サービス定義を `deploy/cloudrun.vertex.yaml` に用意した。[設定と適用順序](VERTEX.md)。
 Vertex経路ではコマンドsandboxを使用しない。従来Codex sandboxの失敗を成功に読み替えるものではない。
+
+## Hostingが参照するtagの保護（#60）
+
+2026-10-08の配備では、HostingのpinTagが既存の `checkbox-20261008` を再利用した。
+検証用の名前だと判断して削除した結果、Cloud Run本体のtrafficが正常でも公開APIが404になった。
+同じtagを `hcr-api-00008-bef` へ戻し、公開APIの復旧と実ゲストの星API取得を確認した。
+復旧後も元のURLに404が `max-age=600` でキャッシュされていたため、同じ成果物をHostingへ再配備した。
+通常の `/api/status` がHTTP 200・JSON・`no-store`、未認証 `/api/sky` が401に戻ったことを確認した。
+
+1. Hosting配備後に、[sites.releases.list](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.releases/list)で最新releaseの `version.config.rewrites[].run.tag` を読む。`fh-` という名前になるとは限らない。
+2. Cloud Runの `status.traffic` で、そのtagが意図したrevisionを参照することを照合する。trafficの100%表示だけではHostingの接続先を確認できない。
+3. 最新releaseとロールバック候補releaseが参照するtag/revisionは削除しない。用途不明のtagも名前だけで整理しない。
+4. 配備やtag変更後は、Cloud Run直URLだけでなくHosting公開URLの `/api/status` がHTTP 200のJSONで新設定を返すこと、未認証の有料APIが401になることを確認する。HTMLやリダイレクトをAPI成功と数えない。キャッシュ回避用クエリー付きの成功だけで終えず、通常URLでも確認する。
+5. 実認証での星API取得は別に確認・記録する。自動試験やstatus成功だけで実ゲスト参加が完了したとは扱わない。
+
+公開APIの接続だけを復旧する場合は、Hostingが参照するtagを確認済みのrevisionへ戻す。
+最新releaseのtagを変更したい場合は、新たにHostingを配備し、releaseのrewriteを再確認してから旧tagの扱いを決める。
 
 ## 再現手順
 
@@ -69,7 +96,10 @@ bwrapが非特権の名前空間を作れないためで、capability追加・pr
 ツールを無効化したSDKの生成正常系も、OpenAI API残高ゼロにより未確認。
 APIサーバー起動成功だけを作品全体やデプロイ成功とは扱わない。
 
-## 配備前の残条件
+## 初回配備前の残条件（履歴）
+
+以下は2026-09-21の配備前の記録。Secret Managerへの登録、Vertex経路の実生成、Firebase Auth/App Checkと上限、Hosting公開はその後完了している。
+現在も実人体の通し受入、Codex生成正常系とsandbox、任意Jevの実トークンは未確認。標準クラウドAIは検証済みのVertex経路を使う。
 
 - #3: 星API実トークン設定・ライブ観測は2026-09-21に成功。配備先Secret Managerへの登録が残る
 - #13/#14: Codex生成正常系・厳密な費用上限、Jevトークンと統合・実測
