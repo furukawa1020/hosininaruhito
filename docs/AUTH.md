@@ -40,6 +40,7 @@ Firestoreのトランザクションで、UTC日付ごとの利用者別/全体�
 | Jev助言 | 300 | 1500 |
 | 投影 | 100 | 500 |
 | カタログ | 100 | 500 |
+| チェック式確認の検証 | 5 | 50 |
 
 60秒の共通leaseで複数revision間も同時1件に制限する。古い所有者は新しいleaseを削除できない。
 Cloud Runはtimeout 50秒、AI処理は40秒で終了する。quota障害時には外部APIを呼ばない。
@@ -52,6 +53,12 @@ Firestoreのクライアントルールは全拒否。専用サービスアカ�
 保存するのはUIDのSHA-256、日付、操作別回数、lease所有ID/期限のみ。座標・トークン・映像を記録しない。
 
 ## 管理・設定
+
+「画面で確認して参加する」は自動判定が通らない人のためのチェック式確認。Googleの確認を本人が完了すると、サーバーは匿名IDと証明の有効性・サイト・キー・時刻を検証して30分のApp Checkを発行する。証明の再使用はGoogleの検証で拒否される。発行も上表のquota・緊急停止・同時実行制限を適用し、25秒で打ち切る。トークンはブラウザーのメモリだけに保持し、期限前にゲストの再開始を求める。星API/AI側の認証や利用上限は従来と同じ。
+
+追加設定は `RECAPTCHA_CHECKBOX_SITE_KEY`。CHECKBOX型、指定Hostingの2ドメイン限定、試験用設定なしのキーを使用する。runtime SAにはassessment作成権限と自身に対するsignBlobのみを追加し、秘密鍵ファイルは作らない。自動App Checkのスコア閾値は変更しない。
+
+一次資料: [カスタムApp Check](https://firebase.google.com/docs/app-check/custom-provider)、[チェック式の設置](https://docs.cloud.google.com/recaptcha/docs/instrument-web-pages-with-checkbox)、[証明の検証と一回限りの使用](https://docs.cloud.google.com/recaptcha/docs/create-assessment-website)。明示描画のチェック式はaction名を扱わないため、存在しないactionを捏造して検証しない。
 
 専用project: `hosininaruhito-20260920`。
 Cloud Runには `FIREBASE_PROJECT_ID` / `FIREBASE_APP_ID` / `FIREBASE_WEB_API_KEY` / `RECAPTCHA_SITE_KEY` を設定する。

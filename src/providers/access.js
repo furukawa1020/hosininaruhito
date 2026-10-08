@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { fail } from './http.js';
 
-export const DAILY_LIMITS = Object.freeze({ sky: [50,200], program: [10,50], reflex: [300,1500], project: [100,500], catalog: [100,500] });
+export const DAILY_LIMITS = Object.freeze({ sky: [50,200], program: [10,50], reflex: [300,1500], project: [100,500], catalog: [100,500], challenge: [5,50] });
 let clients;
 export async function firebaseClients(env) {
   if (!clients) clients = (async()=>{
@@ -30,6 +30,19 @@ export async function verifyAccess(idToken, appToken, env, sdk) {
         (user.hcrAccess!==true && !guest)) throw Error();
     return user.uid;
   } catch { fail('Authentication failed',401,'unauthorized'); }
+}
+
+// This identity check only authorizes requesting a CAPTCHA assessment, never a paid API.
+export async function verifyGuestIdentity(idToken,env,sdk) {
+  if(!accessConfigured(env)||env.HCR_GUEST_ENABLED!=='true')fail('Guest verification unavailable',503,'not_configured');
+  if(typeof idToken!=='string'||!idToken||idToken.length>8192)fail('Sign in required',401,'unauthorized');
+  try {
+    sdk ||= await firebaseClients(env);
+    const user=await sdk.auth.verifyIdToken(idToken,true);
+    if(user.aud!==env.FIREBASE_PROJECT_ID||user.iss!=='https://securetoken.google.com/'+env.FIREBASE_PROJECT_ID||
+      typeof user.uid!=='string'||!user.uid||user.firebase?.sign_in_provider!=='anonymous')throw Error();
+    return user.uid;
+  }catch{fail('Authentication failed',401,'unauthorized');}
 }
 
 // Firestore transactions make quotas and a global one-request lease survive
