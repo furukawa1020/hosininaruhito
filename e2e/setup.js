@@ -16,4 +16,8 @@ export default async function setup() {
   }
   await mkdir(new URL('./.generated/', import.meta.url), { recursive: true });
   await writeFile(new URL('./.generated/camera.y4m', import.meta.url), Buffer.concat(chunks));
+  // High-resolution, entirely synthetic source for camera negotiation tests.
+  const hd = [Buffer.from('YUV4MPEG2 W1280 H720 F30:1 Ip A1:1 C420jpeg\n')];
+  for (let frame=0;frame<3;frame++) hd.push(Buffer.from('FRAME\n'),Buffer.alloc(1280*720,40+frame*20),Buffer.alloc(1280*720/2,128));
+  await writeFile(new URL('./.generated/camera-hd.y4m', import.meta.url),Buffer.concat(hd));
 }

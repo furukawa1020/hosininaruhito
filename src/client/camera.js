@@ -74,7 +74,9 @@ export class CameraSession {
     try {
       acquired = await this.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        // Match the pose input size without requiring hardware to support it.
+        // Devices may return a different size; pose-bitmap still bounds it.
+        video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } }
       });
       if (!current()) {
         release(acquired);
