@@ -1,4 +1,5 @@
 import {mountGameMenu} from './game-menu.js';
+import {poseRecovery} from './pose-recovery.js';
 // A presentation layer over the existing controls. It never supplies sensor samples.
 export function mountStudio(document, window, { hasAccess }) {
   if (new URLSearchParams(window.location.search).get('view') === 'details') return null;
@@ -82,6 +83,13 @@ export function mountStudio(document, window, { hasAccess }) {
         phase = 'pose'; target = 'pose-start'; button = attempted && (pose === 'paused' || pose === 'error') ? 'もう一度、手を見つける' : '手を見つける';
         title = '両手首を映してください。'; instruction = '机より上に、両手を軽く上げます。手首に色の点がつけば準備できます。';
         status = $('pose-notice').textContent;
+        const recovery = poseRecovery($('pose-notice').dataset);
+        if (recovery) {
+          title = recovery.title; instruction = recovery.instruction;
+          status = pose === 'paused' && $('pose-notice').dataset.reason === 'person_timeout'
+            ? '15秒で停止しました。最後に確認できた状態の案内です。'
+            : '推定を停止しました。準備ができたら、もう一度。';
+        }
         if (pose === 'loading' || pose === 'searching') { button = '手を探しています…'; }
         if (pose === 'tracking') {
           phase = 'reach'; title = hand + 'を動かす準備。'; step = '次に、動かせる範囲を教える';

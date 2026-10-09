@@ -400,3 +400,29 @@ test('inference failure after GPU ready stops without backend switching', async 
  assert.equal(app.session.reason,'inference_failed');assert.equal(app.workers.length,1);
  assert.equal(app.workers[0].terminated,1);
 });
+
+test('timeout retains only the last search reason and late results cannot replace it', async t => {
+ t.mock.timers.enable({apis:['setTimeout']});
+ const app=setup(t);app.ready();await app.frame();app.time(300);app.reply();
+ assert.equal(app.session.reason,'searching_slow');
+ t.mock.timers.tick(PERSON_SEARCH_MS);
+ assert.deepEqual(app.session.snapshot(),{state:'paused',reason:'person_timeout',searchReason:'searching_slow'});
+ assert.equal(app.workers[0].terminated,1);assert.equal(app.samples.filter(Boolean).length,0);
+ app.reply();assert.equal(app.session.snapshot().searchReason,'searching_slow');
+ app.ready();assert.equal(app.session.snapshot().searchReason,undefined);
+ await establish(app,400);assert.equal(app.session.state,'tracking');
+ app.session.stop();assert.deepEqual(app.session.snapshot(),{state:'paused',reason:'manual'});
+});
+
+test('latest framing evidence replaces slow hint; expiry without a response claims no cause',async t=>{
+ for(const delayed of [false,true]){
+  const app=setup(t);app.ready();await app.frame();
+  if(delayed){app.time(300);app.reply();await app.frame();app.reply({landmarks:[]});}
+  app.time(15100);
+  if(delayed)await app.frame();else app.reply();
+  assert.equal(app.session.reason,'person_timeout');
+  assert.equal(app.session.snapshot().searchReason,delayed?'searching_no_person':undefined);
+  assert.equal(app.samples.filter(Boolean).length,0);
+  app.session.stop();assert.equal(app.session.snapshot().searchReason,undefined);
+ }
+});
