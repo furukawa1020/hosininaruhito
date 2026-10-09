@@ -237,9 +237,13 @@ for(const [width,height] of [[1440,900],[320,568],[844,390]])test('slow search r
 });
 
 test('search with no response exposes uncertainty instead of blaming framing',async({page})=>{
- await fixtureWorker(page,'stall');await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(15100);
+ await fixtureWorker(page,'stall');await page.goto('/');await page.locator('#studio-practice').click();
+ await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await page.locator('#studio-action').click();await page.clock.runFor(15100);
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','person_timeout');
  await expect(page.locator('#pose-notice')).toContainText('原因はまだ確認できていません');
+ await expect(page.locator('#studio-status')).toContainText('原因はまだ確認できていません');
  await expect(page.locator('#pose-notice')).not.toHaveAttribute('data-search-reason');
  await expect(page.locator('#pose-overlay')).toBeHidden();await expect(page.locator('#reach-start')).toBeDisabled();
 });

@@ -87,7 +87,7 @@ export function mountStudio(document, window, { hasAccess }) {
         if (recovery) {
           title = recovery.title; instruction = recovery.instruction;
           status = pose === 'paused' && $('pose-notice').dataset.reason === 'person_timeout'
-            ? '15秒で停止しました。最後に確認できた状態の案内です。'
+            ? $('pose-notice').dataset.searchReason ? '15秒で停止しました。最後に確認できた状態の案内です。' : '15秒で停止しました。原因はまだ確認できていません。'
             : '推定を停止しました。準備ができたら、もう一度。';
         }
         if (pose === 'loading' || pose === 'searching') { button = '手を探しています…'; }
