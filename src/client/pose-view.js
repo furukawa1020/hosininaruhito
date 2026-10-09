@@ -1,4 +1,5 @@
 import { PoseSession } from './pose-session.js';
+import {poseRecovery} from './pose-recovery.js';
 
 const messages = {
   idle: 'カメラを開始すると、端末内で手首の位置を確認できます。',
@@ -38,7 +39,9 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
     $('pose-start').disabled = !cameraReady || ['loading','searching','tracking'].includes(state.state) || document.hidden;
     $('pose-notice').dataset.state = state.state;
     $('pose-notice').dataset.reason = state.reason;
-    $('pose-notice').textContent = messages[state.reason] || messages.manual;
+    if (state.searchReason) $('pose-notice').dataset.searchReason = state.searchReason;
+    else delete $('pose-notice').dataset.searchReason;
+    $('pose-notice').textContent = poseRecovery(state)?.message || messages[state.reason] || messages.manual;
   };
   const showSample = frame => {
     onSample(frame);

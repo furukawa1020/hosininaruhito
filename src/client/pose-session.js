@@ -24,7 +24,7 @@ export class PoseSession {
     this.disposed = false;
   }
   get active() { return ['loading', 'searching', 'tracking'].includes(this.state); }
-  snapshot() { return { state: this.state, reason: this.reason }; }
+  snapshot() { return { state: this.state, reason: this.reason, ...(this.searchReason ? {searchReason:this.searchReason} : {}) }; }
   notify() { if (!this.disposed) this.onChange(this.snapshot()); }
   deadline(ms, reason) {
     clearTimeout(this.timer);
@@ -44,6 +44,10 @@ export class PoseSession {
     return Number.isFinite(at) && at >= 0 && this.now() >= at && this.now() - at > MAX_POSE_AGE_MS && this.searchAgain('slow');
   }
   stop(reason = 'manual', state = 'paused') {
+    // Presentation only: retain the last search outcome, never a sensor sample.
+    this.searchReason = reason === 'person_timeout' && this.state === 'searching' &&
+      ['searching_slow','searching_no_person','searching_occluded','searching_out_of_frame','searching_multiple_people','searching_stable'].includes(this.reason)
+      ? this.reason : null;
     this.generation++;
     clearTimeout(this.timer);
     if (this.callbackId !== null) this.video.cancelVideoFrameCallback(this.callbackId);

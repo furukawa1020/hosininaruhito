@@ -44,7 +44,8 @@ async function fixtureWorker(page, mode = 'normal') {
         if (window.poseMode === 'invalid_pose') points[16].x = NaN;
         const landmarks = window.poseMode === 'no_person' ? [] :
           window.poseMode === 'multiple_people' ? [points, points] : [points];
-        queueMicrotask(() => this.onmessage?.({ data: { type: 'pose', id: message.id, at: message.at, result: { landmarks } } }));
+        const reply = () => this.onmessage?.({ data: { type: 'pose', id: message.id, at: message.at, result: { landmarks } } });
+        if(window.poseMode==='slow')setTimeout(reply,160);else queueMicrotask(reply);
       }
       terminate() { this.terminated = true; }
     };
@@ -202,11 +203,49 @@ for(const mode of ['no_person','occluded','multiple_people','out_of_frame'])test
 test('initial search timeout offers explicit retry without reviving on its own',async({page})=>{
  await fixtureWorker(page,'no_person');await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(15100);
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','person_timeout');
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-search-reason','searching_no_person');
+ await expect(page.locator('#pose-notice')).toContainText('顔と両手を、明るい場所へ');
  await expect(page.locator('#pose-start')).toBeEnabled();
  await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(800);
  await expect(page.locator('#pose-overlay')).toBeHidden();
  await page.locator('#pose-start').click();await page.clock.runFor(800);
  await expect(page.locator('#pose-overlay')).toBeVisible();
+ await expect(page.locator('#pose-notice')).not.toHaveAttribute('data-search-reason');
+});
+
+for(const [width,height] of [[1440,900],[320,568],[844,390]])test('slow search recovery fits the game screen '+width,async({page})=>{
+ await page.setViewportSize({width,height});await fixtureWorker(page,'slow');await page.goto('/');
+ await page.locator('#studio-practice').click();await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await page.locator('#studio-action').click();await page.clock.runFor(15100);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-search-reason','searching_slow');
+ await expect(page.locator('#studio-title')).toHaveText('映像の処理が追いつきません。');
+ await expect(page.locator('#studio-instruction')).toContainText('ほかのアプリやタブを閉じて');
+ await expect(page.locator('#studio-status')).toContainText('最後に確認できた状態');
+ await expect(page.locator('#studio-action')).toBeEnabled();await expect(page.locator('#reach-start')).toBeDisabled();
+ await expect(page.locator('#pose-overlay')).toBeHidden();
+ for(const id of ['studio-title','studio-instruction','studio-action','stop'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ expect(await page.locator('.studio-coach').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);
+ expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1)).toBe(true);
+ await page.screenshot({path:'test-results/pose-recovery-'+width+'.png'});
+ await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(800);
+ await expect(page.locator('#pose-overlay')).toBeHidden();
+ await page.locator('#studio-action').click();await page.clock.runFor(800);
+ await expect(page.locator('#studio-action')).toHaveText('動かせる範囲を教える');
+ await expect(page.locator('#pose-notice')).not.toHaveAttribute('data-search-reason');
+ await page.locator('#stop').click();expect(await page.evaluate(()=>window.poseWorkers.every(w=>w.terminated))).toBe(true);
+});
+
+test('search with no response exposes uncertainty instead of blaming framing',async({page})=>{
+ await fixtureWorker(page,'stall');await page.goto('/');await page.locator('#studio-practice').click();
+ await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await page.locator('#studio-action').click();await page.clock.runFor(15100);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason','person_timeout');
+ await expect(page.locator('#pose-notice')).toContainText('原因はまだ確認できていません');
+ await expect(page.locator('#studio-status')).toContainText('原因はまだ確認できていません');
+ await expect(page.locator('#pose-notice')).not.toHaveAttribute('data-search-reason');
+ await expect(page.locator('#pose-overlay')).toBeHidden();await expect(page.locator('#reach-start')).toBeDisabled();
 });
 test('stop during initial search releases camera and inference',async({page})=>{
  await fixtureWorker(page,'occluded');await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(800);
