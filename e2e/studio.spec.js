@@ -36,7 +36,7 @@ async function choose(page){
  await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');await page.locator('#consent').check();await page.locator('#sky').click();
  await expect(page.locator('#studio-choose')).toBeVisible();await page.locator('#studio-choose').click();
 }
-async function prepare(page){
+async function beginCalibration(page){
  await choose(page);await noScroll(page,['camera-consent','studio-action']);
  await expect(page.locator('#studio-action')).toBeDisabled();
  await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
@@ -46,13 +46,71 @@ async function prepare(page){
  await noScroll(page,['reach-joint','reach-posture','studio-action']);
  await page.locator('#reach-joint').selectOption('leftWrist');
  await expect(page.locator('#studio-title')).toContainText('左手');
- await page.locator('#studio-action').click();await page.clock.runFor(2000);
+ await page.locator('#studio-action').click();
+}
+async function prepare(page){
+ await beginCalibration(page);await page.clock.runFor(2000);
  await expect(page.locator('#studio-action')).toBeDisabled();await page.clock.runFor(4600);
  await expect(page.locator('#studio-action')).toHaveText('この範囲で遊ぶ');
  await page.locator('#studio-action').click();await expect(page.locator('#studio-action')).toHaveText('この範囲に星を置く');
  await page.locator('#studio-action').click();await expect(page.locator('#studio-action')).toHaveText('星をつなぎはじめる');
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
+
+for(const [width,height] of [[1440,900],[320,568],[844,390]])test('calibration rejection and hand retry remain on screen '+width,async({page})=>{
+ await page.setViewportSize({width,height});await setup(page);
+ await page.evaluate(()=>{window.sessionFixture.point={x:.5,y:.5};});
+ await beginCalibration(page);await page.clock.runFor(3300);await page.locator('#studio-action').click();
+ await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason','narrow_range');
+ await expect(page.locator('#studio-status')).toContainText('広さを確認できません');
+ await expect(page.locator('#studio-action')).toHaveText('もう一度、範囲を確かめる');
+ await noScroll(page,['studio-status','studio-action','studio-recalibrate','stop']);
+ await page.screenshot({path:'test-results/calibration-rejected-'+width+'.png'});
+ await page.locator('#studio-recalibrate').click();
+ await expect(page.locator('#studio')).toHaveAttribute('data-phase','reach');
+ await expect(page.locator('#reach-joint')).toBeFocused();
+ await expect(page.locator('#reach-points')).toHaveAttribute('d','');
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','tracking');
+ await page.clock.runFor(300);
+ await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','paused');
+ await noScroll(page,['reach-joint','reach-posture','studio-action']);
+ await page.locator('#reach-joint').selectOption('rightWrist');
+ await page.evaluate(()=>{window.sessionFixture.point=null;});
+ await page.locator('#studio-action').click();await page.clock.runFor(6600);await page.locator('#studio-action').click();
+ await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#studio-recalibrate')).toBeVisible();
+ await page.locator('#studio-action').click();
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await noScroll(page,['studio-action','studio-recalibrate','stop']);
+ await page.locator('#studio-action').click();
+ await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+ await expect(page.locator('#studio-recalibrate')).toBeHidden();
+});
+
+for(const phase of ['pending','rejected','ready'])test('recalibration clears '+phase+' placement without restarting camera',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await setup(page);
+ let pending;
+ if(phase==='pending')await page.route('**/api/project',r=>{pending=r;});
+ if(phase==='rejected')await page.route('**/api/project',r=>r.fulfill({status:422,json:{code:'below_horizon'}}));
+ await beginCalibration(page);await page.clock.runFor(6600);await page.locator('#studio-action').click();
+ await page.locator('#studio-action').click();
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state',phase==='pending'?'loading':phase==='ready'?'ready':'error');
+ await noScroll(page,['studio-recalibrate','stop']);
+ await page.locator('#studio-recalibrate').click();
+ if(pending)await pending.fulfill({json:projection(pending.request().postDataJSON())});
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','idle');
+ await expect(page.locator('#session-metadata')).toBeEmpty();
+ await expect(page.locator('#reach-points')).toHaveAttribute('d','');
+ await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+ if(phase==='ready')await expect(page.locator('#trace-start')).toBeDisabled();
+ await expect(page.locator('#studio')).toHaveAttribute('data-phase','reach');
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','tracking');
+ await page.clock.runFor(300);
+ await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','paused');
+});
 for(const [width,height] of [[1440,900],[390,844],[320,568],[844,390]])test('single screen '+width+' keeps camera, instruction and measured completion together',async({page})=>{
  await page.setViewportSize({width,height});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await setup(page);
