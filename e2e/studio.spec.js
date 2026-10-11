@@ -47,6 +47,7 @@ async function beginCalibration(page){
  await page.locator('#reach-joint').selectOption('leftWrist');
  await expect(page.locator('#studio-title')).toContainText('左手');
  await page.locator('#studio-action').click();
+ await noScroll(page,['studio-action','studio-recalibrate','stop']);
 }
 async function prepare(page){
  await beginCalibration(page);await page.clock.runFor(2000);
@@ -80,6 +81,7 @@ for(const [width,height] of [[1440,900],[320,568],[844,390]])test('calibration r
  await page.locator('#studio-action').click();await page.clock.runFor(6600);await page.locator('#studio-action').click();
  await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');
  await expect(page.locator('#studio-recalibrate')).toBeVisible();
+ await noScroll(page,['studio-action','studio-recalibrate','stop']);
  await page.locator('#studio-action').click();
  await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
  await noScroll(page,['studio-action','studio-recalibrate','stop']);
