@@ -32,12 +32,13 @@ export class PoseSession {
   }
   searchAgain(reason) {
     if (this.state !== 'searching') return false;
+    const generation = this.generation;
     if (this.now() >= this.searchUntil) { this.stop('person_timeout'); return true; }
     this.inFlight = null;
     this.stableSince = null; this.stableCount = 0;
     const next = 'searching_' + reason;
     if (this.reason !== next) { this.reason = next; this.notify(); }
-    this.schedule(this.generation);
+    this.schedule(generation);
     return true;
   }
   staleDuringSearch(at) {
@@ -78,9 +79,11 @@ export class PoseSession {
     if (!this.video.requestVideoFrameCallback || !this.video.cancelVideoFrameCallback) {
       this.stop('unsupported', 'error'); return;
     }
+    const generation = this.generation + 1;
     this.stop('loading', 'loading');
+    if (generation !== this.generation || this.state !== 'loading') return;
     this.startupUntil = this.now() + 2 * MODEL_LOAD_MS;
-    this.loadWorker(this.generation, 'GPU');
+    this.loadWorker(generation, 'GPU');
   }
   loadWorker(generation, delegate) {
     if (generation !== this.generation || this.state !== 'loading') return;
@@ -111,6 +114,7 @@ export class PoseSession {
           this.state = this.reason = 'searching';
           this.searchUntil = this.now() + PERSON_SEARCH_MS;
           this.notify();
+          if (generation !== this.generation || this.state !== 'searching') return;
           this.deadline(PERSON_SEARCH_MS, 'person_timeout');
           this.schedule(generation);
         } else if (data?.type === 'pose' && ['searching','tracking'].includes(this.state)) {
@@ -144,9 +148,13 @@ export class PoseSession {
             }
             this.state = this.reason = 'tracking'; this.notify();
           }
+          if (generation !== this.generation || this.state !== 'tracking') return;
           this.lastAt = frame.at;
           this.inFlight = null;
           this.onSample({ ...frame, latencyMs: this.now() - frame.at });
+          // A consumer can synchronously stop/restart us (e.g. a render failure).
+          // The old frame must never install a watchdog for the new session.
+          if (generation !== this.generation || this.state !== 'tracking') return;
           this.deadline(Math.max(0, MAX_POSE_AGE_MS - (this.now() - frame.at)), 'frame_gap');
           this.schedule(generation);
         } else if (data?.type === 'error') {
@@ -165,8 +173,9 @@ export class PoseSession {
     } catch { fail('unsupported'); }
   }
   schedule(generation) {
-    if (generation !== this.generation || this.inFlight) return;
+    if (generation !== this.generation || !['searching','tracking'].includes(this.state) || this.inFlight || this.callbackId !== null) return;
     this.callbackId = this.video.requestVideoFrameCallback((_, metadata) => {
+      if (generation !== this.generation) return;
       this.callbackId = null;
       this.capture(generation, metadata);
     });

@@ -101,6 +101,51 @@ function setup(t, options = {}) {
 async function establish(app, start=100) {
   for(let i=0;i<=5;i++){app.time(start+i*100);await app.frame();app.reply();}
 }
+
+for (const restart of [false, true]) {
+  test('sample consumer can stop' + (restart ? ' and explicitly restart' : '') + ' without an old watchdog', async t => {
+    t.mock.timers.enable({apis:['setTimeout']});
+    const app=setup(t);
+    app.ready();await establish(app);
+    app.session.onSample=frame=>{
+      app.samples.push(frame);
+      if(frame){app.session.stop('manual');if(restart)app.session.start();}
+    };
+    app.time(700);await app.frame();app.reply();
+    assert.equal(app.samples.at(-1),null);
+    assert.equal(app.callbacks.size,0);
+    t.mock.timers.tick(151);
+    assert.equal(app.session.reason,restart?'loading':'manual');
+    if(restart){app.session.onSample=frame=>app.samples.push(frame);app.workers.at(-1).emit({type:'ready'});await establish(app,800);assert.equal(app.session.state,'tracking');}
+  });
+
+  for(const reason of ['searching','searching_no_person','tracking','loading']) {
+    test('state notification can stop' + (restart ? ' and restart' : '') + ' during ' + reason, async t => {
+      t.mock.timers.enable({apis:['setTimeout']});
+      const app=setup(t);
+      app.session.onChange=state=>{
+        if(state.reason!==reason)return;
+        app.session.onChange=()=>{};
+        app.session.stop('manual');
+        if(restart)app.session.start();
+      };
+      if(reason==='loading')app.session.start();
+      else {
+        app.ready();
+        if(reason==='searching_no_person'){await app.frame();app.reply({landmarks:[]});}
+        if(reason==='tracking')await establish(app);
+      }
+      assert.equal(app.samples.at(-1),null);
+      assert.equal(app.samples.filter(Boolean).length,0);
+      assert.equal(app.session.lastAt,null);
+      assert.equal(app.callbacks.size,0);
+      assert.equal(app.workers.filter(worker=>!worker.terminated).length,restart?1:0);
+      t.mock.timers.tick(PERSON_SEARCH_MS);
+      assert.equal(app.session.reason,restart?'loading':'manual');
+      if(restart){app.workers.at(-1).emit({type:'ready'});await establish(app,800);assert.equal(app.session.state,'tracking');}
+    });
+  }
+}
 test('one worker and one frame in flight; explicit restart replaces ownership', async t => {
   const app = setup(t);
   app.ready();

@@ -44,7 +44,10 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
     $('pose-notice').textContent = poseRecovery(state)?.message || messages[state.reason] || messages.manual;
   };
   const showSample = frame => {
+    const generation = pose.generation;
     onSample(frame);
+    // A downstream render failure can clear the sample through a nested stop.
+    if (generation !== pose.generation) return;
     $('pose-overlay').toggleAttribute('hidden', !frame);
     $('pose-latency').textContent = frame ? '更新遅延 ' + Math.round(frame.latencyMs) + ' ms' : '';
     if (!frame) return;
