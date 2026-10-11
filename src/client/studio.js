@@ -41,7 +41,7 @@ export function mountStudio(document, window, { hasAccess }) {
         </div>
         <div id="studio-progress" hidden><div><span id="studio-progress-label"></span><strong id="studio-progress-value"></strong></div><progress id="studio-meter" max="1" value="0" aria-label="準備の進み具合"></progress></div>
         <p id="studio-status" role="status" aria-live="polite"></p>
-        <div class="studio-actions"><button id="studio-action" class="primary" type="button"></button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button></div>
+        <div class="studio-actions"><button id="studio-action" class="primary" type="button"></button><button id="studio-recalibrate" class="text-button" type="button" hidden>手・範囲を選び直す</button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button></div>
         <p class="studio-comfort">手は楽な高さで。つらいときは右上の「停止」。</p>
       </aside>
     </div>
@@ -101,6 +101,12 @@ export function mountStudio(document, window, { hasAccess }) {
             instruction = '塗るように、ゆっくり動かしてください。腕は伸ばしきらなくて大丈夫。';
             target = 'reach-finish'; button = 'この範囲で遊ぶ';
             status = $('reach-progress').textContent;
+            if ($('reach-notice').dataset.reason !== 'collecting') {
+              title = '範囲は、まだ未確定です。';
+              instruction = '手を選び直すか、楽な範囲で計測を続けられます。';
+              button = 'もう一度、範囲を確かめる';
+              status = $('reach-notice').textContent;
+            }
           }
           if (reach === 'ready') {
             phase = 'arrange'; title = selected ? '手の準備ができました。' : 'つくる星座を選ぼう。';
@@ -142,8 +148,10 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-consent').hidden = phase !== 'camera';
     $('studio-options').hidden = phase !== 'reach';
     $('studio-example').hidden = phase !== 'camera';
-    $('studio-movement').hidden = !['reach','collecting'].includes(phase);
+    $('studio-movement').hidden = !['reach','collecting'].includes(phase) || (phase === 'collecting' && $('reach-notice').dataset.reason !== 'collecting');
     $('studio-practice').hidden = phase !== 'welcome';
+    $('studio-recalibrate').hidden = !['collecting','arrange','ready'].includes(phase);
+    $('studio-recalibrate').disabled = $('reach-clear').disabled;
     $('studio-action').hidden = !target;
     action = target;
     const elapsed = Number($('reach-notice').dataset.elapsed || 0), count = Number($('reach-notice').dataset.count || 0);
@@ -157,7 +165,7 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-progress').hidden = progress === null;
     if (progress !== null) {
       $('studio-meter').value = progress;
-      say('studio-progress-label', phase === 'collecting' ? '動かせる範囲を記録中' : '輪の中で、少し止める');
+      say('studio-progress-label', phase === 'collecting' ? '記録した時間（目安3秒）' : '輪の中で、少し止める');
       say('studio-progress-value', phase === 'collecting' ? (elapsed/1000).toFixed(1) + '秒' : Math.round(progress*100) + '%');
     }
     menu.render();
@@ -168,6 +176,12 @@ export function mountStudio(document, window, { hasAccess }) {
     else if (action && !$(action).disabled) { if (action === 'pose-start') attempted = true; $(action).click(); }
   });
   $('studio-practice').addEventListener('click', () => { practice = true; render(); });
+  $('studio-recalibrate').addEventListener('click', () => {
+    if ($('studio-recalibrate').hidden || $('reach-clear').disabled) return;
+    $('reach-clear').click();
+    render();
+    $('reach-joint').focus();
+  });
   $('studio-settings').addEventListener('click', openSetup);
   $('reach-joint').addEventListener('change', render);
   $('reach-posture').addEventListener('change', render);
@@ -175,7 +189,7 @@ export function mountStudio(document, window, { hasAccess }) {
   $('token').addEventListener('input', render);
   const observer = new window.MutationObserver(render);
   for (const id of ['camera-notice','pose-notice','reach-notice','reach-progress','session-notice','trace-notice','auth-notice','notice','detail-name','constellations']) observer.observe($(id), {attributes:true,childList:true,characterData:true,subtree:true});
-  for (const id of ['camera-start','pose-start','reach-start','reach-finish','session-prepare','trace-start','trace-clear','detail']) observer.observe($(id), {attributes:true,attributeFilter:['disabled','hidden']});
+  for (const id of ['camera-start','pose-start','reach-start','reach-finish','reach-clear','session-prepare','trace-start','trace-clear','detail']) observer.observe($(id), {attributes:true,attributeFilter:['disabled','hidden']});
   const resize = new window.ResizeObserver(fit); resize.observe($('studio-surface'));
   $('camera-video').addEventListener('loadedmetadata', fit);
   window.addEventListener('pagehide', () => { disposed = true; observer.disconnect(); resize.disconnect(); }, {once:true});
