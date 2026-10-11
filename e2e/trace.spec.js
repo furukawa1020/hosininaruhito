@@ -83,6 +83,31 @@ test('real WebGL context loss stops camera and requires explicit restart',async(
   await expect(page.locator('#trace-start')).toBeEnabled();await page.locator('#trace-start').click();
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
 });
+
+test('draw failure inside a pose sample keeps stopped wrists hidden and permits explicit restart',async({page})=>{
+  await setup(page);
+  await page.locator('#trace-canvas').evaluate(canvas=>{
+    const gl=canvas.getContext('webgl2'),clear=gl.clear;
+    // Throw during the next frame's real Three.js render, after setup succeeds.
+    gl.clear=function(...args){gl.clear=clear;throw Error('Synthetic draw failure');};
+  });
+  await page.clock.runFor(33);
+  await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason','render_failed');
+  await expect(page.locator('#camera-notice')).not.toHaveAttribute('data-state','preview');
+  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','paused');
+  const reason=await page.locator('#pose-notice').getAttribute('data-reason');
+  await expect(page.locator('#pose-overlay')).toBeHidden();
+  await expect(page.locator('#pose-latency')).toBeEmpty();
+  await page.clock.runFor(500);
+  await expect(page.locator('#pose-notice')).toHaveAttribute('data-reason',reason);
+  await expect(page.locator('#pose-overlay')).toBeHidden();
+  await expect(page.locator('#trace-start')).toBeDisabled();
+  await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(800);
+  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','tracking');
+  await expect(page.locator('#pose-overlay')).toBeVisible();
+  await page.locator('#trace-start').click();
+  await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+});
 test('WebGL unavailable is visible and does not claim trace success',async({page})=>{
   await page.addInitScript(()=>{
     const get=HTMLCanvasElement.prototype.getContext;
