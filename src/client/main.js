@@ -1,4 +1,5 @@
 import { mountStudio } from './studio.js';
+import { skyRows } from './sky-response.js';
 import './studio.css';
 import { mountAdvice } from './advice-view.js';
 import {mountPlayGuide} from './play-guide.js';
@@ -132,8 +133,7 @@ function selectConstellation(row, button) {
   $('story-section').open = false;
 }
 function renderSky(data) {
-  if (data.source !== 'hoshimiru-live' || !Array.isArray(data.constellations)) throw new Error('Invalid sky response');
-  const rows = [...data.constellations].sort((a, b) => b.altitudeDeg - a.altitudeDeg);
+  const rows = skyRows(data);
   $('count').textContent = rows.length + ' 星座';
   $('empty').hidden = rows.length > 0;
   if (!rows.length) {
@@ -185,6 +185,7 @@ async function call(path, body) {
     $('result').textContent = JSON.stringify(data, null, 2);
   } catch (error) {
     if (!request.isCurrent()) return;
+    if (path === '/api/sky') clearResults();
     notice(error.name === 'TimeoutError' ? '応答が時間内に届きませんでした。再試行してください。' : '通信または応答の確認に失敗しました。再試行してください。', 'error');
   } finally {
     if (request.isCurrent()) { busy = false; updateControls(); }

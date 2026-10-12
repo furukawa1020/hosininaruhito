@@ -111,3 +111,12 @@ test('provider text is rendered as text, never HTML', async ({ page }) => {
   await expect(page.locator('#detail-name')).toHaveText('<img src=x onerror=alert(1)>');
   await expect(page.locator('#detail img, #detail script')).toHaveCount(0);
 });
+for(const patch of [{altitudeDeg:'broken'},{id:'1'},{name:null},{story:{private:'untrusted'}}])test('invalid sky row leaves no partial selection '+JSON.stringify(patch),async({page})=>{
+  await page.route('**/api/sky',r=>r.fulfill({json:{...sky,constellations:[sky.constellations[0],{...sky.constellations[1],...patch}]}}));
+  await prepare(page);await page.locator('#consent').check();await page.locator('#sky').click();
+  await expect(page.locator('#notice')).toHaveAttribute('data-tone','error');
+  await expect(page.locator('.star-card')).toHaveCount(0);
+  await expect(page.locator('#detail')).toBeHidden();
+  await expect(page.locator('#count')).toHaveText('検索前');
+  await expect(page.locator('#sky')).toBeEnabled();
+});
