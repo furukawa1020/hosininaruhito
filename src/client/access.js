@@ -1,4 +1,5 @@
 import {requestCheckbox} from './checkbox.js';
+import {waitForAuth} from './requests.js';
 let mode='development', current=null, generation=0, settings=null, sdk=null, pending=false,cancelAttempt=()=>{};
 let documentRef, changed=()=>{};
 const START_TIMEOUT_MS=45000;
@@ -102,7 +103,7 @@ export async function requestHeaders(token,signal) {
   signal?.throwIfAborted();
   if(mode==='development')return {'Content-Type':'application/json',Authorization:'Bearer '+token};
   if(mode!=='firebase'||!current||!sdk)throw Error('ゲスト開始またはログインが必要です。');
-  const at=generation,headers=await sdk.headers();
+  const at=generation,headers=await waitForAuth(sdk.headers(),signal);
   signal?.throwIfAborted();if(at!==generation||!current)throw Error('ログイン状態が変わりました。');
   return {'Content-Type':'application/json',...headers};
 }

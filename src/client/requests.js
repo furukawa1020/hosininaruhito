@@ -23,3 +23,23 @@ export function parseCoordinates(lat, lng) {
   return coordinates;
 }
 
+// SDK token refresh cannot necessarily be cancelled, but its consumer can be.
+export function waitForAuth(promise, signal, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    const until = performance.now() + timeoutMs;
+    let settled = false;
+    const finish = (done, value) => {
+      if (settled) return;
+      settled = true; clearTimeout(timer); signal?.removeEventListener('abort', abort); done(value);
+    };
+    const timeout = () => finish(reject, new DOMException('認証情報の確認が時間内に終わりませんでした。', 'TimeoutError'));
+    const abort = () => finish(reject, signal.reason);
+    const timer = setTimeout(timeout, timeoutMs);
+    signal?.addEventListener('abort', abort, {once:true});
+    if (signal?.aborted) abort();
+    Promise.resolve(promise).then(value => {
+      if (performance.now() >= until) timeout();
+      else finish(resolve, value);
+    }, error => finish(reject, error));
+  });
+}
