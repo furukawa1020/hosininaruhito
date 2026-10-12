@@ -420,4 +420,4 @@ SDKの認証情報取得に10秒の待機上限と呼出側のAbortSignalを適�
 
 ## 2026-10-13 履歴キャッシュからの復帰（#74）
 
-pagehideで終了した所有者を再利用しないよう、pageshow.persistedでページを読み直す。通常pageshowでは再読込せず、撮影同意・開発トークン・観測入力・計測を自動復元しない。PageTransitionEventによる通常/キャッシュ復帰のイベント試験と、その後の標準画面操作を確認。ブラウザーごとの実履歴キャッシュ採用条件は試験の対象外。[MDNのpageshow資料](https://developer.mozilla.org/en-US/docs/Web/API/Window/pageshow_event)を確認。依存追加なし、lockfile維持。
+pagehideで終了した所有者を再利用しないよう、pageshow.persistedでページを読み直す。通常pageshowでは再読込せず、撮影同意・開発トークン・観測入力・計測を自動復元しない。PageTransitionEventによる通常/キャッシュ復帰のイベント試験と、その後の標準画面操作を確認。カメラの既存復帰試験も、新文書への読込完了を待ち、旧映像の解放・自動撮影なし・再同意後の明示開始を検証する。ブラウザーごとの実履歴キャッシュ採用条件は試験の対象外。[MDNのpageshow資料](https://developer.mozilla.org/en-US/docs/Web/API/Window/pageshow_event)を確認。依存追加なし、lockfile維持。
