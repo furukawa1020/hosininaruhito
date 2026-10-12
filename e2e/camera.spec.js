@@ -65,18 +65,23 @@ for (const action of ['button', 'escape', 'hidden', 'pagehide']) {
     });
     if (action === 'pagehide') await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
     await expectReleased(page);
+    expect(await page.evaluate(() => window.cameraCalls)).toBe(1);
     if (action === 'hidden') await page.evaluate(() => {
       Object.defineProperty(document, 'hidden', { configurable: true, value: false });
       document.dispatchEvent(new Event('visibilitychange'));
     });
     if (action === 'pagehide') {
+      const loaded = page.waitForEvent('domcontentloaded');
       await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+      await loaded;
       await expect(page.locator('#camera-consent')).not.toBeChecked();
     }
     await expect(page.locator('#camera-video')).toBeHidden();
-    expect(await page.evaluate(() => window.cameraCalls)).toBe(1);
+    // A cached-page restore creates a fresh document with no automatic capture.
+    const previousCalls = action === 'pagehide' ? 0 : 1;
+    expect(await page.evaluate(() => window.cameraCalls)).toBe(previousCalls);
     await startCamera(page);
-    expect(await page.evaluate(() => window.cameraCalls)).toBe(2);
+    expect(await page.evaluate(() => window.cameraCalls)).toBe(previousCalls + 1);
   });
 }
 for (const [error, message] of [

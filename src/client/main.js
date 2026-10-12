@@ -209,6 +209,8 @@ $('refresh').addEventListener('click', () => loadStatus());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') stop(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信とカメラを停止しました。', 'hidden'); });
 window.addEventListener('pagehide', () => { session.cancel(); $('token').value = ''; });
+// pagehide disposes the sensor/render owners. A cached document cannot reuse them.
+window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
 mountAccess(document,()=>{stop('ログイン状態が変わりました。体験を準備し直してください。');clearResults();});
 mountLocation(document,window);
 mountPlayGuide(document,window,{hasAccess:()=>hasAccess($('token').value)});
