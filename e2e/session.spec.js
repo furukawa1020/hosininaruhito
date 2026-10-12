@@ -56,6 +56,13 @@ test('fixture selection to measured captures completes, and reset removes all ca
     await page.clock.runFor(900);await expect(page.locator('#trace-count')).toContainText('確定した星 '+i);
   }
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','complete');
+  await expect(page.locator('#camera-notice')).toContainText('星座が完成したため');
+  await expect(page.locator('#camera-video')).toBeHidden();
+  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','paused');
+  await expect(page.locator('#guide-message')).toContainText('星座ができました');
+  await page.clock.runFor(1000);
+  await expect(page.locator('#trace-count')).toContainText('確定した星 3');
+  expect(await page.locator('#camera-video').evaluate(video=>video.srcObject)).toBeNull();
   await expect(page.locator('#trace-start')).toBeDisabled();
   await page.locator('.trace-panel').screenshot({path:'test-results/session-fixture-complete.png'});
   expect(posts.map(p=>p.path)).toEqual(['/api/sky','/api/project']);

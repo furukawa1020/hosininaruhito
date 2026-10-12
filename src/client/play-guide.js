@@ -34,6 +34,9 @@ export function mountPlayGuide(document, window, {hasAccess}) {
         }
       }
     }
+    if(state('trace-notice')==='complete'){
+      step='play';key='complete';target='draw';label='できた星座を見る';message='星座ができました！ カメラは終了しました。手を下ろして休んでください。';
+    }
     const next=JSON.stringify({step,key,target,label,message});if(next===signature)return;signature=next;
     $('guide-message').textContent=message;$('guide-next').href='#'+target;$('guide-next').textContent=label+' ↓';
     document.body.dataset.guide=key;

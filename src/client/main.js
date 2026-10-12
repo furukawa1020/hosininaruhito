@@ -16,9 +16,18 @@ const $ = id => document.getElementById(id);
 const session = new RequestSession();
 let pose, experience, advice, studio;
 let observation = null;
+let lastTraceState = null;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
 const reach = mountReach(document, window, { onChange: () => experience?.reachChanged() });
-const trace = mountTrace(document, window, { onState: state => { advice?.update(state); studio?.onTrace(state); }, onFailure: () => { camera.stop('manual'); pose?.stop(); } });
+const trace = mountTrace(document, window, { onState: state => {
+  const completed = state.state === 'complete' && lastTraceState !== 'complete';
+  lastTraceState = state.state;
+  advice?.update(state); studio?.onTrace(state);
+  if (completed) queueMicrotask(() => {
+    if (lastTraceState !== 'complete') return;
+    camera.stop('complete'); pose?.stop();
+  });
+}, onFailure: () => { camera.stop('manual'); pose?.stop(); } });
 advice = mountAdvice(document, window);
 experience = mountSession(document, window, { reach, trace });
 pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });

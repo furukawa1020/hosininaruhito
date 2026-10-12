@@ -135,6 +135,12 @@ for(const [width,height] of [[1440,900],[390,844],[320,568],[844,390]])test('sin
   await page.clock.runFor(500);await expect(page.locator('#trace-count')).toContainText('確定した星 '+i);
  }
  await expect(page.locator('#studio-title')).toHaveText('星座が、できました。');expect(errors).toEqual([]);
+ await expect(page.locator('#camera-notice')).toContainText('星座が完成したため');
+ await expect(page.locator('#camera-video')).toBeHidden();
+ await page.locator('#studio-action').click();
+ await expect(page.locator('#studio-action')).toHaveText('カメラをつける');
+ await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+ await page.clock.runFor(300);await expect(page.locator('#camera-video')).toBeHidden();
  await expect(page.locator('#studio-action')).toBeInViewport();
 });
 test('framing, loss and explicit restart are available without scrolling',async({page})=>{
