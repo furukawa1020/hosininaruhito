@@ -19,6 +19,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
     frame_changed: '映像の大きさが変わったため、軌跡を消去しました。'
   };
   const render = () => {
+    const ticket = generation;
     const frame = trace.snapshot();
     $('trace-start').disabled = !tracking() || loading || frame.state === 'running' || (guided && (!configured || frame.state === 'complete'));
     $('trace-start').textContent = guided ? '配置した星座を開始する' : frame.state === 'paused' || error ? '光の軌跡を再開する' : '光の軌跡を描く';
@@ -45,6 +46,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
     $('trace-count').textContent = frame.trail.length + ' 点の軌跡 / 確定した星 ' + frame.captures.length;
     $('trace-empty').hidden = frame.trail.length > 0 || frame.captures.length > 0 || (guided && frame.state === 'running');
     renderer?.draw(frame);
+    if (ticket !== generation || disposed) return;
     onState({...frame,executionId:generation});
   };
   const release = () => { renderer?.dispose(); renderer = null; };

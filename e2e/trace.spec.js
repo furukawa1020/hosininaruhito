@@ -125,9 +125,12 @@ test('mobile trace fits its viewport while keeping stop reachable',async({page})
   await page.screenshot({path:'test-results/trail-fixture-mobile.png'});
 });
 let bundle;
-async function harness(page){
+async function loadHarness(page){
   bundle??=build({configFile:false,logLevel:'silent',build:{write:false,minify:true,rollupOptions:{preserveEntrySignatures:'strict',input:fileURLToPath(new URL('./trace-harness.js',import.meta.url)),output:{inlineDynamicImports:true}}}}).then(result=>result.output.find(item=>item.type==='chunk').code);
   await page.route('**/trace-harness.js',async route=>route.fulfill({contentType:'text/javascript',body:await bundle}));
+}
+async function harness(page){
+  await loadHarness(page);
   await page.goto('/?view=details');
   await page.evaluate(async()=>{
     const {ConstellationTrace,TraceRenderer}=await import('/trace-harness.js');
@@ -147,6 +150,33 @@ async function harness(page){
     window.traceHarness={trace,renderer};
   });
 }
+
+test('synchronous draw failure cannot publish running after paused to state consumers',async({page})=>{
+  await page.clock.install();await page.clock.pauseAt(new Date());
+  await loadHarness(page);await page.goto('/?view=details');
+  await page.evaluate(async()=>{
+    const {mountTrace}=await import('/trace-harness.js');
+    const doc=document.cloneNode(true),$=id=>doc.getElementById(id);
+    Object.defineProperty(doc,'hidden',{value:false});
+    $('camera-consent').checked=true;
+    Object.defineProperties($('camera-video'),{videoWidth:{value:640},videoHeight:{value:360}});
+    const states=[];
+    const trace=mountTrace(doc,window,{onState:s=>states.push(s.state)});
+    const frame=()=>({at:performance.now(),wrists:{rightWrist:{joint:'rightWrist',x:.5,y:.5,at:performance.now(),confidence:1}}});
+    trace.onFrame(frame());$('trace-start').click();
+    window.traceNotificationFixture={doc,trace,states,frame};
+  });
+  await expect.poll(()=>page.evaluate(()=>window.traceNotificationFixture.states.at(-1))).toBe('running');
+  const states=await page.evaluate(()=>{
+    const f=window.traceNotificationFixture;
+    const gl=f.doc.getElementById('trace-canvas').getContext('webgl2');
+    gl.clear=()=>{throw Error('Synthetic drawing failure');};
+    f.states.length=0;f.trace.onFrame(f.frame());
+    const states=[...f.states];f.trace.dispose();return states;
+  });
+  expect(states.length).toBeGreaterThan(0);
+  expect(states.every(s=>s==='paused')).toBe(true);
+});
 test('actual WebGL renders measured captures and original edges, resets and frees resources',async({page})=>{
   await harness(page);
   const state=await page.evaluate(()=>{
