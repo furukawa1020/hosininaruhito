@@ -188,7 +188,7 @@ export function mountStudio(document, window, { hasAccess }) {
   $('camera-consent').addEventListener('change', render);
   $('token').addEventListener('input', render);
   const observer = new window.MutationObserver(render);
-  for (const id of ['camera-notice','pose-notice','reach-notice','reach-progress','session-notice','trace-notice','auth-notice','notice','detail-name','constellations']) observer.observe($(id), {attributes:true,childList:true,characterData:true,subtree:true});
+  for (const id of ['camera-notice','pose-notice','reach-notice','reach-progress','session-notice','trace-notice','auth-notice','notice','location-notice','detail-name','constellations']) observer.observe($(id), {attributes:true,childList:true,characterData:true,subtree:true});
   for (const id of ['camera-start','pose-start','reach-start','reach-finish','reach-clear','session-prepare','trace-start','trace-clear','detail']) observer.observe($(id), {attributes:true,attributeFilter:['disabled','hidden']});
   const resize = new window.ResizeObserver(fit); resize.observe($('studio-surface'));
   $('camera-video').addEventListener('loadedmetadata', fit);

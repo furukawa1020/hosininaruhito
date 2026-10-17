@@ -84,7 +84,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 #studio-dialog #auth-account input{margin-top:6px}
 #studio-dialog .secondary,#studio-dialog #refresh{background:#172840;border:1px solid #627b9e;border-radius:12px;color:#e6f3ff;min-height:44px;justify-content:center}
 #studio-dialog #locate{width:100%;margin:0 0 8px}
-#studio-dialog #location-notice{font-size:13px;line-height:1.5;color:#b8cbe1;margin:6px 0 12px}
+#studio-dialog #location-notice{display:none}
 #studio-dialog .coordinate-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0}
 #studio-dialog .coordinate-fields label{font-size:14px;margin:0}
 #studio-dialog .coordinate-fields input{margin-top:6px}

@@ -59,7 +59,8 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     $('studio-choose').disabled=$('detail').hidden;
     const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',about:'この星座のお話',privacy:'ログイン情報について'};
     say('studio-dialog-title',titles[page]);
-    say('studio-dialog-notice',page==='location'?$('notice').textContent:['access','account'].includes(page)?$('auth-notice').textContent:page==='settings'?$('notice').textContent:'');
+    const locationNotice=['pending','error','success'].includes($('location-notice').dataset.state)?$('location-notice').textContent:$('notice').textContent;
+    say('studio-dialog-notice',page==='location'?locationNotice:['access','account'].includes(page)?$('auth-notice').textContent:page==='settings'?$('notice').textContent:'');
     $('game-auth-recovery').hidden=!['access','account'].includes(page)||$('auth-recovery').hidden;
     const buttons=cards(),key=buttons.map(b=>b.dataset.skyId).join('|'),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
     if(key!==rowKey){rowKey=key;rows=buttons.map(b=>({name:b.querySelector('strong').textContent,azimuthDeg:Number(b.dataset.azimuth),altitudeDeg:Number(b.dataset.altitude)}));}
