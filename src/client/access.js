@@ -2,6 +2,7 @@ import {requestCheckbox} from './checkbox.js';
 import {waitForAuth} from './requests.js';
 let mode='development', current=null, generation=0, settings=null, sdk=null, pending=false,cancelAttempt=()=>{};
 let documentRef, changed=()=>{};
+let recoveryRequired=false;
 const START_TIMEOUT_MS=45000;
 function failureNotice(error,guest) {
   const code=error?.code;
@@ -20,7 +21,7 @@ export function mountAccess(document,onChange) {
   documentRef=document;changed=onChange;
   const $=id=>document.getElementById(id);
   async function begin(guest,manual=false) {
-    if(pending||mode!=='firebase'||document.hidden||(guest&&settings?.guestEnabled!==true))return;
+    if(pending||recoveryRequired||mode!=='firebase'||document.hidden||(guest&&settings?.guestEnabled!==true))return;
     if(manual&&!settings?.checkboxSiteKey)return;
     const at=++generation;pending=true;current=null;changed();
     const controller=new AbortController();cancelAttempt=()=>controller.abort();
@@ -82,9 +83,14 @@ export function mountAccess(document,onChange) {
     generation++;current=null;changed();$('auth-logout').hidden=true;
     // Serialize SDK identity changes so a late logout cannot clear a new login.
     pending=true;$('auth-login').disabled=true;$('auth-guest').disabled=true;$('auth-human').disabled=true;
-    try{await sdk?.logout();$('auth-notice').textContent='ログアウトしました。';}
-    catch{$('auth-notice').textContent='操作を停止しました。ページを閉じてログイン状態を消去してください。';}
-    finally{pending=false;$('auth-login').disabled=false;$('auth-guest').disabled=false;$('auth-human').disabled=false;}
+    $('auth-notice').textContent='ログアウトしています…';
+    try{await waitForAuth(sdk?.logout());$('auth-notice').textContent='ログアウトしました。';}
+    catch{
+      // An unfinished SDK sign-out must never race a new sign-in.
+      recoveryRequired=true;$('auth-recovery').hidden=false;
+      $('auth-notice').textContent='ログアウトを完了できませんでした。ページを読み直してから参加してください。';
+    }
+    finally{pending=false;$('auth-login').disabled=recoveryRequired;$('auth-guest').disabled=recoveryRequired;$('auth-human').disabled=recoveryRequired;}
   });
 }
 export function configureAccess(value) {
