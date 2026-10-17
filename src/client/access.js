@@ -71,7 +71,7 @@ export function mountAccess(document,onChange) {
   }
   function cancelPending(){if(pending){generation++;cancelAttempt();$('auth-password').value='';$('auth-logout').hidden=true;$('auth-notice').textContent='開始を取り消しました。終了処理を待っています。';}}
   $('auth-reload').addEventListener('click',()=>{generation++;current=null;changed();document.defaultView.location.reload();});
-  $('auth-login').addEventListener('click',()=>begin(false));
+  $('auth-form').addEventListener('submit',event=>{event.preventDefault();if($('auth-form').reportValidity())begin(false);});
   $('auth-guest').addEventListener('click',()=>begin(true));
   $('auth-human').addEventListener('click',()=>begin(true,true));
   $('stop').addEventListener('click',cancelPending);
