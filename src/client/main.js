@@ -114,6 +114,9 @@ async function loadStatus() {
     configureAccess(data.auth);
     services = data.services; experience.setServices(services, data.plannerProvider); advice.setServices(services);
     showServices();
+    // A changed identity can synchronously stop this status owner. Render the
+    // committed service state even when that stop made finally non-current.
+    updateControls();
     notice(services.access && services.sky
       ? '場所を決めて、送信に同意したら「この場所の星座を探す」を押してください。'
       : '星座を探す接続の準備ができていません。接続状況を確認してください。');

@@ -95,7 +95,14 @@ export function mountAccess(document,onChange) {
 }
 export function configureAccess(value) {
   const next=value?.mode||'development';
-  if(JSON.stringify(settings)!==JSON.stringify(value)||mode!==next){const hadSession=!!current;generation++;current=null;settings=value;mode=next;if(hadSession)changed();}
+  if(JSON.stringify(settings)!==JSON.stringify(value)||mode!==next){
+    const hadSession=!!current;generation++;current=null;settings=value;mode=next;
+    if(hadSession){
+      changed();
+      documentRef.getElementById('auth-logout').hidden=true;
+      documentRef.getElementById('auth-notice').textContent='接続の設定が変わりました。もう一度参加してください。';
+    }
+  }
   if(!documentRef)return;
   documentRef.getElementById('cloud-login').hidden=mode!=='firebase';
   documentRef.getElementById('auth-guest').hidden=mode!=='firebase'||value?.guestEnabled!==true;
