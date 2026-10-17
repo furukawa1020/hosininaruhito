@@ -15,6 +15,7 @@ import { RequestSession, parseCoordinates } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
+const statusSession = new RequestSession();
 let pose, experience, advice, studio;
 let observation = null;
 let lastTraceState = null;
@@ -34,6 +35,7 @@ experience = mountSession(document, window, { reach, trace });
 pose = mountPose(document, window, { onSample: frame => { reach.onFrame(frame); trace.onFrame(frame); experience.refresh(); } });
 let services = null;
 let busy = false;
+let checking = false;
 const labels = { access: 'アクセス認証', sky: '星をみるひとAPI', reflex: 'Jev / 助言', planner: 'AI / 振付' };
 const errors = {
   daily_limit: '本日の利用上限に達しました。日付がUTCで変わってから利用できます。',
@@ -56,10 +58,10 @@ function notice(message, tone = '') {
   $('notice').dataset.tone = tone;
 }
 function updateControls() {
-  $('controls').disabled = busy;
-  $('refresh').disabled = busy;
-  $('sky').disabled = busy || !(services?.access && services?.sky);
-  $('jev').disabled = busy || !(services?.access && services?.reflex);
+  $('controls').disabled = busy || checking;
+  $('refresh').disabled = busy || checking;
+  $('sky').disabled = busy || checking || !(services?.access && services?.sky);
+  $('jev').disabled = busy || checking || !(services?.access && services?.reflex);
 }
 function clearResults() {
   observation = null; experience.clearSelection();
@@ -76,6 +78,9 @@ function stop(message = '通信とカメラを停止しました。再開する�
   camera.stop(cameraReason);
   pose.stop();
   session.cancel();
+  statusSession.cancel();
+  if (checking) $('services').textContent = '接続確認を停止しました。「再確認」でやり直せます。';
+  checking = false;
   busy = false;
   updateControls();
   notice(message);
@@ -95,9 +100,9 @@ function showServices() {
   }
 }
 async function loadStatus() {
-  const request = session.begin();
+  const request = statusSession.begin();
   services = null; experience.setServices(null); advice.setServices(null);
-  busy = true;
+  checking = true;
   updateControls();
   $('services').textContent = 'サーバーを確認中…';
   try {
@@ -117,7 +122,7 @@ async function loadStatus() {
     $('services').textContent = 'サーバーの状態を取得できません。';
     notice('サーバーに接続できません。「再確認」で試し直してください。', 'error');
   } finally {
-    if (request.isCurrent()) { busy = false; updateControls(); }
+    if (request.isCurrent()) { checking = false; updateControls(); }
   }
 }
 function selectConstellation(row, button) {
@@ -208,7 +213,7 @@ $('stop').addEventListener('click', () => stop());
 $('refresh').addEventListener('click', () => loadStatus());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') stop(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信とカメラを停止しました。', 'hidden'); });
-window.addEventListener('pagehide', () => { session.cancel(); $('token').value = ''; });
+window.addEventListener('pagehide', () => { session.cancel(); statusSession.cancel(); $('token').value = ''; });
 // pagehide disposes the sensor/render owners. A cached document cannot reuse them.
 window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
 mountAccess(document,()=>{stop('ログイン状態が変わりました。体験を準備し直してください。');clearResults();});
