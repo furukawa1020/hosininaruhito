@@ -57,21 +57,28 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
     ctx?.setTransform(ratio,0,0,ratio,0,0);draw();
   }
   canvas.addEventListener('pointerdown',event=>{
-    if(event.button!==0)return;
-    drag={x:event.clientX,y:event.clientY,yaw,pitch,moved:false};canvas.setPointerCapture(event.pointerId);
+    if(disposed||drag||event.button!==0)return;
+    canvas.setPointerCapture(event.pointerId);
+    drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,yaw,pitch,moved:false};
   });
   canvas.addEventListener('pointermove',event=>{
-    if(!drag)return;
+    if(!drag||event.pointerId!==drag.pointerId)return;
+    // Capture may be released before the browser ever dispatched gotcapture.
+    if(!canvas.hasPointerCapture(event.pointerId)){drag=null;return;}
     const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
     if(Math.hypot(dx,dy)>5)drag.moved=true;
     yaw=drag.yaw-dx*.008;pitch=Math.max(-1.4,Math.min(1.4,drag.pitch+dy*.008));draw();
   });
   canvas.addEventListener('pointerup',event=>{
-    if(!drag)return;
-    if(!drag.moved){const r=canvas.getBoundingClientRect();const hit=hits.filter(p=>Math.hypot(event.clientX-r.left-p.x,event.clientY-r.top-p.y)<24).sort((a,b)=>b.depth-a.depth)[0];if(hit)onSelect(hit.i);}
+    if(!drag||event.pointerId!==drag.pointerId)return;
+    const moved=drag.moved;
     drag=null;
+    if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
+    if(!moved){const r=canvas.getBoundingClientRect();const hit=hits.filter(p=>Math.hypot(event.clientX-r.left-p.x,event.clientY-r.top-p.y)<24).sort((a,b)=>b.depth-a.depth)[0];if(hit)onSelect(hit.i);}
   });
-  canvas.addEventListener('pointercancel',()=>{drag=null;});
+  const cancel=event=>{if(drag?.pointerId===event.pointerId)drag=null;};
+  canvas.addEventListener('pointercancel',cancel);
+  canvas.addEventListener('lostpointercapture',cancel);
   const observer=new ResizeObserver(resize);observer.observe(host);
   if(!ctx){host.dataset.fallback='true';canvas.hidden=true;}
   return {
@@ -82,6 +89,6 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
     },
     center(){if(rows[selected]){yaw=rows[selected].azimuthDeg*rad;pitch=rows[selected].altitudeDeg*rad;}else{yaw=-.45;pitch=.38;}draw();},
     resize,
-    dispose(){disposed=true;observer.disconnect();canvas.width=canvas.height=0;rows=[];hits=[];}
+    dispose(){disposed=true;drag=null;observer.disconnect();canvas.width=canvas.height=0;rows=[];hits=[];}
   };
 }
