@@ -60,9 +60,11 @@
         <button id="auth-human" type="button" class="text-button" hidden>画面で確認して参加する</button>
         <div id="auth-recovery" hidden><button id="auth-reload" type="button" class="secondary">ページを読み直す</button></div>
         <details id="auth-account"><summary>アカウントでログイン</summary>
-          <label for="auth-email">メールアドレス<input id="auth-email" type="email" autocomplete="username"></label>
-          <label for="auth-password">パスワード<input id="auth-password" type="password" autocomplete="current-password"></label>
-          <button id="auth-login" type="button" class="secondary">ログイン</button>
+          <form id="auth-form">
+            <label for="auth-email">メールアドレス<input id="auth-email" type="email" autocomplete="username" required></label>
+            <label for="auth-password">パスワード<input id="auth-password" type="password" autocomplete="current-password" required></label>
+            <button id="auth-login" type="submit" class="secondary">ログイン</button>
+          </form>
         </details>
         <details class="fine-details"><summary>ログイン情報の扱い</summary><p>ゲストのログイン状態はこのタブ内に保持し、終了操作かタブを閉じると消去します。映像や身体の記録は保存しません。通常アカウントの認証はページのメモリ内だけで保持します。不正利用対策トークンはブラウザーに保存される場合があります。Googleの<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a>と<a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">利用規約</a>が適用されます。</p></details>
       </section>

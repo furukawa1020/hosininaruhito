@@ -5,7 +5,7 @@ export async function guestSdk(page,{fail=false,delayed=false,errorCode=null,man
  let current;
  async function wait(progress){progress?.('verification');${delayed?'await new Promise(resolve=>window.releaseGuest=resolve);':''}${fail||errorCode?`throw Object.assign(Error('fixture private detail must not be shown'),{code:${JSON.stringify(errorCode)}});`:''}progress?.('identity');}
  export async function guest(settings,progress){window.guestCalls=(window.guestCalls||0)+1;await wait(progress);return current={uid:'guest-fixture',isAnonymous:true};}
- export async function login(settings,email,password,progress){await wait(progress);return current={uid:'member-fixture'};}
+ export async function login(settings,email,password,progress){window.memberCalls=(window.memberCalls||0)+1;await wait(progress);return current={uid:'member-fixture'};}
  export async function guestWithProof(settings,proof){window.humanGuestCalls=(window.humanGuestCalls||0)+1;if(proof!=='fixture-human-proof-123456789')throw Error('unexpected fixture proof');${manualDelay?'await new Promise(resolve=>window.releaseHuman=resolve);':''}return current={uid:'guest-fixture',isAnonymous:true};}
  export async function logout(){${logoutDelay?'await new Promise(resolve=>window.releaseLogout=resolve);':''}${logoutFailure?"throw Error('private SDK error');":''}current=null;window.guestSignouts=(window.guestSignouts||0)+1;}
  export async function headers(){if(!current)throw Error('fixture signed out');${headersDelay?'if(!window.headersReady)await new Promise(resolve=>{window.releaseHeaders=()=>{window.headersReady=true;resolve();};});':''}if(!current)throw Error('fixture signed out');return {Authorization:'Bearer '+current.uid,'X-Firebase-AppCheck':'fixture-app'};}
