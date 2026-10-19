@@ -52,6 +52,18 @@ async function fixtureWorker(page, mode = 'normal') {
   }, mode);
 }
 
+test('measured wrist labels identify the selected hand and disappear on stop',async({page})=>{
+ await fixtureWorker(page);await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(800);
+ await expect(page.locator('#right-wrist-label')).toHaveText('右手・使う手');
+ await expect(page.locator('#left-wrist-label')).toHaveText('左手');
+ await page.locator('#reach-joint').selectOption('leftWrist');
+ await expect(page.locator('#left-wrist-label')).toHaveText('左手・使う手');
+ await expect(page.locator('#right-wrist-label')).toHaveText('右手');
+ const positions=await page.locator('#pose-overlay').evaluate(svg=>[...svg.querySelectorAll('text')].map(e=>({x:Number(e.getAttribute('x')),anchor:e.getAttribute('text-anchor')})));
+ expect(positions[0].x).toBeGreaterThan(positions[1].x);expect(positions.map(p=>p.anchor)).toEqual(['end','start']);
+ await page.locator('#stop').click();await expect(page.locator('#left-wrist-label')).toBeHidden();await expect(page.locator('#right-wrist-label')).toBeHidden();
+});
+
 test('real pinned CPU SDK runs locally on blank synthetic input with no external requests', async ({ page, context }) => {
   test.setTimeout(45000);
   const urls = [];

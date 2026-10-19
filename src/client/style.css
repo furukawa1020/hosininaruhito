@@ -9,3 +9,5 @@
 .current-action{outline:2px solid #7895aa;outline-offset:10px;border-radius:4px}
 @media(min-width:701px){.topbar{padding-right:calc(5vw + 170px)}}
 @media(max-width:700px){.camera-preview:has(#camera-video:not([hidden])){position:sticky;top:66px;z-index:3;background:var(--paper);padding:10px;border:1px solid var(--line);border-radius:10px}.camera-preview:has(#camera-video:not([hidden])) .camera-frame{max-height:210px}.camera-preview:has(#camera-video:not([hidden]))>.field-note{display:none}body[data-guide=running] .trace-art{position:sticky;top:66px;z-index:3;background:var(--paper);padding:10px;border-radius:10px}body[data-guide=running] #trace-stage{max-height:260px}.current-action{outline-offset:5px}}
+/* Labels share the measured SVG coordinates and remain legible over video. */
+#pose-overlay text{fill:#fff;stroke:#102139;stroke-width:3px;paint-order:stroke;stroke-linejoin:round;font-family:inherit;font-weight:700}

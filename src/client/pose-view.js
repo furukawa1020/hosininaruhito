@@ -35,6 +35,14 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
   const video = $('camera-video');
   let cameraReady = false;
   let pose;
+  const labelHands = () => {
+    for (const [joint, id, name] of [['leftWrist','left-wrist','左手'],['rightWrist','right-wrist','右手']]) {
+      const active = $('reach-joint').value === joint;
+      $(id + '-label').textContent = name + (active ? '・使う手' : '');
+      $(id).setAttribute('stroke', active ? '#fff' : 'none');
+      $(id).setAttribute('stroke-width', Math.max(2, video.videoWidth * .004));
+    }
+  };
   const render = state => {
     $('pose-start').disabled = !cameraReady || ['loading','searching','tracking'].includes(state.state) || document.hidden;
     $('pose-notice').dataset.state = state.state;
@@ -52,13 +60,22 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
     $('pose-latency').textContent = frame ? '更新遅延 ' + Math.round(frame.latencyMs) + ' ms' : '';
     if (!frame) return;
     $('pose-overlay').setAttribute('viewBox', '0 0 ' + video.videoWidth + ' ' + video.videoHeight);
+    const bounds = video.getBoundingClientRect();
+    const displayWidth = Math.min(bounds.width, bounds.height * video.videoWidth / video.videoHeight);
+    const fontSize = 14 * video.videoWidth / Math.max(1, displayWidth);
     for (const [joint, sample] of Object.entries(frame.wrists)) {
       const marker = $(joint === 'leftWrist' ? 'left-wrist' : 'right-wrist');
       // Match object-fit:contain with SVG's xMidYMid meet. Mirror display only.
       marker.setAttribute('cx', (1 - sample.x) * video.videoWidth);
       marker.setAttribute('cy', sample.y * video.videoHeight);
       marker.setAttribute('r', Math.max(6, video.videoWidth * 0.012));
+      const label = $(marker.id + '-label');
+      label.setAttribute('x', Math.max(fontSize / 2, Math.min(video.videoWidth - fontSize / 2, (1 - sample.x) * video.videoWidth)));
+      label.setAttribute('y', Math.max(fontSize, sample.y * video.videoHeight - fontSize * .7));
+      label.setAttribute('text-anchor', sample.x < .5 ? 'end' : 'start');
+      label.setAttribute('font-size', fontSize);
     }
+    labelHands();
   };
   pose = new PoseSession({
     video, createWorker: () => new Worker(new URL('./pose-worker.js', import.meta.url), { type: 'module' }),
@@ -66,6 +83,7 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
   });
   const start = () => { if (cameraReady && !document.hidden) pose.start(); };
   $('pose-start').addEventListener('click', start);
+  $('reach-joint').addEventListener('change', labelHands);
   render(pose.snapshot());
   return {
     cameraChanged(state) {
@@ -74,6 +92,6 @@ export function mountPose(document, window, { onSample = () => {} } = {}) {
       render(pose.snapshot());
     },
     stop: () => pose.stop(),
-    dispose: () => { $('pose-start').removeEventListener('click', start); pose.dispose(); }
+    dispose: () => { $('pose-start').removeEventListener('click', start); $('reach-joint').removeEventListener('change', labelHands); pose.dispose(); }
   };
 }
