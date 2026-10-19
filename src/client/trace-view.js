@@ -12,6 +12,9 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
     idle: '手首の推定を始めてから、光の軌跡を試せます。',
     running: '選んだ手の軌跡を表示しています。今の表示は動いた跡で、星座の確定ではありません。',
     paused: '軌跡を静止しました。再開すると古い軌跡を消して、新しく描き始めます。',
+    stale_sample: '計測の更新が間に合わず停止しました。',
+    tracking_lost: '手の計測を確認できず停止しました。',
+    invalid_clock: '計測の時刻を確認できず停止しました。',
     complete: '保持した実測点がそろいました。',
     webgl_unavailable: 'この環境では光の描画を開始できません。描画は停止しています。',
     context_lost: '描画機能との接続が切れたため停止しました。再開するには、もう一度開始してください。',
@@ -22,7 +25,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
     const ticket = generation;
     const frame = trace.snapshot();
     $('trace-start').disabled = !tracking() || loading || frame.state === 'running' || (guided && (!configured || frame.state === 'complete'));
-    $('trace-start').textContent = guided ? '配置した星座を開始する' : frame.state === 'paused' || error ? '光の軌跡を再開する' : '光の軌跡を描く';
+    $('trace-start').textContent = guided ? frame.state === 'paused' ? '星座を最初からつなぎ直す' : '配置した星座を開始する' : frame.state === 'paused' || error ? '光の軌跡を再開する' : '光の軌跡を描く';
     $('trace-clear').disabled = !frame.trail.length && !frame.captures.length && !loading;
     $('trace-notice').dataset.state = error ? 'error' : frame.state;
     $('trace-notice').dataset.reason = error || frame.reason;
@@ -32,6 +35,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
         !configured ? '停止しました。計測と配置を準備し直してください。' :
         frame.state === 'running' ? (configured.joint === 'leftWrist' ? '左手' : '右手') +
           'の点を輪に重ね、楽なら0.8秒保ちます。つらいときは停止してください。' :
+        frame.state === 'paused' ? (messages[frame.reason] || '星をつなぐのを停止しました。') + '再開すると途中の星と軌跡を消して、最初からつなぎ直します。' :
         '配置を準備しました。開始はあなたの操作で行います。';
     }
     const target = $('trace-target');
