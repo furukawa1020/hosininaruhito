@@ -58,6 +58,40 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+for(const failure of ['context_lost','render_failed','webgl_unavailable'])test('game retains '+failure+' after camera shutdown and permits a fresh attempt',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await setup(page);
+ if(failure==='webgl_unavailable'){
+  await beginCalibration(page);await page.clock.runFor(6600);await page.locator('#studio-action').click();await page.locator('#studio-action').click();
+  await expect(page.locator('#studio-action')).toHaveText('星をつなぎはじめる');
+  await page.evaluate(()=>{
+   const get=HTMLCanvasElement.prototype.getContext;
+   window.restoreTraceContext=()=>{HTMLCanvasElement.prototype.getContext=get;};
+   HTMLCanvasElement.prototype.getContext=function(type,...args){return this.id==='trace-canvas'&&type.startsWith('webgl')?null:get.call(this,type,...args);};
+  });
+  await page.locator('#studio-action').click();
+ }else{
+  await prepare(page);
+  await page.locator('#trace-canvas').evaluate((canvas,failure)=>{
+   const gl=canvas.getContext('webgl2');
+   if(failure==='context_lost')gl.getExtension('WEBGL_lose_context').loseContext();
+   else {const clear=gl.clear;gl.clear=function(){gl.clear=clear;throw Error('Synthetic draw failure');};}
+  },failure);
+  await page.clock.runFor(100);
+ }
+ await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason',failure);
+ await expect(page.locator('#studio-title')).toHaveText('星の表示が止まりました。');
+ await expect(page.locator('#studio-status')).toHaveText(await page.locator('#trace-notice').textContent());
+ await expect(page.locator('#camera-video')).toBeHidden();await expect(page.locator('#pose-overlay')).toBeHidden();
+ await noScroll(page,['studio-title','studio-instruction','studio-status','studio-action','stop']);
+ await page.clock.runFor(500);await expect(page.locator('#camera-video')).toBeHidden();
+ await page.screenshot({path:'test-results/game-render-error-'+failure+'.png'});
+ await page.evaluate(()=>window.restoreTraceContext?.());await page.locator('#studio-action').click();
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','error');
+ await page.locator('#studio-action').click();await page.clock.runFor(800);
+ await expect(page.locator('#studio')).toHaveAttribute('data-phase','reach');
+});
+
 for(const [width,height] of [[1440,900],[320,568],[844,390]])test('calibration rejection and hand retry remain on screen '+width,async({page})=>{
  await page.setViewportSize({width,height});await setup(page);
  await page.evaluate(()=>{window.sessionFixture.point={x:.5,y:.5};});
