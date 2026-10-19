@@ -58,6 +58,24 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+test('partial constellation loss explains that the next attempt starts over',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await setup(page);await prepare(page);
+ const p=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
+ await page.evaluate(p=>{window.sessionFixture.point=p;},p);await page.clock.runFor(900);
+ await expect(page.locator('#trace-count')).toContainText('確定した星 1');
+ await page.evaluate(()=>{window.sessionFixture.lost=true;});await page.clock.runFor(100);
+ await expect(page.locator('#studio-status')).toContainText('途中の星は、次の開始で最初から');
+ await noScroll(page,['studio-status','studio-action','stop']);
+ await page.clock.runFor(500);await expect(page.locator('#trace-count')).toContainText('確定した星 1');
+ await page.evaluate(()=>{window.sessionFixture.lost=false;window.sessionFixture.point=null;});
+ await page.locator('#studio-action').click();await page.clock.runFor(800);
+ await page.locator('#studio-action').click();await page.clock.runFor(6600);await page.locator('#studio-action').click();
+ await page.locator('#studio-action').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+ await expect(page.locator('#studio-status')).not.toContainText('途中の星');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+});
+
 for(const failure of ['context_lost','render_failed','webgl_unavailable'])test('game retains '+failure+' after camera shutdown and permits a fresh attempt',async({page})=>{
  await page.setViewportSize({width:320,height:568});await setup(page);
  if(failure==='webgl_unavailable'){

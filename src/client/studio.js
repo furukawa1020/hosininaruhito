@@ -117,6 +117,11 @@ export function mountStudio(document, window, { hasAccess }) {
             if (session === 'ready') {
               phase = 'ready'; title = '輪に、' + hand + 'の光を重ねる。'; instruction = '輪に重なったら、0.8秒そのまま。星が残ったら、次の輪へ進みます。';
               target = 'trace-start'; button = '星をつなぎはじめる';
+              if (trace === 'paused') {
+                title = '星をつなぐのを止めました。';
+                instruction = '途中の星と軌跡を消して、1つ目の輪からやり直します。';
+                button = '最初からつなぎ直す'; status = $('trace-notice').textContent;
+              }
               if (trace === 'running') {
                 phase = 'running'; target = null; button = '';
                 title = hand + 'の光を、輪の中へ。'; instruction = '動かすのは' + hand + 'だけ。反対の手は映したまま、楽な位置に。';
@@ -144,6 +149,9 @@ export function mountStudio(document, window, { hasAccess }) {
         title = '星の表示が止まりました。';
         instruction = 'カメラも停止しています。もう一度カメラから準備できます。繰り返す場合は、別のブラウザや端末で試してください。';
       }
+    }
+    if (trace === 'paused' && ['camera','pose','reach','collecting','arrange'].includes(phase) && latestTrace?.captures.length) {
+      status += (status ? ' ' : '') + '途中の星は、次の開始で最初からつくり直します。';
     }
     if (root.dataset.phase !== phase) root.dataset.phase = phase;
     say('studio-title', title); say('studio-instruction', instruction); say('studio-step', step); say('studio-status', status);
