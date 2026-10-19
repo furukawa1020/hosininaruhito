@@ -58,6 +58,27 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+test('hidden game actions pass keyboard focus to an available control without stealing dialog focus',async({page})=>{
+ await setup(page);await prepare(page);
+ await expect(page.locator('#studio-action')).toBeHidden();await expect(page.locator('#stop')).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.locator('#camera-video')).toBeHidden();
+ await expect(page.locator('#stop')).toBeFocused();
+ await page.locator('#studio-settings').focus();await page.keyboard.press('Enter');
+ await expect(page.locator('#studio-dialog')).toBeVisible();
+ const focused=await page.evaluate(()=>document.activeElement.id);await page.clock.runFor(500);
+ expect(await page.evaluate(()=>document.activeElement.id)).toBe(focused);
+ expect(await page.evaluate(()=>document.getElementById('studio-dialog').contains(document.activeElement))).toBe(true);
+ await page.keyboard.press('Escape');await expect(page.locator('#studio-dialog')).toBeHidden();
+});
+
+test('hiding the camera practice action focuses unchecked consent without enabling it',async({page})=>{
+ await setup(page);await page.locator('#studio-practice').focus();await page.keyboard.press('Enter');
+ await expect(page.locator('#studio-practice')).toBeHidden();await expect(page.locator('#camera-consent')).toBeFocused();
+ await expect(page.locator('#camera-consent')).not.toBeChecked();await expect(page.locator('#camera-video')).toBeHidden();
+ await page.keyboard.press('Space');await expect(page.locator('#camera-consent')).toBeChecked();
+ await expect(page.locator('#camera-consent')).toBeFocused();await expect(page.locator('#camera-video')).toBeHidden();
+});
+
 test('first sample inside a ring says hold at zero progress without capturing early',async({page})=>{
  await setup(page);await prepare(page);
  const p=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
