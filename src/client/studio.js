@@ -138,8 +138,12 @@ export function mountStudio(document, window, { hasAccess }) {
     if (trace === 'complete') {
       phase = 'complete'; title = '星座が、できました。'; instruction = '手を止めた場所が、あなたの星座になりました。手を下ろして休んでください。';
       step = 'できあがり'; status = $('trace-count').textContent; target = 'trace-clear'; button = 'もう一度つくる';
-    } else if (trace === 'error' && pose === 'tracking') {
+    } else if (trace === 'error') {
       status = $('trace-notice').textContent;
+      if (cam !== 'preview' && cam !== 'requesting') {
+        title = '星の表示が止まりました。';
+        instruction = 'カメラも停止しています。もう一度カメラから準備できます。繰り返す場合は、別のブラウザや端末で試してください。';
+      }
     }
     if (root.dataset.phase !== phase) root.dataset.phase = phase;
     say('studio-title', title); say('studio-instruction', instruction); say('studio-step', step); say('studio-status', status);

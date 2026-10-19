@@ -213,6 +213,10 @@ $('jev').addEventListener('click', () => {
 for (const id of ['lat', 'lng', 'token']) $(id).addEventListener('input', () => { session.cancel(); clearResults(); busy = false; updateControls(); });
 $('consent').addEventListener('change', () => { if (!$('consent').checked) { session.cancel(); clearResults(); busy = false; updateControls(); } });
 $('stop').addEventListener('click', () => stop());
+$('camera-start').addEventListener('click', () => {
+  // An explicit new camera attempt dismisses the previous drawing failure.
+  if ($('trace-notice').dataset.state === 'error') trace.reset();
+});
 $('refresh').addEventListener('click', () => loadStatus());
 document.addEventListener('keydown', event => { if (event.key === 'Escape') stop(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) stop('画面が非表示になったため通信とカメラを停止しました。', 'hidden'); });
