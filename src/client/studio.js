@@ -126,10 +126,12 @@ export function mountStudio(document, window, { hasAccess }) {
                 phase = 'running'; target = null; button = '';
                 title = hand + 'の光を、輪の中へ。'; instruction = '動かすのは' + hand + 'だけ。反対の手は映したまま、楽な位置に。';
                 if (latestTrace?.state === 'running' && latestTrace.current && latestTrace.activeTarget) {
-                  if (latestTrace.holdProgress > 0) { title = 'そこで、ひと呼吸。'; instruction = 'そのまま。輪が満ちると星になります。'; }
+                  const dx = latestTrace.current.x - latestTrace.activeTarget.target.x;
+                  const dy = latestTrace.activeTarget.target.y - latestTrace.current.y;
+                  // Display only: the runtime still decides capture from fresh samples and hold time.
+                  const inside = Math.hypot(dx, dy) <= latestTrace.activeTarget.tolerance;
+                  if (inside) { title = 'そこで、ひと呼吸。'; instruction = 'そのまま。輪が満ちると星になります。'; }
                   else {
-                    const dx = latestTrace.current.x - latestTrace.activeTarget.target.x;
-                    const dy = latestTrace.activeTarget.target.y - latestTrace.current.y;
                     title = hand + 'を、\n画面の' + (Math.abs(dx) > Math.abs(dy) ? dx > 0 ? '右へ →' : '左へ ←' : dy > 0 ? '下へ ↓' : '上へ ↑');
                   }
                   status = 'つないだ星 ' + latestTrace.captures.length + ' / ' + (latestTrace.captures.length + latestTrace.targets.length);
