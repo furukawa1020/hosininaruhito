@@ -70,6 +70,8 @@ export function mountStudio(document, window, { hasAccess }) {
   function openSetup() { menu.open(); }
   function render() {
     if (disposed) return;
+    const focused = document.activeElement;
+    const ownsFocus = root.contains(focused) && !$('studio-dialog').contains(focused) && focused.matches('button,input,select');
     const cam = state('camera-notice'), pose = state('pose-notice'), reach = state('reach-notice'), session = state('session-notice'), trace = state('trace-notice');
     const selected = !$('detail').hidden;
     const hand = $('reach-joint').value === 'leftWrist' ? '左手' : '右手';
@@ -183,6 +185,13 @@ export function mountStudio(document, window, { hasAccess }) {
       say('studio-progress-value', phase === 'collecting' ? (elapsed/1000).toFixed(1) + '秒' : Math.round(progress*100) + '%');
     }
     menu.render();
+    // Move only an owned control that this render made unusable; never steal
+    // focus from the settings dialog or a still-visible control such as Stop.
+    if (ownsFocus && !$('studio-dialog').open && (focused.disabled || !focused.getClientRects().length)) {
+      const next = [$('studio-action'), $('camera-consent'), $('stop')]
+        .find(el => !el.disabled && el.getClientRects().length);
+      next?.focus({preventScroll:true});
+    }
   }
   $('studio-action').addEventListener('click', () => {
     if ($('studio-action').disabled) return;
