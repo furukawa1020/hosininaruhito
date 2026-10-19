@@ -58,6 +58,22 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+test('first sample inside a ring says hold at zero progress without capturing early',async({page})=>{
+ await setup(page);await prepare(page);
+ const p=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
+ await page.evaluate(p=>{window.sessionFixture.point={x:p.x+.08,y:p.y};},p);await page.clock.runFor(33);
+ await expect(page.locator('#studio-title')).toContainText('画面の右へ');
+ await page.evaluate(p=>{window.sessionFixture.point={x:p.x+.02,y:p.y};},p);await page.clock.runFor(33);
+ await expect(page.locator('#studio-title')).toHaveText('そこで、ひと呼吸。');
+ await expect(page.locator('#studio-progress-value')).toHaveText('0%');await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+ await page.clock.runFor(500);await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+ await page.evaluate(p=>{window.sessionFixture.point={x:p.x+.08,y:p.y};},p);await page.clock.runFor(33);
+ await expect(page.locator('#studio-title')).toContainText('画面の右へ');await expect(page.locator('#studio-progress-value')).toHaveText('0%');
+ await page.evaluate(p=>{window.sessionFixture.point=p;},p);await page.clock.runFor(33);await page.clock.runFor(750);
+ await expect(page.locator('#trace-count')).toContainText('確定した星 0');await page.clock.runFor(100);
+ await expect(page.locator('#trace-count')).toContainText('確定した星 1');
+});
+
 test('partial constellation loss explains that the next attempt starts over',async({page})=>{
  await page.setViewportSize({width:320,height:568});await setup(page);await prepare(page);
  const p=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
