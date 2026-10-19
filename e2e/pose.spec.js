@@ -28,6 +28,8 @@ async function fixtureWorker(page, mode = 'normal') {
       }
       postMessage(message) {
         if (message.type === 'init') {
+          if(window.poseMode==='model_failed'){queueMicrotask(()=>this.onmessage?.({data:{type:'error',reason:'model_failed'}}));return;}
+          if(window.poseMode==='model_timeout')return;
           if(window.poseMode==='gpu_stall' && message.delegate==='GPU')return;
           const data=window.poseMode==='gpu_fail' && message.delegate==='GPU'?{type:'error',reason:'model_failed'}:{type:'ready'};
           queueMicrotask(()=>this.onmessage?.({data}));
@@ -36,6 +38,7 @@ async function fixtureWorker(page, mode = 'normal') {
         this.frames++;
         message.bitmap.close();
         if (window.poseMode === 'stall') return;
+        if (window.poseMode === 'inference_failed'){queueMicrotask(()=>this.onmessage?.({data:{type:'error',reason:'inference_failed'}}));return;}
         const points = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, z: 0, visibility: 1 }));
         points[15].x = 0.2;
         points[16].x = 0.7;
@@ -273,6 +276,22 @@ test('malformed initial pose does not enter the framing recovery path',async({pa
  await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','paused');
  await expect(page.locator('#pose-overlay')).toBeHidden();
  await expect(page.locator('#reach-start')).toBeDisabled();
+});
+
+for(const [mode,title] of [
+ ['invalid_pose','手の計測値を確認できません。'],['inference_failed','手の計測処理が止まりました。'],
+ ['model_failed','手を見つける準備に失敗しました。'],['model_timeout','手を見つける準備が間に合いません。']
+])test('game explains '+mode+' without blaming hand position',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await fixtureWorker(page,mode);await page.goto('/');
+ await page.locator('#studio-practice').click();await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');await page.locator('#studio-action').click();
+ await page.clock.runFor(mode==='model_timeout'?40100:800);
+ await expect(page.locator('#studio-title')).toHaveText(title);await expect(page.locator('#pose-overlay')).toBeHidden();
+ for(const id of ['studio-title','studio-instruction','studio-action','stop'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ expect(await page.locator('.studio-coach').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);
+ const count=await page.evaluate(()=>window.poseWorkers.length);await page.evaluate(()=>{window.poseMode='normal';});await page.clock.runFor(500);
+ expect(await page.evaluate(()=>window.poseWorkers.length)).toBe(count);await expect(page.locator('#pose-overlay')).toBeHidden();
+ await page.locator('#studio-action').click();await page.clock.runFor(800);await expect(page.locator('#pose-overlay')).toBeVisible();
 });
 
 test('fleeting valid detection does not end initial framing or enable measurements',async({page})=>{
