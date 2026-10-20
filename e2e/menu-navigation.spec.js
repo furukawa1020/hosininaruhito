@@ -1,5 +1,28 @@
 import {test,expect} from '@playwright/test';
 import {guestAuth,guestSdk} from './guest-fixture.js';
+
+for(const dpr of [1,2])test.describe('dome buffer at device scale '+dpr,()=>{
+ test.use({deviceScaleFactor:dpr});
+ test('large backing store stays bounded and restores normal interaction',async({page})=>{
+  await setup(page);await stars(page);
+  const dome=page.locator('#game-sphere'),canvas=dome.locator('canvas');
+  const initial=await dome.getAttribute('data-orientation'),style=await dome.getAttribute('style');
+  const normal=await canvas.evaluate(el=>({width:el.width,css:el.getBoundingClientRect().width}));
+  expect(normal.width).toBe(Math.round(normal.css*dpr));
+  await dome.evaluate(el=>{el.style.cssText='position:fixed;left:0;top:0;width:5000px;min-width:5000px;max-width:none;height:3000px;min-height:3000px;max-height:none';});
+  await expect.poll(()=>canvas.evaluate(el=>el.width)).toBe(2048);
+  expect(await canvas.evaluate(el=>el.height)).toBe(1229);
+  expect((await canvas.boundingBox()).width).toBe(5000);
+  await expect(dome).toHaveAttribute('data-orientation',initial);await expect(dome).toHaveAttribute('data-markers','1');
+  await dome.evaluate((el,value)=>{if(value===null)el.removeAttribute('style');else el.setAttribute('style',value);},style);
+  await expect.poll(()=>canvas.evaluate(el=>el.width)).toBe(normal.width);
+  const r=await canvas.boundingBox();
+  await page.mouse.move(r.x+r.width*.4,r.y+r.height*.4);await page.mouse.down();await page.mouse.move(r.x+r.width*.6,r.y+r.height*.5);await page.mouse.up();
+  await expect(dome).not.toHaveAttribute('data-orientation',initial);
+  await page.locator('#game-center').click();await expect(dome).toHaveAttribute('data-orientation',initial);
+  await page.locator('#studio-choose').click();await expect(page.locator('#camera-video')).toBeHidden();
+ });
+});
 const rows=[{id:'1',name:'試験の星座',azimuthDeg:120,altitudeDeg:40,description:'星座の説明。'.repeat(40)}];
 async function setup(page){
  await guestSdk(page);
