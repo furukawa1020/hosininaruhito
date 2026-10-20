@@ -16,12 +16,13 @@ function release(stream) {
 export class CameraSession {
   constructor({ video, mediaDevices = globalThis.navigator?.mediaDevices,
     isVisible = () => !document.hidden, isSecure = () => globalThis.isSecureContext,
-    onChange = () => {} }) {
+    onChange = () => {}, now = () => performance.now() }) {
     this.video = video;
     this.mediaDevices = mediaDevices;
     this.isVisible = isVisible;
     this.isSecure = isSecure;
     this.onChange = onChange;
+    this.now = now;
     this.state = 'idle';
     this.reason = 'idle';
     this.pending = false;
@@ -48,6 +49,7 @@ export class CameraSession {
 
   stop(reason = 'manual') {
     if (this.disposed) return;
+    clearTimeout(this.permissionTimer);
     this.generation++;
     this.detach();
     this.setState('paused', reason);
@@ -71,13 +73,19 @@ export class CameraSession {
     this.pending = true;
     this.setState('requesting', 'requesting');
     let acquired;
+    const permissionUntil = this.now() + 30000;
     try {
+      this.permissionTimer = setTimeout(() => {
+        if (generation === this.generation) this.stop('permission_timeout');
+      }, 30000);
       acquired = await this.mediaDevices.getUserMedia({
         audio: false,
         // Match the pose input size without requiring hardware to support it.
         // Devices may return a different size; pose-bitmap still bounds it.
         video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } }
       });
+      clearTimeout(this.permissionTimer);
+      if (generation === this.generation && this.now() >= permissionUntil) this.stop('permission_timeout');
       if (!current()) {
         release(acquired);
         if (!this.disposed && generation === this.generation) this.stop('hidden');
@@ -130,6 +138,7 @@ export class CameraSession {
         this.setState('error', cameraErrors[error?.name] || 'failed');
       }
     } finally {
+      clearTimeout(this.permissionTimer);
       this.pending = false;
       this.notify();
     }
