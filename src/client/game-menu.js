@@ -20,7 +20,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <p id="studio-dialog-notice" role="status"></p>
         <div id="game-auth-recovery"></div>
         <button id="studio-choose" class="primary" type="button">この星座で遊ぶ →</button>
-        <div id="game-subnav"><button id="game-login" class="text-button" type="button">アカウントでログイン</button><button id="game-privacy" class="text-button" type="button">ログイン情報について</button><button id="game-about" class="text-button" type="button">この星座について</button></div>
+        <div id="game-subnav"><button id="game-return-stars" class="text-button" type="button" hidden>選んだ星座へ戻る</button><button id="game-login" class="text-button" type="button">アカウントでログイン</button><button id="game-privacy" class="text-button" type="button">ログイン情報について</button><button id="game-about" class="text-button" type="button">この星座について</button></div>
       </section>
     </div>
     <footer><button id="game-options" class="text-button" type="button">設定</button><span>星の情報：星をみるひとAPI</span><div id="studio-account-actions"></div></footer>`;
@@ -64,6 +64,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     say('studio-dialog-notice',page==='location'?locationNotice:['access','account'].includes(page)?$('auth-notice').textContent:page==='settings'?$('notice').textContent:'');
     $('game-auth-recovery').hidden=!['access','account'].includes(page)||$('auth-recovery').hidden;
     const buttons=cards(),key=buttons.map(b=>b.dataset.skyId).join('|'),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
+    $('game-return-stars').hidden=page!=='location'||!locationEdit||!buttons.length||$('detail').hidden;
     if(key!==rowKey){rowKey=key;rows=buttons.map(b=>({name:b.querySelector('strong').textContent,azimuthDeg:Number(b.dataset.azimuth),altitudeDeg:Number(b.dataset.altitude)}));}
     if(selection!==index||domeRows!==rows){selection=index;domeRows=rows;dome.update(rows,index);}
     say('game-page-count',buttons.length?(index+1)+' / '+buttons.length:'');
@@ -88,6 +89,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   });
   $('studio-choose').addEventListener('click',()=>{dialog.close();render();$('studio-action').focus({preventScroll:true});});
   $('game-prev').addEventListener('click',()=>turn(-1));$('game-next').addEventListener('click',()=>turn(1));
+  $('game-return-stars').addEventListener('click',()=>{if(!cards().length||$('detail').hidden)return;locationEdit=false;refresh();});
   dialog.addEventListener('keydown',e=>{if(page==='stars'&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();turn(e.key==='ArrowLeft'?-1:1);}});
   $('game-center').addEventListener('click',()=>dome.center());
   $('game-login').addEventListener('click',()=>openExtra('account'));

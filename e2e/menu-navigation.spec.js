@@ -12,6 +12,17 @@ async function stars(page){
  await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');await page.locator('#consent').check();await page.locator('#sky').click();
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
+
+test('unchanged location returns to existing stars without another request',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await setup(page);let calls=0;
+ await page.route('**/api/sky',r=>{calls++;return r.fulfill({json:{source:'hoshimiru-live',constellations:rows}});});
+ await stars(page);await page.locator('#studio-back').click();
+ await expect(page.locator('#game-return-stars')).toBeInViewport({ratio:1});
+ expect(await page.locator('.game-page').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);
+ await page.locator('#game-return-stars').click();await expect(page.locator('#studio-choose')).toBeVisible();expect(calls).toBe(1);
+ await page.locator('#studio-back').click();await page.locator('#lat').fill('1');
+ await expect(page.locator('#game-return-stars')).toBeHidden();await expect(page.locator('#studio-choose')).toBeHidden();expect(calls).toBe(1);
+});
 test('settings back restores account and reading position; reopening resets history',async({page})=>{
  await setup(page);await page.locator('#game-login').click();await page.locator('#game-options').click();
  await page.locator('#studio-back').click();await expect(page.locator('#game-account')).toBeVisible();
