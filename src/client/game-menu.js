@@ -14,7 +14,8 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <div id="studio-location"></div>
         <div id="studio-stars"></div>
         <div id="game-account" hidden></div>
-        <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div id="game-reconnect"></div></div>
+        <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div id="game-reconnect"></div><button id="game-connection" class="text-button" type="button">接続状況を見る</button></div>
+        <div id="game-connection-page" hidden><div id="game-service-list"></div><button id="game-recheck" class="secondary" type="button">接続設定を再確認する</button></div>
         <div id="game-reading" hidden><p id="game-reading-text"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
         <div id="game-star-pager" class="game-pager"><button id="game-prev" type="button" aria-label="前の星座">←</button><span id="game-page-count"></span><button id="game-next" type="button" aria-label="次の星座">→</button></div>
         <p id="studio-dialog-notice" role="status"></p>
@@ -33,6 +34,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   move($('auth-account'),'game-account');$('auth-account').open=true;
   move($('auth-recovery'),'game-auth-recovery');
   move($('refresh'),'game-reconnect');
+  move($('services'),'game-service-list');
   const privacy=document.querySelector('#cloud-login .fine-details');
   const privacyText=privacy.querySelector('p').textContent;privacy.hidden=true;
   const privacyLinks=document.createElement('p');privacyLinks.id='game-privacy-links';
@@ -52,16 +54,17 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     if(!dialog.open)return;
     if(hasAccess()&&extra==='account'){extra=null;history=[];}
     const next=extra||base(),changed=page!==next;page=next;dialog.dataset.page=page;
-    for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings']])$(id).hidden=page!==name;
+    for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings'],['game-connection-page','connection']])$(id).hidden=page!==name;
     $('game-reading').hidden=!['about','privacy'].includes(page);
     $('game-privacy-links').hidden=page!=='privacy';
     for(const id of ['studio-choose','game-star-pager','game-about'])$(id).hidden=page!=='stars';
     for(const id of ['game-login','game-privacy'])$(id).hidden=page!=='access';
     $('studio-choose').disabled=$('detail').hidden;
-    const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',about:'この星座のお話',privacy:'ログイン情報について'};
+    const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',connection:'接続の準備',about:'この星座のお話',privacy:'ログイン情報について'};
     say('studio-dialog-title',titles[page]);
     const locationNotice=['pending','error','success'].includes($('location-notice').dataset.state)?$('location-notice').textContent:$('notice').textContent;
-    say('studio-dialog-notice',page==='location'?locationNotice:['access','account'].includes(page)?$('auth-notice').textContent:page==='settings'?$('notice').textContent:'');
+    say('studio-dialog-notice',page==='location'?locationNotice:['access','account'].includes(page)?$('auth-notice').textContent:['settings','connection'].includes(page)?$('notice').textContent:'');
+    $('game-recheck').disabled=$('refresh').disabled;
     $('game-auth-recovery').hidden=!['access','account'].includes(page)||$('auth-recovery').hidden;
     const buttons=cards(),key=buttons.map(b=>b.dataset.skyId).join('|'),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
     $('game-return-stars').hidden=page!=='location'||!locationEdit||!buttons.length||$('detail').hidden;
@@ -94,6 +97,8 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-center').addEventListener('click',()=>dome.center());
   $('game-login').addEventListener('click',()=>openExtra('account'));
   $('game-options').addEventListener('click',()=>openExtra('settings'));
+  $('game-connection').addEventListener('click',()=>openExtra('connection'));
+  $('game-recheck').addEventListener('click',()=>$('refresh').click());
   $('game-privacy').addEventListener('click',()=>showReading(privacyText,'privacy'));
   $('game-about').addEventListener('click',()=>showReading($('detail-description').textContent+' '+$('detail-story').textContent,'about'));
   for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>{textIndex=Math.max(0,Math.min(texts.length-1,textIndex+delta));refresh();});
