@@ -103,6 +103,9 @@ export function mountStudio(document, window, { hasAccess }) {
             instruction = '塗るように、ゆっくり動かしてください。腕は伸ばしきらなくて大丈夫。';
             target = 'reach-finish'; button = 'この範囲で遊ぶ';
             status = $('reach-progress').textContent;
+            if (Number($('reach-notice').dataset.remaining) <= 5000) {
+              instruction = 'まもなく計測を終了します。無理に広げず、確定するか「停止」で中断できます。';
+            }
             if ($('reach-notice').dataset.reason !== 'collecting') {
               title = '範囲は、まだ未確定です。';
               instruction = '手を選び直すか、楽な範囲で計測を続けられます。';
@@ -182,8 +185,8 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-progress').hidden = progress === null;
     if (progress !== null) {
       $('studio-meter').value = progress;
-      say('studio-progress-label', phase === 'collecting' ? '記録した時間（目安3秒）' : '輪の中で、少し止める');
-      say('studio-progress-value', phase === 'collecting' ? (elapsed/1000).toFixed(1) + '秒' : Math.round(progress*100) + '%');
+      say('studio-progress-label', phase === 'collecting' ? '記録は3秒が目安・上限30秒' : '輪の中で、少し止める');
+      say('studio-progress-value', phase === 'collecting' ? '残り' + Math.ceil(Number($('reach-notice').dataset.remaining)/1000) + '秒' : Math.round(progress*100) + '%');
     }
     menu.render();
     // Move only an owned control that this render made unusable; never steal

@@ -75,6 +75,23 @@ test('pre-start frames are ignored; collection bounded to 30s and 601 points', (
   session.tick(sample(30110),30110,size);
   assert.equal(session.reason,'time_limit'); assert.equal(session.points.length,0);
 });
+test('countdown uses collection start and disappears after confirmation or loss', () => {
+  const session = new ReachCalibration();
+  assert.equal(session.snapshot().remainingMs,null);
+  session.start(options,100);
+  assert.equal(session.snapshot().remainingMs,30000);
+  for(let at=200;at<=30100;at+=100) session.tick(sample(at),at,size);
+  assert.equal(session.snapshot().elapsedMs,29900);
+  assert.equal(session.snapshot().remainingMs,0);
+  assert.equal(session.state,'collecting');
+  session.tick(sample(30200),30200,size);
+  assert.equal(session.reason,'time_limit');
+  assert.equal(session.snapshot().remainingMs,null);
+  assert.equal(session.result,null);
+  assert.equal(measured().snapshot().remainingMs,null);
+  session.start(options,40000);session.tick(null,40000,size);
+  assert.equal(session.snapshot().remainingMs,null);
+});
 test('invalid options and stale finish cannot create a result', () => {
   for(const setup of [null,{...options,joint:'head'},{...options,posture:'walking'},{...options,size:{width:0,height:480}}]) {
     const session = new ReachCalibration(); session.start(setup,0);

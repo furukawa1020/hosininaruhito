@@ -70,6 +70,7 @@ export class ReachCalibration {
   }
   snapshot() {
     return { state: this.state, reason: this.reason, count: this.points.length,
+      remainingMs: this.state === 'collecting' ? Math.max(0, MAX_DURATION_MS - (this.lastNow - this.startedAt)) : null,
       elapsedMs: this.points.length ? this.points.at(-1).at - this.points[0].at : 0 };
   }
 }
