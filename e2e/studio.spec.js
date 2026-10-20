@@ -58,6 +58,19 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+for(const viewport of [{width:320,height:568},{width:844,height:390}])test('failed placement offers another constellation at '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);await setup(page);
+ await page.route('**/api/project',r=>r.fulfill({status:422,json:{error:'below_horizon'}}));
+ await beginCalibration(page);await expect(page.locator('#studio-other-star')).toBeHidden();
+ await page.clock.runFor(6600);await page.locator('#studio-action').click();await page.locator('#studio-action').click();
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
+ await noScroll(page,['studio-other-star','studio-action','studio-recalibrate','stop']);
+ await page.locator('#studio-other-star').click();await expect(page.locator('#studio-choose')).toBeVisible();
+ await expect(page.locator('#camera-video')).toBeHidden();await expect(page.locator('#trace-start')).toBeDisabled();
+ await page.locator('#studio-choose').click();await expect(page.locator('#studio-other-star')).toBeHidden();
+ await expect(page.locator('#studio-action')).toHaveText('カメラをつける');await expect(page.locator('#camera-video')).toBeHidden();
+});
+
 test('hidden game actions pass keyboard focus to an available control without stealing dialog focus',async({page})=>{
  await setup(page);await prepare(page);
  await expect(page.locator('#studio-action')).toBeHidden();await expect(page.locator('#stop')).toBeFocused();
