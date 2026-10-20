@@ -13,6 +13,17 @@ async function stars(page){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 
+for(const nested of [false,true])test('invalidated selection clears an old story and its history '+nested,async({page})=>{
+ await setup(page);await stars(page);let pending;
+ await page.route('**/api/status',r=>{pending=r;});await page.locator('#game-options').click();await page.locator('#refresh').click();
+ await expect.poll(()=>!!pending).toBe(true);await page.locator('#studio-back').click();await page.locator('#game-about').click();
+ if(nested)await page.locator('#game-options').click();
+ await pending.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:{...guestAuth,siteKey:'changed-fixture'}}});
+ await expect(page.locator('#studio-access')).toBeVisible();await expect(page.locator('#game-reading')).toBeHidden();
+ await expect(page.locator('#game-reading-text')).not.toContainText('星座の説明');
+ await page.locator('#game-options').click();await page.locator('#studio-back').click();await expect(page.locator('#studio-access')).toBeVisible();
+});
+
 test('selected representative below the horizon is named without blocking selection',async({page})=>{
  await setup(page);await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[rows[0],{...rows[0],id:'2',name:'下の星座',altitudeDeg:-20}]}}));
  await stars(page);await expect(page.locator('#detail-angles')).not.toContainText('地平線下');
