@@ -40,16 +40,17 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-reading').append(privacyLinks);
   $('location-notice').textContent='現在地を使うか、緯度・経度を入力してください。';
   const dome=mountSkyDome($('game-sphere'),{onSelect:index=>cards()[index]?.click()});
-  let page='', extra=null, previousExtra=null, locationEdit=false, texts=[],textIndex=0, rowKey='', rows=[], selection=-1;
+  let page='', extra=null, history=[], locationEdit=false, texts=[],textIndex=0, rowKey='', rows=[], selection=-1;
   const cards=()=>Array.from($('constellations').children);
   const say=(id,value)=>{if($(id).textContent!==value)$(id).textContent=value;};
   function showReading(text,kind){
-    previousExtra=extra;extra=kind;texts=Array.from(text.matchAll(/[\s\S]{1,120}/gu),m=>m[0]);textIndex=0;refresh();
+    history.push({extra,texts,textIndex});extra=kind;texts=Array.from(text.matchAll(/[\s\S]{1,120}/gu),m=>m[0]);textIndex=0;refresh();
   }
+  function openExtra(next){if(extra===next)return;history.push({extra,texts,textIndex});extra=next;refresh();}
   function base(){return !hasAccess()?'access':!locationEdit&&cards().length?'stars':'location';}
   function refresh(){
     if(!dialog.open)return;
-    if(hasAccess()&&extra==='account')extra=null;
+    if(hasAccess()&&extra==='account'){extra=null;history=[];}
     const next=extra||base(),changed=page!==next;page=next;dialog.dataset.page=page;
     for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings']])$(id).hidden=page!==name;
     $('game-reading').hidden=!['about','privacy'].includes(page);
@@ -80,7 +81,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   function close(){stop();dialog.close();}
   $('studio-close').addEventListener('click',close);
   $('studio-back').addEventListener('click',()=>{
-    if(extra){extra=previousExtra;previousExtra=null;}
+    if(extra){const previous=history.pop();extra=previous?.extra||null;texts=previous?.texts||[];textIndex=previous?.textIndex||0;}
     else if(page==='stars')locationEdit=true;
     else{close();return;}
     refresh();
@@ -89,13 +90,13 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-prev').addEventListener('click',()=>turn(-1));$('game-next').addEventListener('click',()=>turn(1));
   dialog.addEventListener('keydown',e=>{if(page==='stars'&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();turn(e.key==='ArrowLeft'?-1:1);}});
   $('game-center').addEventListener('click',()=>dome.center());
-  $('game-login').addEventListener('click',()=>{extra='account';refresh();});
-  $('game-options').addEventListener('click',()=>{extra='settings';refresh();});
+  $('game-login').addEventListener('click',()=>openExtra('account'));
+  $('game-options').addEventListener('click',()=>openExtra('settings'));
   $('game-privacy').addEventListener('click',()=>showReading(privacyText,'privacy'));
   $('game-about').addEventListener('click',()=>showReading($('detail-description').textContent+' '+$('detail-story').textContent,'about'));
   for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>{textIndex=Math.max(0,Math.min(texts.length-1,textIndex+delta));refresh();});
   $('sky-form').addEventListener('submit',()=>{locationEdit=false;});
-  $('auth-logout').addEventListener('click',()=>{extra=null;previousExtra=null;refresh();});
+  $('auth-logout').addEventListener('click',()=>{extra=null;history=[];refresh();});
   dialog.addEventListener('cancel',stop);
   dialog.addEventListener('close',()=>{move($('game-dome'),'game-welcome-dome');dome.resize();render();});
   const selectionObserver=new MutationObserver(refresh);selectionObserver.observe($('constellations'),{subtree:true,attributes:true,attributeFilter:['aria-pressed']});
@@ -103,6 +104,6 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   move($('game-dome'),'game-welcome-dome');
   return {
     render:refresh,
-    open(){if(['preview','requesting'].includes($('camera-notice').dataset.state))stop();extra=null;previousExtra=null;locationEdit=false;move($('game-dome'),'game-dome-slot');if(!dialog.open)dialog.showModal();refresh();dome.resize();$('studio-dialog-title').focus({preventScroll:true});},
+    open(){if(['preview','requesting'].includes($('camera-notice').dataset.state))stop();extra=null;history=[];locationEdit=false;move($('game-dome'),'game-dome-slot');if(!dialog.open)dialog.showModal();refresh();dome.resize();$('studio-dialog-title').focus({preventScroll:true});},
   };
 }
