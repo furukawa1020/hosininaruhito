@@ -58,6 +58,19 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+test('calibration countdown warns before the limit and never confirms automatically',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await setup(page);await beginCalibration(page);
+ await expect(page.locator('#studio-progress-value')).toHaveText('残り30秒');
+ await page.clock.runFor(25100);await expect(page.locator('#studio-progress-value')).toHaveText('残り5秒');
+ await expect(page.locator('#studio-instruction')).toContainText('無理に広げず');
+ await noScroll(page,['studio-progress','studio-action','studio-recalibrate','stop']);
+ await page.clock.runFor(5000);await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason','time_limit');
+ await expect(page.locator('#studio-progress')).toBeHidden();await expect(page.locator('#session-prepare')).toBeDisabled();
+ await expect(page.locator('#studio-status')).toContainText('記録を消去');
+ await page.locator('#studio-action').click();await page.clock.runFor(6600);await page.locator('#studio-action').click();
+ await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');await expect(page.locator('#studio-progress')).toBeHidden();
+});
+
 for(const viewport of [{width:320,height:568},{width:844,height:390}])test('failed placement offers another constellation at '+viewport.width,async({page})=>{
  await page.setViewportSize(viewport);await setup(page);
  await page.route('**/api/project',r=>r.fulfill({status:422,json:{error:'below_horizon'}}));

@@ -34,6 +34,8 @@ export function mountReach(document, window, { onChange = () => {} } = {}) {
     $('reach-notice').dataset.reason = snapshot.reason;
     $('reach-notice').dataset.elapsed = String(snapshot.elapsedMs);
     $('reach-notice').dataset.count = String(snapshot.count);
+    if (snapshot.remainingMs === null) delete $('reach-notice').dataset.remaining;
+    else $('reach-notice').dataset.remaining = String(snapshot.remainingMs);
     const message = messages[snapshot.reason] || messages.manual;
     // Avoid announcing every frame to screen readers.
     if ($('reach-notice').textContent !== message) $('reach-notice').textContent = message;
