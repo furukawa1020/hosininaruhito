@@ -24,7 +24,7 @@ export function mountLocation(document, window) {
   });
   for(const id of ['lat','lng','stop','sky','auth-logout','auth-guest','auth-login'])$(id).addEventListener(id==='lat'||id==='lng'?'input':'click',cancel);
   for(const id of ['lat','lng'])$(id).addEventListener('input',()=>{$('location-notice').dataset.state='idle';});
-  $('sky-form').addEventListener('submit',()=>{$('location-notice').dataset.state='idle';});
+  $('sky-form').addEventListener('submit',()=>{cancel();$('location-notice').dataset.state='idle';});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')cancel();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)cancel();});
   window.addEventListener('pagehide',cancel);
