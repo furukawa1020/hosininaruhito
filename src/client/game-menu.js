@@ -53,6 +53,9 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   function refresh(){
     if(!dialog.open)return;
     if(hasAccess()&&extra==='account'){extra=null;history=[];}
+    if(($('detail').hidden||!cards().length)&&(extra==='about'||history.some(entry=>entry.extra==='about'))){
+      extra=null;history=[];texts=[];textIndex=0;
+    }
     const next=extra||base(),changed=page!==next;page=next;dialog.dataset.page=page;
     for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings'],['game-connection-page','connection']])$(id).hidden=page!==name;
     $('game-reading').hidden=!['about','privacy'].includes(page);
