@@ -202,3 +202,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 .human-check>div{width:min(100%,360px);display:grid;gap:16px;justify-items:center;text-align:center}
 .human-check h2{font-size:26px;margin:0;outline:none}.human-check p{font-size:15px;line-height:1.6;margin:0}
 .human-check button{min-height:44px;border:1px solid #8199bd;border-radius:14px;background:#172840;color:#e4ecfa;padding:10px 20px}
+/* Connection settings have their own page, so all four states remain visible. */
+#game-service-list #services{list-style:none;display:grid;gap:10px;margin:0 0 16px;padding:0;font-size:12px}
+#game-service-list #services li{display:flex;justify-content:space-between;gap:8px;margin:0}
+#game-service-list .service-state{white-space:nowrap;color:#c4d4eb}

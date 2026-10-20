@@ -13,6 +13,19 @@ async function stars(page){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 
+for(const [width,height] of [[320,568],[844,390]])test('connection states and retry fit the menu '+width,async({page})=>{
+ await page.setViewportSize({width,height});await setup(page);await page.locator('#game-options').click();await page.locator('#game-connection').click();
+ await expect(page.locator('#services li')).toHaveCount(4);await expect(page.locator('#services')).toContainText('設定済み / 接続未確認');
+ for(const id of ['services','game-recheck','studio-back'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ expect(await page.locator('.game-page').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);
+ await page.route('**/api/status',r=>r.fulfill({status:503,json:{}}));await page.locator('#game-recheck').click();
+ await expect(page.locator('#services')).toContainText('取得できません');await expect(page.locator('#studio-dialog-notice')).toContainText('サーバーに接続できません');
+ await expect(page.locator('#game-recheck')).toBeEnabled();
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:false,planner:false,reflex:false},auth:guestAuth}}));
+ await page.locator('#game-recheck').click();await expect(page.locator('#services li').filter({hasText:'星をみるひとAPI'})).toContainText('未設定');
+ await page.locator('#studio-back').click();await expect(page.locator('#game-settings')).toBeVisible();
+});
+
 test('unchanged location returns to existing stars without another request',async({page})=>{
  await page.setViewportSize({width:320,height:568});await setup(page);let calls=0;
  await page.route('**/api/sky',r=>{calls++;return r.fulfill({json:{source:'hoshimiru-live',constellations:rows}});});
