@@ -41,7 +41,7 @@ export function mountStudio(document, window, { hasAccess }) {
         </div>
         <div id="studio-progress" hidden><div><span id="studio-progress-label"></span><strong id="studio-progress-value"></strong></div><progress id="studio-meter" max="1" value="0" aria-label="準備の進み具合"></progress></div>
         <p id="studio-status" role="status" aria-live="polite"></p>
-        <div class="studio-actions"><button id="studio-action" class="primary" type="button"></button><button id="studio-recalibrate" class="text-button" type="button" hidden>手・範囲を選び直す</button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button></div>
+        <div class="studio-actions"><button id="studio-action" class="primary" type="button"></button><button id="studio-other-star" class="text-button" type="button" hidden>別の星座を選ぶ</button><button id="studio-recalibrate" class="text-button" type="button" hidden>手・範囲を選び直す</button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button></div>
         <p class="studio-comfort">手は楽な高さで。つらいときは右上の「停止」。</p>
       </aside>
     </div>
@@ -166,6 +166,7 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-example').hidden = phase !== 'camera';
     $('studio-movement').hidden = !['reach','collecting'].includes(phase) || (phase === 'collecting' && $('reach-notice').dataset.reason !== 'collecting');
     $('studio-practice').hidden = phase !== 'welcome';
+    $('studio-other-star').hidden = !(selected && phase === 'arrange' && session === 'error');
     $('studio-recalibrate').hidden = !['collecting','arrange','ready'].includes(phase);
     $('studio-recalibrate').disabled = $('reach-clear').disabled;
     $('studio-action').hidden = !target;
@@ -206,6 +207,7 @@ export function mountStudio(document, window, { hasAccess }) {
     $('reach-joint').focus();
   });
   $('studio-settings').addEventListener('click', openSetup);
+  $('studio-other-star').addEventListener('click', () => { if (!$('studio-other-star').hidden) openSetup(); });
   $('reach-joint').addEventListener('change', render);
   $('reach-posture').addEventListener('change', render);
   $('camera-consent').addEventListener('change', render);
