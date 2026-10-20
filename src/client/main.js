@@ -134,7 +134,7 @@ function selectConstellation(row, button) {
   $('detail').hidden = false;
   $('detail-english').textContent = row.englishName || '';
   $('detail-name').textContent = row.name;
-  $('detail-angles').textContent = '方位 ' + row.azimuthDeg.toFixed(1) + '° / 高度 ' + row.altitudeDeg.toFixed(1) + '°';
+  $('detail-angles').textContent = '代表位置：方位 ' + row.azimuthDeg.toFixed(1) + '° / 高度 ' + row.altitudeDeg.toFixed(1) + '°' + (row.altitudeDeg < 0 ? '（地平線下）' : '');
   $('detail-description').textContent = row.description || row.summary || 'この星座の説明は取得されませんでした。';
   $('detail-story').textContent = row.story || '';
   $('story-section').hidden = !row.story;

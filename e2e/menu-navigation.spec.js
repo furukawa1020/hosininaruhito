@@ -13,6 +13,14 @@ async function stars(page){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 
+test('selected representative below the horizon is named without blocking selection',async({page})=>{
+ await setup(page);await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[rows[0],{...rows[0],id:'2',name:'下の星座',altitudeDeg:-20}]}}));
+ await stars(page);await expect(page.locator('#detail-angles')).not.toContainText('地平線下');
+ await page.locator('#game-next').click();await expect(page.locator('#detail-angles')).toContainText('代表位置');
+ await expect(page.locator('#detail-angles')).toContainText('地平線下');await expect(page.locator('#studio-choose')).toBeEnabled();
+ await page.locator('#game-prev').click();await expect(page.locator('#detail-angles')).not.toContainText('地平線下');
+});
+
 for(const [width,height] of [[320,568],[844,390]])test('connection states and retry fit the menu '+width,async({page})=>{
  await page.setViewportSize({width,height});await setup(page);await page.locator('#game-options').click();await page.locator('#game-connection').click();
  await expect(page.locator('#services li')).toHaveCount(4);await expect(page.locator('#services')).toContainText('設定済み / 接続未確認');
