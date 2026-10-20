@@ -53,7 +53,8 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
   }
   function resize(){
     const r=host.getBoundingClientRect();width=r.width;height=r.height;
-    const ratio=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
+    // Bound the backing store while preserving CSS-space projection and hit tests.
+    const ratio=Math.min(2,devicePixelRatio||1,2048/Math.max(1,width,height));canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
     ctx?.setTransform(ratio,0,0,ratio,0,0);draw();
   }
   canvas.addEventListener('pointerdown',event=>{
