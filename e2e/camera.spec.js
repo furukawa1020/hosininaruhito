@@ -128,3 +128,11 @@ test('stopped pending permission releases late synthetic stream without showing 
   await expectReleased(page);
   expect(await page.evaluate(() => window.cameraCalls)).toBe(1);
 });
+test('unanswered permission shows a deadline without allowing parallel acquisition',async({page})=>{
+ await page.clock.install();await page.clock.pauseAt(new Date());
+ await page.addInitScript(()=>{navigator.mediaDevices.getUserMedia=()=>{window.cameraRequests=(window.cameraRequests||0)+1;return new Promise(()=>{});};});
+ await page.goto('/');await page.locator('#studio-practice').click();await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
+ await page.clock.runFor(30000);await expect(page.locator('#studio-status')).toContainText('30秒');
+ await expect(page.locator('#studio-action')).toBeDisabled();await expect(page.locator('#camera-video')).toBeHidden();
+ expect(await page.evaluate(()=>window.cameraRequests)).toBe(1);await page.locator('#stop').click();
+});

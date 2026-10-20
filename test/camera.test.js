@@ -30,6 +30,33 @@ function setup(options = {}) {
   });
   return { camera, video, feeds, constraints, states, hide: () => { visible = false; } };
 }
+
+test('permission deadline stops ownership without overlapping unresolved acquisition',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const permission=deferred();let calls=0;
+ const app=setup({mediaDevices:{getUserMedia:()=>++calls===1?permission.promise:Promise.resolve(stream())}});
+ const started=app.camera.start({consent:true});t.mock.timers.tick(30000);
+ assert.deepEqual(app.camera.snapshot(),{state:'paused',reason:'permission_timeout',pending:true});
+ await app.camera.start({consent:true});assert.equal(calls,1);
+ const feed=stream();permission.resolve(feed);await started;
+ assert.ok(feed.getTracks().every(t=>t.readyState==='ended'));assert.equal(app.video.srcObject,null);
+ await app.camera.start({consent:true});assert.equal(app.camera.state,'preview');
+ t.mock.timers.tick(30000);assert.equal(app.camera.state,'preview');app.camera.dispose();
+});
+
+test('manual stop remains the reason after the permission deadline',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const permission=deferred();
+ const app=setup({mediaDevices:{getUserMedia:()=>permission.promise}});
+ const started=app.camera.start({consent:true});app.camera.stop();t.mock.timers.tick(30000);
+ assert.equal(app.camera.reason,'manual');permission.reject(Error('late failure'));await started;
+ assert.equal(app.camera.reason,'manual');
+});
+
+test('late permission cannot win when the timeout callback is delayed',async()=>{
+ let now=0;const permission=deferred();const app=setup({now:()=>now,mediaDevices:{getUserMedia:()=>permission.promise}});
+ const started=app.camera.start({consent:true});now=30000;const feed=stream();permission.resolve(feed);await started;
+ assert.equal(app.camera.reason,'permission_timeout');assert.equal(app.video.srcObject,null);
+ assert.ok(feed.getTracks().every(t=>t.readyState==='ended'));
+});
 test('consent, visibility and secure context gate camera acquisition', async () => {
   const app = setup();
   await app.camera.start();
