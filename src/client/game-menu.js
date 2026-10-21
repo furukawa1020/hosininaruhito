@@ -69,7 +69,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     say('studio-dialog-notice',page==='location'?locationNotice:['access','account'].includes(page)?$('auth-notice').textContent:['settings','connection'].includes(page)?$('notice').textContent:'');
     $('game-recheck').disabled=$('refresh').disabled;
     $('game-auth-recovery').hidden=!['access','account'].includes(page)||$('auth-recovery').hidden;
-    const buttons=cards(),key=buttons.map(b=>b.dataset.skyId).join('|'),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
+    const buttons=cards(),key=JSON.stringify(buttons.map(b=>[b.dataset.skyId,b.querySelector('strong').textContent,b.dataset.azimuth,b.dataset.altitude])),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
     $('game-return-stars').hidden=page!=='location'||!locationEdit||!buttons.length||$('detail').hidden;
     if(key!==rowKey){rowKey=key;rows=buttons.map(b=>({name:b.querySelector('strong').textContent,azimuthDeg:Number(b.dataset.azimuth),altitudeDeg:Number(b.dataset.altitude)}));}
     if(selection!==index||domeRows!==rows){selection=index;domeRows=rows;dome.update(rows,index);}

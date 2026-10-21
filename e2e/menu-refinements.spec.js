@@ -10,6 +10,15 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+test('same ID with new display metadata updates the dome without unrelated recentering',async({page})=>{
+ await setup(page);const dome=page.locator('#game-sphere'),before=await dome.getAttribute('data-orientation');
+ // Simulate a replaced display payload while keeping the stable catalogue ID.
+ await page.locator('#constellations button').evaluate(el=>{el.dataset.azimuth='220';el.dataset.altitude='20';el.querySelector('strong').textContent='更新された星座';el.setAttribute('aria-pressed','true');});
+ await expect(dome).not.toHaveAttribute('data-orientation',before);await expect(dome).toHaveAttribute('data-orientation','3.840,0.349');
+ const box=await dome.boundingBox();await page.mouse.move(box.x+80,box.y+80);await page.mouse.down();await page.mouse.move(box.x+120,box.y+100);await page.mouse.up();
+ const rotated=await dome.getAttribute('data-orientation');await page.locator('#game-options').click();await page.locator('#studio-back').click();
+ await expect(dome).toHaveAttribute('data-orientation',rotated);
+});
 test('dome selection only operates on the stars page',async({page})=>{
  await setup(page,[row,{...row,id:'2',name:'次の星座'}]);await page.locator('#game-next').click();
  await page.locator('#game-options').click();await centerClick(page);await expect(page.locator('#detail-name')).toHaveText('次の星座');
