@@ -50,11 +50,15 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   }
   function openExtra(next){if(extra===next)return;history.push({extra,texts,textIndex});extra=next;refresh();}
   function base(){return !hasAccess()?'access':!locationEdit&&cards().length?'stars':'location';}
-  function refresh(){
+  function syncDome(){
     const buttons=cards(),key=JSON.stringify(buttons.map(b=>[b.dataset.skyId,b.querySelector('strong').textContent,b.dataset.azimuth,b.dataset.altitude])),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
     if(key!==rowKey){rowKey=key;rows=buttons.map(b=>({name:b.querySelector('strong').textContent,azimuthDeg:Number(b.dataset.azimuth),altitudeDeg:Number(b.dataset.altitude)}));}
     if(selection!==index||domeRows!==rows){selection=index;domeRows=rows;dome.update(rows,index);}
+    return {buttons,index};
+  }
+  function refresh(){
     if(!dialog.open)return;
+    const {buttons,index}=syncDome();
     if(hasAccess()&&extra==='account'){extra=null;history=[];}
     if(($('detail').hidden||!cards().length)&&(extra==='about'||history.some(entry=>entry.extra==='about'))){
       extra=null;history=[];texts=[];textIndex=0;
@@ -109,7 +113,8 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('auth-logout').addEventListener('click',()=>{extra=null;history=[];refresh();});
   dialog.addEventListener('cancel',stop);
   dialog.addEventListener('close',()=>{move($('game-dome'),'game-welcome-dome');dome.resize();render();});
-  const selectionObserver=new MutationObserver(refresh);selectionObserver.observe($('constellations'),{subtree:true,attributes:true,attributeFilter:['aria-pressed']});
+  const selectionObserver=new MutationObserver(()=>{syncDome();refresh();});
+  selectionObserver.observe($('constellations'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-pressed','data-sky-id','data-azimuth','data-altitude']});
   window.addEventListener('pagehide',()=>{selectionObserver.disconnect();dome.dispose();},{once:true});
   move($('game-dome'),'game-welcome-dome');
   return {
