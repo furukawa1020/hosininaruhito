@@ -10,6 +10,15 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+test('reading boundary buttons return keyboard focus to the text',async({page})=>{
+ await setup(page);await page.locator('#game-about').click();await page.locator('#game-text-next').focus();
+ await page.keyboard.press('Enter');await expect(page.locator('#game-text-next')).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.locator('#game-text-next')).toBeDisabled();await expect(page.locator('#game-reading-text')).toBeFocused();
+ await page.keyboard.press('Tab');await expect(page.locator('#game-text-prev')).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.locator('#game-text-prev')).toBeFocused();
+ await page.keyboard.press('Enter');await expect(page.locator('#game-reading-text')).toBeFocused();
+ await page.keyboard.press('Tab');await expect(page.locator('#game-text-next')).toBeFocused();
+});
 test('story pages preserve combining marks and joined emoji at their boundaries',async({page})=>{
  const mark='か\u3099',emoji='👩‍🚀',description='あ'.repeat(119)+mark+emoji+'終わり';
  await setup(page,[{...row,description}]);await page.locator('#game-about').click();
