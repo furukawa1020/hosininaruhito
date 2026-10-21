@@ -10,6 +10,16 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+for(const viewport of [{width:320,height:568},{width:844,height:390}])test('long constellation names keep controls visible at '+viewport.width,async({page})=>{
+ const name='長い名前'.repeat(50);await page.setViewportSize(viewport);await setup(page,[{...row,name,description:'説明'}]);
+ for(const id of ['detail-name','studio-choose','game-about'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ expect(await page.locator('.game-page').evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
+ await page.locator('#game-about').click();let text='';
+ for(let i=0;i<3;i++){text+=await page.locator('#game-reading-text').textContent();await expect(page.locator('#game-reading-text')).toBeInViewport({ratio:1});if(await page.locator('#game-text-next').isDisabled())break;await page.locator('#game-text-next').click();}
+ expect(text).toContain(name);await page.locator('#studio-back').click();await page.locator('#studio-choose').click();
+ for(const id of ['studio-settings','studio-action','camera-consent'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
 test('closing setup restores an enabled control without changing consent or stealing valid focus',async({page})=>{
  await setup(page);await page.keyboard.press('Escape');await expect(page.locator('#studio-dialog')).toBeHidden();
  await expect(page.locator('#camera-consent')).toBeFocused();await expect(page.locator('#camera-consent')).not.toBeChecked();

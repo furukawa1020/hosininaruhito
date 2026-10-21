@@ -119,7 +119,10 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-connection').addEventListener('click',()=>openExtra('connection'));
   $('game-recheck').addEventListener('click',()=>$('refresh').click());
   $('game-privacy').addEventListener('click',()=>showReading(privacyText,'privacy'));
-  $('game-about').addEventListener('click',()=>showReading($('detail-description').textContent+' '+$('detail-story').textContent,'about'));
+  $('game-about').addEventListener('click',()=>{
+    const name=$('detail-name').textContent;
+    showReading((name.length>16?'名前：'+name+'\n\n':'')+$('detail-description').textContent+' '+$('detail-story').textContent,'about');
+  });
   for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>{
     const focused=document.activeElement===$(id);
     textIndex=Math.max(0,Math.min(texts.length-1,textIndex+delta));refresh();

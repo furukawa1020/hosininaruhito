@@ -4,8 +4,10 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 .studio-open .topbar{height:64px;padding:0 32px;border:0;background:transparent}
 .studio-open .brand{font-size:21px;color:#eff5ff}
 .studio-open .stop{top:12px;right:24px;min-height:42px;padding:8px 16px;border:1px solid #79849d;background:#131e35;color:#fff;border-radius:24px;box-shadow:none}
-#studio{height:calc(100dvh - 64px);padding:0 32px 24px;display:grid;grid-template-rows:44px minmax(0,1fr);background:radial-gradient(ellipse at 22% 48%,#18345955,transparent 65%)}
+#studio{height:calc(100dvh - 64px);padding:0 32px 24px;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:44px minmax(0,1fr);background:radial-gradient(ellipse at 22% 48%,#18345955,transparent 65%)}
 .studio-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#b5c4dd;font-size:15px}
+#studio-selection{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#studio-settings{flex-shrink:0}
 .studio-open .text-button{color:#bcd5f4;text-decoration:none}
 .studio-open button,.studio-open select,.studio-open input{font-family:inherit}
 .studio-open button:focus-visible,.studio-open a:focus-visible,.studio-open input:focus-visible,.studio-open select:focus-visible{outline:3px solid #8fe7f3;outline-offset:4px}
@@ -73,7 +75,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 .game-route li[aria-current=true]{color:#d1ecf8}
 .game-menu-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,430px);gap:40px;min-height:0;max-width:1280px;width:100%;margin:auto;height:100%}
 #game-dome-slot{min-height:0}
-.game-page{min-height:0;display:flex;flex-direction:column;justify-content:center;gap:15px}
+.game-page{min-width:0;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:15px}
 #studio-dialog h2{font-size:34px;font-weight:750;line-height:1.4;margin:0 0 8px;outline:none}
 #studio-dialog .start-panel,#studio-dialog .observation-panel,#studio-dialog .sky-panel{padding:0;margin:0;border:0;background:none}
 #studio-dialog #start-title,#studio-dialog #auth-title,#studio-dialog .observation-panel>h3,#studio-dialog .empty-state,#studio-dialog .sky-note,#studio-dialog .constellation-detail>a,#studio-dialog .sky-panel>.section-heading,#studio-dialog #notice,#studio-dialog #constellations,#studio-dialog .selection-label,#studio-dialog #detail-english,#studio-dialog #detail>details,#studio-dialog .connection,#studio-dialog .observation-panel>.field-note:not(#location-notice),#studio-dialog #auth-account>summary,#studio-dialog #auth-notice{display:none}
@@ -91,7 +93,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 #studio-dialog .consent{font-size:14px;line-height:1.65;margin:16px 0;color:#d5e1f3}
 #studio-dialog fieldset{padding:0;border:0;margin:0;min-width:0}
 #studio-dialog .constellation-detail{border:0;padding:0;margin:0}
-#studio-dialog .constellation-detail h3{font-family:inherit;color:#ffe7aa;font-size:44px;line-height:1.3;margin:0 0 10px;overflow-wrap:anywhere}
+#studio-dialog .constellation-detail h3{font-family:inherit;color:#ffe7aa;font-size:44px;line-height:1.3;margin:0 0 10px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 #studio-dialog .angles{color:#a9c0db;font-size:14px;margin:0}
 .game-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#abc6e3;font-size:16px}
 .game-pager button{width:54px;min-height:46px;background:#172c49;color:#d9edff;border:1px solid #5b779e;border-radius:15px;font-size:22px}
@@ -102,7 +104,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 #game-settings p,#game-reading-text{color:#bccbe3;font-size:16px;line-height:1.85;margin:0 0 18px}
 #game-settings #refresh{margin-top:12px}
 #game-reading{min-height:0}
-#game-reading-text{min-height:150px}
+#game-reading-text{min-height:150px;overflow-wrap:anywhere}
 #game-privacy-links{font-size:13px;margin-bottom:0}
 #game-privacy-links a{color:#b6e4fc}
 #game-account #auth-login{width:100%}
