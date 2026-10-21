@@ -48,7 +48,13 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   function showReading(text,kind){
     history.push({extra,texts,textIndex});extra=kind;texts=Array.from(text.matchAll(/[\s\S]{1,120}/gu),m=>m[0]);textIndex=0;refresh();
   }
-  function openExtra(next){if(extra===next)return;history.push({extra,texts,textIndex});extra=next;refresh();}
+  function openExtra(next){
+    if(extra===next)return;
+    const previous=history.findIndex(entry=>entry.extra===next);
+    if(previous>=0){({texts,textIndex}=history[previous]);history.length=previous;}
+    else history.push({extra,texts,textIndex});
+    extra=next;refresh();
+  }
   function base(){return !hasAccess()?'access':!locationEdit&&cards().length?'stars':'location';}
   function syncDome(){
     const buttons=cards(),key=JSON.stringify(buttons.map(b=>[b.dataset.skyId,b.querySelector('strong').textContent,b.dataset.azimuth,b.dataset.altitude])),index=buttons.findIndex(b=>b.getAttribute('aria-pressed')==='true');
