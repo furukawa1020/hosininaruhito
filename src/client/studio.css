@@ -104,7 +104,7 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 #game-settings p,#game-reading-text{color:#bccbe3;font-size:16px;line-height:1.85;margin:0 0 18px}
 #game-settings #refresh{margin-top:12px}
 #game-reading{min-height:0}
-#game-reading-text{min-height:150px;overflow-wrap:anywhere;white-space:pre-wrap}
+#game-reading-text{min-height:150px;overflow-wrap:anywhere}
 #game-privacy-links{font-size:13px;margin-bottom:0}
 #game-privacy-links a{color:#b6e4fc}
 #game-account #auth-login{width:100%}
