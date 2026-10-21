@@ -1,6 +1,17 @@
 import {test,expect} from '@playwright/test';
 import {guestAuth,guestSdk} from './guest-fixture.js';
 
+for(const [code,message] of [[1,'許可されていません'],[2,'端末が位置を確認できません'],[3,'時間切れ'],[99,'再試行するか']])test('location failure provides recovery for code '+code,async({page})=>{
+ await page.setViewportSize({width:320,height:568});
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:guestAuth}}));await guestSdk(page);
+ await page.addInitScript(code=>Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(ok,fail){fail({code,message:'private diagnostic'});}}}),code);
+ await page.goto('/');await page.locator('#studio-action').click();await page.locator('#auth-guest').click();
+ await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');await page.locator('#consent').check();await page.locator('#locate').click();
+ await expect(page.locator('#studio-dialog-notice')).toContainText(message);await expect(page.locator('#studio-dialog-notice')).not.toContainText('private');
+ await expect(page.locator('#lat')).toHaveValue('0');await expect(page.locator('#lng')).toHaveValue('0');await expect(page.locator('#consent')).toBeChecked();
+ await expect(page.locator('#locate')).toBeEnabled();await expect(page.locator('#studio-dialog-notice')).toBeInViewport({ratio:1});
+});
+
 for(const outcome of ['success','failure'])test('Enter search cancels pending location '+outcome,async({page})=>{
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:guestAuth}}));await guestSdk(page);
  let pending;await page.route('**/api/sky',r=>{pending=r;});
