@@ -16,7 +16,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <div id="game-account" hidden></div>
         <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div id="game-reconnect"></div><button id="game-connection" class="text-button" type="button">接続状況を見る</button></div>
         <div id="game-connection-page" hidden><div id="game-service-list"></div><button id="game-recheck" class="secondary" type="button">接続設定を再確認する</button></div>
-        <div id="game-reading" hidden><p id="game-reading-text"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
+        <div id="game-reading" hidden><p id="game-reading-text" tabindex="-1"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
         <div id="game-star-pager" class="game-pager"><button id="game-prev" type="button" aria-label="前の星座">←</button><span id="game-page-count"></span><button id="game-next" type="button" aria-label="次の星座">→</button></div>
         <p id="studio-dialog-notice" role="status"></p>
         <div id="game-auth-recovery"></div>
@@ -116,7 +116,11 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-recheck').addEventListener('click',()=>$('refresh').click());
   $('game-privacy').addEventListener('click',()=>showReading(privacyText,'privacy'));
   $('game-about').addEventListener('click',()=>showReading($('detail-description').textContent+' '+$('detail-story').textContent,'about'));
-  for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>{textIndex=Math.max(0,Math.min(texts.length-1,textIndex+delta));refresh();});
+  for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>{
+    const focused=document.activeElement===$(id);
+    textIndex=Math.max(0,Math.min(texts.length-1,textIndex+delta));refresh();
+    if(focused&&$(id).disabled)$('game-reading-text').focus({preventScroll:true});
+  });
   $('sky-form').addEventListener('submit',()=>{locationEdit=false;});
   $('auth-logout').addEventListener('click',()=>{extra=null;history=[];refresh();});
   dialog.addEventListener('cancel',stop);
