@@ -41,7 +41,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   for(const link of privacy.querySelectorAll('a'))privacyLinks.append(link.cloneNode(true),' ');
   $('game-reading').append(privacyLinks);
   $('location-notice').textContent='現在地を使うか、緯度・経度を入力してください。';
-  const dome=mountSkyDome($('game-sphere'),{onSelect:index=>cards()[index]?.click()});
+  const dome=mountSkyDome($('game-sphere'),{onSelect:index=>{if(dialog.open&&page==='stars')cards()[index]?.click();}});
   let page='', extra=null, history=[], locationEdit=false, texts=[],textIndex=0, rowKey='', rows=[], selection=-1;
   const cards=()=>Array.from($('constellations').children);
   const say=(id,value)=>{if($(id).textContent!==value)$(id).textContent=value;};
