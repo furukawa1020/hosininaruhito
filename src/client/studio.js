@@ -169,7 +169,7 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-example').hidden = phase !== 'camera';
     $('studio-movement').hidden = !['reach','collecting'].includes(phase) || (phase === 'collecting' && $('reach-notice').dataset.reason !== 'collecting');
     $('studio-practice').hidden = phase !== 'welcome';
-    $('studio-other-star').hidden = !(selected && phase === 'arrange' && session === 'error');
+    $('studio-other-star').hidden = !(selected && (phase === 'complete' || (phase === 'arrange' && session === 'error')));
     $('studio-recalibrate').hidden = !['collecting','arrange','ready'].includes(phase);
     $('studio-recalibrate').disabled = $('reach-clear').disabled;
     $('studio-action').hidden = !target;

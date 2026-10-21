@@ -58,6 +58,22 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+for(const viewport of [{width:320,height:568},{width:844,height:390}])test('completed constellation offers another selection without starting the camera '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);await setup(page);
+ await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験の星座',azimuthDeg:120,altitudeDeg:40},{id:'2',name:'別の星座',azimuthDeg:80,altitudeDeg:20}]}}));
+ await prepare(page);
+ await expect(page.locator('#studio-other-star')).toBeHidden();
+ for(let i=1;i<=3;i++){
+  const p=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
+  await page.evaluate(p=>{window.sessionFixture.point=p;},p);await page.clock.runFor(900);
+ }
+ await expect(page.locator('#studio-title')).toHaveText('星座が、できました。');await noScroll(page,['studio-other-star','studio-action','stop']);
+ await expect(page.locator('#camera-video')).toBeHidden();await page.locator('#studio-other-star').click();
+ await expect(page.locator('#studio-choose')).toBeVisible();await page.locator('#game-next').click();await page.locator('#studio-choose').click();
+ await expect(page.locator('#studio-selection')).toContainText('別の星座');await expect(page.locator('#camera-video')).toBeHidden();
+ await expect(page.locator('#studio-action')).toHaveText('カメラをつける');
+});
+
 test('calibration countdown warns before the limit and never confirms automatically',async({page})=>{
  await page.setViewportSize({width:320,height:568});await setup(page);await beginCalibration(page);
  await expect(page.locator('#studio-progress-value')).toHaveText('残り30秒');
