@@ -10,6 +10,14 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+test('closed menu discards dome markers when a delayed identity change invalidates selection',async({page})=>{
+ await setup(page);let pending;await page.route('**/api/status',r=>{pending=r;});
+ await page.locator('#game-options').click();await page.locator('#refresh').click();await expect.poll(()=>!!pending).toBe(true);
+ await page.locator('#studio-back').click();await page.locator('#studio-choose').click();await expect(page.locator('#studio-dialog')).toBeHidden();
+ await pending.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:{...guestAuth,siteKey:'changed'}}});
+ await expect(page.locator('#detail')).toBeHidden();await expect(page.locator('#game-sphere')).toHaveAttribute('data-markers','0');
+ await page.locator('#studio-action').click();await expect(page.locator('#studio-access')).toBeVisible();
+});
 test('same ID with new display metadata updates the dome without unrelated recentering',async({page})=>{
  await setup(page);const dome=page.locator('#game-sphere'),before=await dome.getAttribute('data-orientation');
  // Simulate a replaced display payload while keeping the stable catalogue ID.
