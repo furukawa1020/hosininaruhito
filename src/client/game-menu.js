@@ -46,7 +46,13 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   const cards=()=>Array.from($('constellations').children);
   const say=(id,value)=>{if($(id).textContent!==value)$(id).textContent=value;};
   function showReading(text,kind){
-    history.push({extra,texts,textIndex});extra=kind;texts=Array.from(text.matchAll(/[\s\S]{1,120}/gu),m=>m[0]);textIndex=0;refresh();
+    history.push({extra,texts,textIndex});extra=kind;
+    texts=[];let chunk='',count=0;
+    // Older browsers retain the entire text instead of splitting a grapheme.
+    const segments=window.Intl?.Segmenter ? new window.Intl.Segmenter('ja',{granularity:'grapheme'}).segment(text) : [{segment:text}];
+    for(const {segment} of segments){chunk+=segment;if(++count===120){texts.push(chunk);chunk='';count=0;}}
+    if(chunk)texts.push(chunk);
+    textIndex=0;refresh();
   }
   function openExtra(next){
     if(extra===next)return;

@@ -10,6 +10,13 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+test('story pages preserve combining marks and joined emoji at their boundaries',async({page})=>{
+ const mark='か\u3099',emoji='👩‍🚀',description='あ'.repeat(119)+mark+emoji+'終わり';
+ await setup(page,[{...row,description}]);await page.locator('#game-about').click();
+ await expect(page.locator('#game-reading-text')).toHaveText('あ'.repeat(119)+mark);
+ await page.locator('#game-text-next').click();await expect(page.locator('#game-reading-text')).toHaveText(emoji+'終わり');
+ await page.locator('#game-text-prev').click();await expect(page.locator('#game-reading-text')).toHaveText('あ'.repeat(119)+mark);
+});
 test('revisiting settings collapses navigation cycles and preserves the story position',async({page})=>{
  await setup(page);await page.locator('#game-about').click();await page.locator('#game-text-next').click();
  const text=await page.locator('#game-reading-text').textContent();await page.locator('#game-options').click();
