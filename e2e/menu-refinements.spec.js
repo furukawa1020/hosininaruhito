@@ -10,6 +10,13 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+test('revisiting settings collapses navigation cycles and preserves the story position',async({page})=>{
+ await setup(page);await page.locator('#game-about').click();await page.locator('#game-text-next').click();
+ const text=await page.locator('#game-reading-text').textContent();await page.locator('#game-options').click();
+ for(let i=0;i<3;i++){await page.locator('#game-connection').click();await page.locator('#game-options').click();}
+ await page.locator('#studio-back').click();await expect(page.locator('#game-reading')).toBeVisible();await expect(page.locator('#game-reading-text')).toHaveText(text);
+ await page.locator('#studio-back').click();await expect(page.locator('#studio-choose')).toBeVisible();
+});
 test('closed menu discards dome markers when a delayed identity change invalidates selection',async({page})=>{
  await setup(page);let pending;await page.route('**/api/status',r=>{pending=r;});
  await page.locator('#game-options').click();await page.locator('#refresh').click();await expect.poll(()=>!!pending).toBe(true);
