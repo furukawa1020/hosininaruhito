@@ -10,6 +10,13 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+test('closing setup restores an enabled control without changing consent or stealing valid focus',async({page})=>{
+ await setup(page);await page.keyboard.press('Escape');await expect(page.locator('#studio-dialog')).toBeHidden();
+ await expect(page.locator('#camera-consent')).toBeFocused();await expect(page.locator('#camera-consent')).not.toBeChecked();
+ await page.keyboard.press('Space');await expect(page.locator('#camera-consent')).toBeChecked();await expect(page.locator('#camera-video')).toBeHidden();
+ await page.locator('#studio-settings').focus();await page.keyboard.press('Enter');await page.keyboard.press('Escape');
+ await expect(page.locator('#studio-settings')).toBeFocused();await expect(page.locator('#camera-video')).toBeHidden();
+});
 test('reading boundary buttons return keyboard focus to the text',async({page})=>{
  await setup(page);await page.locator('#game-about').click();await page.locator('#game-text-next').focus();
  await page.keyboard.press('Enter');await expect(page.locator('#game-text-next')).toBeFocused();

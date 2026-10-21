@@ -128,7 +128,12 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('sky-form').addEventListener('submit',()=>{locationEdit=false;});
   $('auth-logout').addEventListener('click',()=>{extra=null;history=[];refresh();});
   dialog.addEventListener('cancel',stop);
-  dialog.addEventListener('close',()=>{move($('game-dome'),'game-welcome-dome');dome.resize();render();});
+  dialog.addEventListener('close',()=>{
+    move($('game-dome'),'game-welcome-dome');dome.resize();render();
+    const focused=document.activeElement;
+    if(focused?.matches('button,input,select,a[href]')&&!focused.disabled&&focused.getClientRects().length)return;
+    [$('studio-action'),$('camera-consent'),$('stop')].find(el=>!el.disabled&&el.getClientRects().length)?.focus({preventScroll:true});
+  });
   const selectionObserver=new MutationObserver(()=>{syncDome();refresh();});
   selectionObserver.observe($('constellations'),{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['aria-pressed','data-sky-id','data-azimuth','data-altitude']});
   window.addEventListener('pagehide',()=>{selectionObserver.disconnect();dome.dispose();},{once:true});
