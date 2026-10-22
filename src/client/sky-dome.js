@@ -44,7 +44,12 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
       ctx.beginPath();ctx.arc(p.x,p.y,active?6:3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
       if(active){
         ctx.strokeStyle='#ffe9a8';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,16,0,Math.PI*2);ctx.stroke();
-        ctx.font='600 17px sans-serif';ctx.fillText(rows[p.i].name,p.x,Math.max(22,p.y-29));
+        ctx.font='600 17px sans-serif';
+        const maxWidth=Math.max(1,Math.min(240,width-24));
+        const parts=Array.from(rows[p.i].name);let label=parts.join('');
+        while(parts.length&&ctx.measureText(label).width>maxWidth){parts.pop();label=parts.join('')+'…';}
+        const half=Math.min(maxWidth,ctx.measureText(label).width)/2;
+        ctx.fillText(label,Math.max(12+half,Math.min(width-12-half,p.x)),Math.max(22,p.y-29),maxWidth);
       }
       if(p.depth>0)hits.push(p);
     }
@@ -68,28 +73,39 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
     if(!canvas.hasPointerCapture(event.pointerId)){drag=null;return;}
     const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
     if(Math.hypot(dx,dy)>5)drag.moved=true;
+    if(!drag.moved)return;
     yaw=drag.yaw-dx*.008;pitch=Math.max(-1.4,Math.min(1.4,drag.pitch+dy*.008));draw();
   });
   canvas.addEventListener('pointerup',event=>{
     if(!drag||event.pointerId!==drag.pointerId)return;
-    const moved=drag.moved;
+    const moved=drag.moved||Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>5;
     drag=null;
     if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
-    if(!moved){const r=canvas.getBoundingClientRect();const hit=hits.filter(p=>Math.hypot(event.clientX-r.left-p.x,event.clientY-r.top-p.y)<24).sort((a,b)=>b.depth-a.depth)[0];if(hit)onSelect(hit.i);}
+    if(!moved){
+      const r=canvas.getBoundingClientRect();
+      const hit=hits.map(p=>({...p,distance:Math.hypot(event.clientX-r.left-p.x,event.clientY-r.top-p.y)}))
+        .filter(p=>p.distance<24).sort((a,b)=>a.distance-b.distance||b.depth-a.depth)[0];
+      if(hit)onSelect(hit.i);
+    }
   });
   const cancel=event=>{if(drag?.pointerId===event.pointerId)drag=null;};
   canvas.addEventListener('pointercancel',cancel);
   canvas.addEventListener('lostpointercapture',cancel);
+  function resetDrag(){
+    const id=drag?.pointerId;drag=null;
+    if(id!==undefined&&canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
+  }
   const observer=new ResizeObserver(resize);observer.observe(host);
   if(!ctx){host.dataset.fallback='true';canvas.hidden=true;}
   return {
     update(next,index){
       const changed=rows!==next||selected!==index;rows=next;selected=index;
+      if(changed)resetDrag();
       if(changed&&rows[index]){yaw=rows[index].azimuthDeg*rad;pitch=rows[index].altitudeDeg*rad;}
       if(changed)draw();
     },
-    center(){if(rows[selected]){yaw=rows[selected].azimuthDeg*rad;pitch=rows[selected].altitudeDeg*rad;}else{yaw=-.45;pitch=.38;}draw();},
+    center(){resetDrag();if(rows[selected]){yaw=rows[selected].azimuthDeg*rad;pitch=rows[selected].altitudeDeg*rad;}else{yaw=-.45;pitch=.38;}draw();},
     resize,
-    dispose(){disposed=true;drag=null;observer.disconnect();canvas.width=canvas.height=0;rows=[];hits=[];}
+    dispose(){disposed=true;resetDrag();observer.disconnect();canvas.width=canvas.height=0;rows=[];hits=[];}
   };
 }
