@@ -16,8 +16,9 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <div id="game-account" hidden></div>
         <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div id="game-reconnect"></div><button id="game-connection" class="text-button" type="button">接続状況を見る</button></div>
         <div id="game-connection-page" hidden><div id="game-service-list"></div><button id="game-recheck" class="secondary" type="button">接続設定を再確認する</button></div>
-        <div id="game-reading" hidden><p id="game-reading-text" tabindex="-1"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
+        <div id="game-reading" hidden><p id="game-reading-text" tabindex="-1" aria-live="polite" aria-atomic="true"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
         <div id="game-star-pager" class="game-pager"><button id="game-prev" type="button" aria-label="前の星座">←</button><span id="game-page-count"></span><button id="game-next" type="button" aria-label="次の星座">→</button></div>
+        <p id="game-selection-announcement" class="sr-only" role="status" aria-atomic="true"></p>
         <p id="studio-dialog-notice" role="status"></p>
         <div id="game-auth-recovery"></div>
         <button id="studio-choose" class="primary" type="button">この星座で遊ぶ →</button>
@@ -82,6 +83,10 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     for(const id of ['studio-choose','game-star-pager','game-about'])$(id).hidden=page!=='stars';
     for(const id of ['game-login','game-privacy'])$(id).hidden=page!=='access';
     $('studio-choose').disabled=$('detail').hidden;
+    const selectedName=index>=0&&!$('detail').hidden?buttons[index].querySelector('strong').textContent:'';
+    $('studio-choose').setAttribute('aria-label',selectedName?'この星座で遊ぶ：'+selectedName:'この星座で遊ぶ');
+    $('game-selection-announcement').hidden=page!=='stars';
+    say('game-selection-announcement',page==='stars'&&selectedName?selectedName+'、'+(index+1)+' / '+buttons.length:'');
     const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',connection:'接続の準備',about:'この星座のお話',privacy:'ログイン情報について'};
     say('studio-dialog-title',titles[page]);
     const locationNotice=['pending','error','success'].includes($('location-notice').dataset.state)?$('location-notice').textContent:$('notice').textContent;
@@ -112,7 +117,19 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('studio-choose').addEventListener('click',()=>{dialog.close();render();$('studio-action').focus({preventScroll:true});});
   $('game-prev').addEventListener('click',()=>turn(-1));$('game-next').addEventListener('click',()=>turn(1));
   $('game-return-stars').addEventListener('click',()=>{if(!cards().length||$('detail').hidden)return;locationEdit=false;refresh();});
-  dialog.addEventListener('keydown',e=>{if(page==='stars'&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();turn(e.key==='ArrowLeft'?-1:1);}});
+  dialog.addEventListener('keydown',e=>{
+    if(e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey||
+      e.target.closest('input,textarea,select')||e.target.isContentEditable)return;
+    if(page==='stars'){
+      if(['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();turn(e.key==='ArrowLeft'?-1:1);}
+      else if(['Home','End'].includes(e.key)){
+        const list=cards();if(!list.length)return;
+        e.preventDefault();list[e.key==='Home'?0:list.length-1].click();refresh();
+      }
+    }else if(['about','privacy'].includes(page)&&['ArrowLeft','ArrowRight'].includes(e.key)){
+      e.preventDefault();pageText(e.key==='ArrowLeft'?-1:1);
+    }
+  });
   $('game-center').addEventListener('click',()=>dome.center());
   $('game-login').addEventListener('click',()=>openExtra('account'));
   $('game-options').addEventListener('click',()=>openExtra('settings'));
@@ -123,11 +140,12 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     const name=$('detail-name').textContent;
     showReading((name.length>16?'名前：'+name+'\n\n':'')+$('detail-description').textContent+' '+$('detail-story').textContent,'about');
   });
-  for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>{
-    const focused=document.activeElement===$(id);
-    textIndex=Math.max(0,Math.min(texts.length-1,textIndex+delta));refresh();
-    if(focused&&$(id).disabled)$('game-reading-text').focus({preventScroll:true});
-  });
+  function pageText(delta){
+    const focused=document.activeElement;
+    textIndex=Math.max(0,Math.min(Math.max(0,texts.length-1),textIndex+delta));refresh();
+    if([$('game-text-prev'),$('game-text-next')].includes(focused)&&focused.disabled)$('game-reading-text').focus({preventScroll:true});
+  }
+  for(const [id,delta]of [['game-text-prev',-1],['game-text-next',1]])$(id).addEventListener('click',()=>pageText(delta));
   $('sky-form').addEventListener('submit',()=>{locationEdit=false;});
   $('auth-logout').addEventListener('click',()=>{extra=null;history=[];refresh();});
   dialog.addEventListener('cancel',stop);
