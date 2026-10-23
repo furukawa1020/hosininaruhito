@@ -16,7 +16,7 @@ import { RequestSession, parseCoordinates } from './requests.js';
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
 const statusSession = new RequestSession();
-let pose, experience, advice, studio;
+let pose, experience, advice, studio, location;
 let observation = null;
 let lastTraceState = null;
 const camera = mountCamera(document, window, { onChange: state => pose?.cameraChanged(state) });
@@ -72,6 +72,7 @@ function clearResults() {
   $('result').textContent = '実APIの応答をここに表示します。';
 }
 function stop(message = '通信とカメラを停止しました。再開するには、もう一度操作してください。', cameraReason = 'manual') {
+  location?.cancel();
   advice.stop();
   experience.stop();
   trace.stop(cameraReason);
@@ -224,7 +225,7 @@ window.addEventListener('pagehide', () => { session.cancel(); statusSession.canc
 // pagehide disposes the sensor/render owners. A cached document cannot reuse them.
 window.addEventListener('pageshow', event => { if (event.persisted) window.location.reload(); });
 mountAccess(document,()=>{stop('ログイン状態が変わりました。体験を準備し直してください。');clearResults();});
-mountLocation(document,window);
+location = mountLocation(document,window);
 mountPlayGuide(document,window,{hasAccess:()=>hasAccess($('token').value)});
 studio = mountStudio(document,window,{hasAccess:()=>hasAccess($('token').value)});
 loadStatus();

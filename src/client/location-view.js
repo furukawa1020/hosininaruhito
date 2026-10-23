@@ -8,24 +8,28 @@ export function mountLocation(document, window) {
     3:'現在地を取得できません。取得が時間切れになりました。再試行するか、緯度・経度を入力してください。'
   };
   let generation=0,timer=null,pending=false;
-  function finish(message,state='error'){pending=false;window.clearTimeout(timer);$('locate').disabled=false;$('location-notice').textContent=message;$('location-notice').dataset.state=state;}
-  function cancel(){if(!pending)return;generation++;finish('位置の取得を取り消しました。必要ならもう一度入力してください。');}
+  function finish(message,state='error'){generation++;pending=false;window.clearTimeout(timer);$('locate').disabled=false;$('location-notice').textContent=message;$('location-notice').dataset.state=state;}
+  function cancel(){if(!pending)return;finish('位置の取得を取り消しました。必要ならもう一度入力してください。');}
   $('locate').addEventListener('click',()=>{
     if(pending||document.hidden)return;
     if(!window.navigator.geolocation){finish('この端末では現在地を取得できません。緯度・経度を入力してください。');return;}
-    const at=++generation;pending=true;$('locate').disabled=true;$('location-notice').textContent='ブラウザーの位置情報の許可を確認してください…';$('location-notice').dataset.state='pending';
-    timer=window.setTimeout(()=>{if(at===generation){generation++;finish(failures[3]);}},12000);
+    const at=++generation,until=window.performance.now()+12000,ownedFocus=document.activeElement===$('locate');
+    pending=true;$('locate').disabled=true;$('location-notice').textContent='ブラウザーの位置情報の許可を確認してください…';$('location-notice').dataset.state='pending';
+    timer=window.setTimeout(()=>{if(at===generation)finish(failures[3]);},12000);
     try{window.navigator.geolocation.getCurrentPosition(position=>{
       if(at!==generation||document.hidden)return;
+      if(window.performance.now()>=until){finish(failures[3]);return;}
       let coordinates;
-      try{coordinates=parseCoordinates(String(position.coords.latitude),String(position.coords.longitude));}catch{generation++;finish('現在地を確認できません。緯度・経度を入力してください。');return;}
+      try{coordinates=parseCoordinates(String(position.coords.latitude),String(position.coords.longitude));}catch{finish('現在地を確認できません。緯度・経度を入力してください。');return;}
+      const restoreFocus=ownedFocus&&[document.body,$('locate')].includes(document.activeElement);
       finish('おおよその現在地を入力しました。内容を確認し、送信への同意を選んでから星座を探してください。','success');
       $('lat').value=coordinates.lat.toFixed(2);$('lng').value=coordinates.lng.toFixed(2);
       $('consent').checked=false;$('consent').dispatchEvent(new window.Event('change',{bubbles:true}));
       for(const id of ['lat','lng'])$(id).dispatchEvent(new window.Event('input',{bubbles:true}));
       $('location-notice').dataset.state='success';
-    },error=>{if(at===generation){generation++;finish(failures[error?.code]||'現在地を取得できませんでした。再試行するか、緯度・経度を入力してください。');}},{enableHighAccuracy:false,timeout:10000,maximumAge:60000});}
-    catch{generation++;finish('現在地を取得できませんでした。緯度・経度を入力してください。');}
+      if(restoreFocus&&!$('consent').disabled&&$('consent').getClientRects().length)$('consent').focus({preventScroll:true});
+    },error=>{if(at===generation)finish(window.performance.now()>=until?failures[3]:failures[error?.code]||'現在地を取得できませんでした。再試行するか、緯度・経度を入力してください。');},{enableHighAccuracy:false,timeout:10000,maximumAge:60000});}
+    catch{if(at===generation)finish('現在地を取得できませんでした。緯度・経度を入力してください。');}
   });
   for(const id of ['lat','lng','stop','sky','auth-logout','auth-guest','auth-login'])$(id).addEventListener(id==='lat'||id==='lng'?'input':'click',cancel);
   for(const id of ['lat','lng'])$(id).addEventListener('input',()=>{$('location-notice').dataset.state='idle';});
@@ -33,4 +37,5 @@ export function mountLocation(document, window) {
   document.addEventListener('keydown',e=>{if(e.key==='Escape')cancel();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)cancel();});
   window.addEventListener('pagehide',cancel);
+  return {cancel};
 }
