@@ -3,6 +3,9 @@ import { prepareSession } from '../core/session.js';
 import { RequestSession } from './requests.js';
 import {hasAccess,requestHeaders} from './access.js';
 
+// Only errors created here contain reviewed user-facing text.
+class PreparationError extends Error {}
+
 export function mountSession(document, window, { reach, trace }) {
   const $ = id => document.getElementById(id);
   const requests = new RequestSession();
@@ -35,6 +38,7 @@ export function mountSession(document, window, { reach, trace }) {
     not_configured: 'サーバーの設定が不足しています。',
     catalog_unavailable: '恒星カタログを利用できません。'
   };
+  const messageFor = (code, fallback) => typeof code === 'string' && Object.hasOwn(messages, code) ? messages[code] : fallback;
   const say = (text, state) => {
     $('session-notice').textContent = text;
     $('session-notice').dataset.state = state;
@@ -61,39 +65,49 @@ export function mountSession(document, window, { reach, trace }) {
     $('session-metadata').textContent='';
     const input = { id: selected.id, ...selected.coordinates, at: new Date().toISOString() };
     pending = true; trace.configureProgram(null); render();
-    say('恒星カタログを計算し、記録した範囲への配置を確認しています…', 'loading');
+    let phase = 'auth';
+    say('認証情報を確認しています…', 'loading');
     try {
+      const headers = await requestHeaders(token,request.signal);
+      if (!request.isCurrent()) return;
+      phase = 'projection';
+      say('恒星カタログを計算し、記録した範囲への配置を確認しています…', 'loading');
       const response = await fetch('/api/project', {
-        method: 'POST', headers: await requestHeaders(token,request.signal),
+        method: 'POST', headers,
         body: JSON.stringify(input), signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)])
       });
       const data = await response.json();
       if (!request.isCurrent()) return;
-      if (!response.ok) throw new Error(messages[data.code] || '投影を取得できませんでした。');
+      if (!response.ok) throw new PreparationError(messageFor(data?.code, '投影を取得できませんでした。'));
       if (!reach.ready() || document.hidden || !$('consent').checked || !$('camera-consent').checked) {
         invalidate(); return;
       }
       const fitted = prepareSession(data, input, calibration);
-      if (!fitted.ok) throw new Error(messages[fitted.reason] || '記録した範囲へ配置できませんでした。');
+      if (!fitted.ok) throw new PreparationError(messageFor(fitted.reason, '記録した範囲へ配置できませんでした。'));
       const useAI = $('planner-consent').checked;
       if (useAI) {
         const expectedSource = plannerProvider + '-live';
+        phase = 'auth';
+        say('認証情報を確認しています…', 'loading');
+        const headers = await requestHeaders(token,request.signal);
+        if (!request.isCurrent()) return;
+        phase = 'planner';
         say(plannerName() + 'が星の順序を計画しています…', 'loading');
         const planned = await fetch('/api/program', {
-          method: 'POST', headers: { ...await requestHeaders(token,request.signal), 'X-HCR-Planner': plannerProvider },
+          method: 'POST', headers: { ...headers, 'X-HCR-Planner': plannerProvider },
           body: JSON.stringify({ program: fitted.program }),
           signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
         });
         const candidate = await planned.json();
         if (!request.isCurrent()) return;
-        if (!planned.ok) throw new Error(messages[candidate.code] || 'AIの計画を取得できませんでした。');
+        if (!planned.ok) throw new PreparationError(messageFor(candidate?.code, 'AIの計画を取得できませんでした。'));
         if (!reach.ready() || document.hidden || !$('planner-consent').checked ||
             !$('consent').checked || !$('camera-consent').checked) { invalidate(); return; }
         try {
           const checked = validatePlannedProgram(fitted.program, candidate, expectedSource);
           if (!evaluatePlan(fitted.program, checked, expectedSource).ok) throw Error();
           fitted.program = checked;
-        } catch { throw new Error('AIの応答が元の配置条件と一致しません。配置は開始していません。'); }
+        } catch { throw new PreparationError('AIの応答が元の配置条件と一致しません。配置は開始していません。'); }
       }
       trace.configureProgram(fitted);
       $('session-metadata').textContent=fitted.program.steps.length + '個の星 / 倍率 ' + fitted.scale.toFixed(2) +
@@ -101,8 +115,12 @@ export function mountSession(document, window, { reach, trace }) {
         '。星APIの観測時刻との一致は未確認です。';
       say(fitted.program.steps.length+'個の星を配置できました。下の「配置した星座を開始する」で始めましょう。'+(useAI?plannerName()+'の順序を使います。':'AIを使わず、カタログ順で進めます。'),'ready');
     } catch (error) {
-      if (request.isCurrent()) say(error.name === 'TimeoutError' ? '投影の取得が時間内に終わりませんでした。' :
-        messages[error.message] || (error.name === 'Error' ? error.message : '投影の通信に失敗しました。'), 'error');
+      if (request.isCurrent()) {
+        const subject = phase === 'auth' ? '認証情報の確認' : phase === 'planner' ? plannerName() + 'の計画' : '投影の取得';
+        say(error instanceof PreparationError ? error.message : error?.name === 'TimeoutError'
+          ? subject + 'が時間内に終わりませんでした。接続を確認して再試行してください。'
+          : subject + 'に失敗しました。通信と応答を確認して再試行してください。', 'error');
+      }
     } finally { if (request.isCurrent()) { pending = false; render(); } }
   };
   const consent = () => { if (!$('consent').checked) invalidate('位置送信の同意を外したため、星座選択を解除しました。', true); };

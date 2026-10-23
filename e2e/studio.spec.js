@@ -58,6 +58,22 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+for(const viewport of [{width:320,height:568},{width:844,height:390}])test('game shows projection and AI preparation stages without scrolling '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);await setup(page);
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'vertex',services:{access:true,sky:true,planner:true,reflex:false},auth:guestAuth}}));
+ await page.locator('#studio-settings').click();await page.locator('#game-options').click();await page.locator('#refresh').click();
+ await expect(page.locator('#planner-destination')).toHaveText('Google Cloud / Vertex AI');await page.locator('#planner-consent').check();await page.locator('#studio-close').click();
+ await beginCalibration(page);await page.clock.runFor(6600);await page.locator('#studio-action').click();
+ let projected,planned;await page.route('**/api/project',r=>{projected=r;});await page.route('**/api/program',r=>{planned=r;});
+ await page.locator('#studio-action').click();await expect(page.locator('#studio-status')).toContainText('恒星カタログ');await noScroll(page,['studio-status','studio-action','stop']);
+ await projected.fulfill({json:projection(projected.request().postDataJSON())});
+ await expect(page.locator('#studio-status')).toContainText('Vertex AIが星の順序を計画');await noScroll(page,['studio-status','studio-action','stop']);
+ await expect(page.locator('#studio-action')).toBeDisabled();await page.locator('#stop').click();
+ await planned.fulfill({json:{...planned.request().postDataJSON().program,source:'vertex-live'}});
+ await expect(page.locator('#studio-status')).not.toContainText('計画しています');await expect(page.locator('#camera-video')).toBeHidden();
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+});
+
 for(const viewport of [{width:320,height:568},{width:844,height:390}])test('completed constellation offers another selection without starting the camera '+viewport.width,async({page})=>{
  await page.setViewportSize(viewport);await setup(page);
  await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験の星座',azimuthDeg:120,altitudeDeg:40},{id:'2',name:'別の星座',azimuthDeg:80,altitudeDeg:20}]}}));

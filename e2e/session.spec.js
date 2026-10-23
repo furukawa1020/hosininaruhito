@@ -6,10 +6,10 @@ test.use({launchOptions:{args:['--use-fake-device-for-media-stream','--use-fake-
 const projection=input=>({...input,ok:true,timeBasis:'explicit-utc-catalog-calculation',source:{catalog:'d3-celestial/XHIP',commit:'7e720a3de062059d4c5400a379146a601d9010e0',license:'BSD-3-Clause',calculation:'astronomy-engine@2.1.19'},
   projection:'gnomonic',coordinateSystem:'normalized-image-template',mirrored:false,excluded:[],
   stars:[{id:'a',x:.25,y:.25},{id:'b',x:.75,y:.25},{id:'c',x:.25,y:.75}],lines:[['a','b'],['b','c']]});
-async function setup(page, respond, guest=false) {
+async function setup(page, respond, guest=false, guestOptions={}) {
   await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
   await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:guest?'vertex':'codex',services:{access:true,sky:true,planner:guest,reflex:false},...(guest?{auth:guestAuth}:{})}}));
-  if(guest)await guestSdk(page);
+  if(guest)await guestSdk(page,guestOptions);
   await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験用星座',azimuthDeg:120,altitudeDeg:40}]}}));
   await page.route('**/api/project',respond|| (r=>r.fulfill({json:projection(r.request().postDataJSON())})));
   await page.addInitScript(()=>{
@@ -169,6 +169,37 @@ async function vertexStatus(page, provider = 'vertex') {
  await page.locator('.connection').evaluate(el=>el.open=true);await page.locator('#refresh').click();
  await expect(page.locator('#services')).not.toContainText('確認中');
 }
+
+for(const path of ['/api/project','/api/program'])for(const timeout of [false,true])test('preparation sanitizes and identifies '+path+' '+(timeout?'timeout':'exception'),async({page})=>{
+ await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ if(path==='/api/program'){
+  await vertexStatus(page);await page.route('**/api/program',r=>r.fulfill({json:{...r.request().postDataJSON().program,source:'vertex-live'}}));await page.locator('#planner-consent').check();
+ }
+ await page.evaluate(({path,timeout})=>{const original=window.fetch;window.fetch=(url,options)=>{
+  if(String(url)===path&&!window.retryPreparation)return Promise.reject(timeout?new DOMException('private diagnostic','TimeoutError'):new Error('private diagnostic'));
+  return original(url,options);
+ };},{path,timeout});
+ await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
+ await expect(page.locator('#session-notice')).toContainText(path==='/api/program'?'Vertex AIの計画':'投影の取得');
+ await expect(page.locator('#session-notice')).not.toContainText('private diagnostic');
+ if(timeout)await expect(page.locator('#session-notice')).toContainText('時間内');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+ await page.evaluate(()=>{window.retryPreparation=true;});await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+});
+test('preparation auth timeout identifies authentication and ignores late token completion',async({page})=>{
+ await page.addInitScript(()=>{window.headersReady=true;});await setup(page,undefined,true,{headersDelay:true});
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await page.evaluate(()=>{window.headersReady=false;});await page.locator('#session-prepare').click();
+ await expect(page.locator('#session-notice')).toContainText('認証情報を確認');await page.clock.runFor(10001);
+ await expect(page.locator('#session-notice')).toContainText('認証情報の確認が時間内');
+ await page.evaluate(()=>window.releaseHeaders());await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
+ await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+});
+for(const code of ['__proto__','unknown-private-code'])test('preparation rejects unrecognized error code '+code,async({page})=>{
+ await setup(page,r=>r.fulfill({status:503,json:{code}}));await expect(page.locator('#session-notice')).toHaveText('投影を取得できませんでした。');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+});
 test('cloud planner displays Google destination and preserves manual start after verified order',async({page})=>{
  await setup(page);await vertexStatus(page);
  await expect(page.locator('#planner-destination')).toHaveText('Google Cloud / Vertex AI');

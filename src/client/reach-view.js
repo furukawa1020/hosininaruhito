@@ -27,7 +27,7 @@ export function mountReach(document, window, { onChange = () => {} } = {}) {
     const snapshot = calibration.snapshot();
     if (published !== calibration.result) { published = calibration.result; onChange(); }
     $('reach-start').disabled = !tracking() || snapshot.state === 'collecting';
-    $('reach-finish').disabled = snapshot.state !== 'collecting';
+    $('reach-finish').disabled = snapshot.state !== 'collecting' || snapshot.elapsedMs < 3000 || snapshot.count < 30;
     $('reach-clear').disabled = !['collecting', 'ready'].includes(snapshot.state);
     $('reach-start').textContent = snapshot.state === 'ready' ? '計測をやり直す' : '楽に動かせる範囲を計測する';
     $('reach-notice').dataset.state = snapshot.state;
