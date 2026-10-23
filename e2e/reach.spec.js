@@ -56,14 +56,16 @@ test('fixture measurement requires tracking, enough time and selected left wrist
   await setup(page);
   await page.locator('#reach-posture').selectOption('standing');
   await begin(page);
-  await page.locator('#reach-finish').click();
-  await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason', 'insufficient_samples');
+  await expect(page.locator('#reach-finish')).toBeDisabled();
+  await page.locator('#reach-finish').evaluate(el=>el.click());
+  await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason', 'collecting');
   await complete(page);
   await expect(page.locator('#reach-overlay')).toBeVisible();
   await page.locator('.camera-panel').screenshot({ path: 'test-results/reach-fixture-desktop.png' });
   expect(requests.every(r => new URL(r.url).origin === 'http://127.0.0.1:8799' && r.method === 'GET')).toBe(true);
   await page.locator('#reach-start').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state', 'collecting');
+  await expect(page.locator('#reach-finish')).toBeDisabled();
   await page.locator('#reach-clear').click();
   await expect(page.locator('#reach-overlay')).toBeHidden();
   await expect(page.locator('#reach-points')).toHaveAttribute('d', '');

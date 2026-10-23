@@ -118,7 +118,7 @@ export function mountStudio(document, window, { hasAccess }) {
             step = 'いよいよ、星をつなぐ'; instruction = '両手を映したまま、楽な姿勢で。あなたが動かした範囲に星を置きます。';
             target = selected ? 'session-prepare' : 'setup'; button = selected ? 'この範囲に星を置く' : '星座を選ぶ';
             if (session === 'loading') button = '星を準備しています…';
-            if (session === 'error') status = $('session-notice').textContent;
+            if (session === 'loading' || session === 'error') status = $('session-notice').textContent;
             if (session === 'ready') {
               phase = 'ready'; title = '輪に、' + hand + 'の光を重ねる。'; instruction = '輪に重なったら、0.8秒そのまま。星が残ったら、次の輪へ進みます。';
               target = 'trace-start'; button = '星をつなぎはじめる';
