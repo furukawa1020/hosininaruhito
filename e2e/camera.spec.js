@@ -29,6 +29,23 @@ async function expectReleased(page) {
   expect(await page.evaluate(() => document.getElementById('camera-video').srcObject === null &&
     window.cameraFeeds.every(s => s.getTracks().every(t => t.readyState === 'ended')))).toBe(true);
 }
+
+test('game distinguishes permission from pending playback and offers retry after playback timeout',async({page})=>{
+ await page.setViewportSize({width:320,height:568});await watchCamera(page);
+ await page.clock.install();
+ await page.addInitScript(()=>{
+  const play=HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play=function(){if(window.allowPlayback)return play.call(this);return new Promise(resolve=>{window.finishPlayback=resolve;});};
+ });
+ await page.goto('/');await page.locator('#studio-practice').click();await page.locator('#camera-consent').check();await page.locator('#studio-action').click();
+ await expect(page.locator('#studio-status')).toContainText('映像を表示する準備中');
+ await expect(page.locator('#studio-status')).not.toContainText('許可を確認');await expect(page.locator('#studio-action')).toBeDisabled();
+ await page.clock.runFor(8001);await expect(page.locator('#studio-status')).toContainText('8秒以内');
+ await expectReleased(page);await expect(page.locator('#studio-action')).toBeEnabled();
+ for(const id of ['studio-status','studio-action','stop'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ await page.evaluate(()=>{window.finishPlayback();window.allowPlayback=true;});await expect(page.locator('#camera-video')).toBeHidden();
+ await page.locator('#studio-action').click();await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');await page.locator('#stop').click();await expectReleased(page);
+});
 test('separate camera consent, synthetic local preview, withdrawal and explicit restart', async ({ page }) => {
   await watchCamera(page);
   const outbound = [];

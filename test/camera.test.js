@@ -31,6 +31,33 @@ function setup(options = {}) {
   return { camera, video, feeds, constraints, states, hide: () => { visible = false; } };
 }
 
+test('late playback cannot beat a delayed deadline callback and may be retried explicitly',async()=>{
+ let now=0;const app=setup({now:()=>now}),playing=deferred();app.video.play=()=>playing.promise;
+ const started=app.camera.start({consent:true});await Promise.resolve();
+ assert.equal(app.camera.reason,'starting');now=8000;playing.resolve();await started;
+ assert.equal(app.camera.reason,'playback_timeout');assert.equal(app.video.srcObject,null);
+ assert.ok(app.feeds[0].getTracks().every(t=>t.readyState==='ended'));
+ app.video.play=async()=>{};await app.camera.start({consent:true});assert.equal(app.camera.state,'preview');app.camera.dispose();
+});
+test('playback timer stops and releases a never-settling video',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const app=setup();app.video.play=()=>new Promise(()=>{});
+ const started=app.camera.start({consent:true});await Promise.resolve();t.mock.timers.tick(8000);await started;
+ assert.equal(app.camera.reason,'playback_timeout');assert.equal(app.camera.pending,false);assert.equal(app.video.srcObject,null);
+ assert.ok(app.feeds[0].getTracks().every(t=>t.readyState==='ended'));
+});
+for(const kind of ['ended','empty'])test('playback with '+kind+' tracks cannot become preview even before device events',async()=>{
+ const app=setup(),playing=deferred();app.video.play=()=>playing.promise;
+ const started=app.camera.start({consent:true});await Promise.resolve();
+ if(kind==='ended')app.feeds[0].getVideoTracks()[0].stop();else app.feeds[0].getVideoTracks=()=>[];
+ playing.resolve();await started;assert.equal(app.camera.reason,'disconnected');assert.equal(app.video.srcObject,null);
+ assert.ok(app.feeds[0].getTracks().every(t=>t.readyState==='ended'));
+});
+for(const action of ['stop','hidden'])test(action+' in the starting notification never invokes playback',async()=>{
+ const app=setup();let played=false;app.video.play=async()=>{played=true;};
+ app.camera.onChange=s=>{if(s.reason==='starting'){if(action==='stop')app.camera.stop();else app.hide();}};
+ await app.camera.start({consent:true});assert.equal(played,false);assert.equal(app.video.srcObject,null);assert.equal(app.camera.reason,action==='stop'?'manual':'hidden');
+});
+
 test('permission deadline stops ownership without overlapping unresolved acquisition',async t=>{
  t.mock.timers.enable({apis:['setTimeout']});const permission=deferred();let calls=0;
  const app=setup({mediaDevices:{getUserMedia:()=>++calls===1?permission.promise:Promise.resolve(stream())}});
