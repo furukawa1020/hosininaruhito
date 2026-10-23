@@ -61,8 +61,9 @@ async function prepare(page){
 for(const viewport of [{width:320,height:568},{width:844,height:390}])test('game shows projection and AI preparation stages without scrolling '+viewport.width,async({page})=>{
  await page.setViewportSize(viewport);await setup(page);
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'vertex',services:{access:true,sky:true,planner:true,reflex:false},auth:guestAuth}}));
+ await page.locator('#studio-settings').click();await page.locator('#game-options').click();await page.locator('#refresh').click();
+ await expect(page.locator('#planner-destination')).toHaveText('Google Cloud / Vertex AI');await page.locator('#planner-consent').check();await page.locator('#studio-close').click();
  await beginCalibration(page);await page.clock.runFor(6600);await page.locator('#studio-action').click();
- await page.locator('#planner-consent').evaluate(el=>{el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));});
  let projected,planned;await page.route('**/api/project',r=>{projected=r;});await page.route('**/api/program',r=>{planned=r;});
  await page.locator('#studio-action').click();await expect(page.locator('#studio-status')).toContainText('恒星カタログ');await noScroll(page,['studio-status','studio-action','stop']);
  await projected.fulfill({json:projection(projected.request().postDataJSON())});
