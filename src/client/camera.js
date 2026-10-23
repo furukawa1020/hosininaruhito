@@ -110,20 +110,32 @@ export class CameraSession {
       }
       listen(acquired, 'inactive', 'disconnected');
       this.video.srcObject = acquired;
+      this.setState('requesting', 'starting');
+      if (!current()) {
+        release(acquired);
+        if (!this.disposed && generation === this.generation) this.stop('hidden');
+        return;
+      }
       let timer;
+      const playbackUntil = this.now() + 8000;
       try {
         await new Promise((resolve, reject) => {
           this.cancelPlayback = resolve;
-          timer = setTimeout(() => reject(new Error('Playback timeout')), 8000);
+          timer = setTimeout(() => { if (generation === this.generation) this.stop('playback_timeout'); }, 8000);
           Promise.resolve(this.video.play()).then(resolve, reject);
         });
       } finally {
         clearTimeout(timer);
         this.cancelPlayback = null;
       }
+      if (generation === this.generation && this.now() >= playbackUntil) this.stop('playback_timeout');
       if (!current()) {
         release(acquired);
         if (!this.disposed && generation === this.generation) this.stop('hidden');
+        return;
+      }
+      if (!acquired.getVideoTracks().some(track => track.readyState === 'live')) {
+        this.stop('disconnected');
         return;
       }
       if (acquired.getVideoTracks().some(track => track.muted)) {
