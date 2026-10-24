@@ -55,6 +55,27 @@ async function fixtureWorker(page, mode = 'normal') {
   }, mode);
 }
 
+test('frame reservation error shows recovery and allows an explicit retry',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await fixtureWorker(page);await camera(page);
+ await page.evaluate(()=>{
+   const video=document.getElementById('camera-video'),reserve=video.requestVideoFrameCallback;
+   video.requestVideoFrameCallback=()=>{throw Error('fixture frame failure');};
+   window.restoreReservation=()=>{video.requestVideoFrameCallback=reserve;};
+ });
+ await page.locator('#pose-start').click();
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','error');
+ await expect(page.locator('#pose-notice')).toContainText('もう一度試して');
+ await expect(page.locator('#pose-start')).toBeEnabled();
+ await expect(page.locator('#pose-overlay')).toBeHidden();
+ expect(await page.evaluate(()=>window.poseWorkers.every(w=>w.terminated))).toBe(true);
+ await page.evaluate(()=>window.restoreReservation());await page.clock.runFor(500);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','error');
+ await page.locator('#pose-start').click();await page.clock.runFor(800);
+ await expect(page.locator('#pose-notice')).toHaveAttribute('data-state','tracking');
+ expect(errors).toEqual([]);
+});
+
 test('measured wrist labels identify the selected hand and disappear on stop',async({page})=>{
  await fixtureWorker(page);await camera(page);await page.locator('#pose-start').click();await page.clock.runFor(800);
  await expect(page.locator('#right-wrist-label')).toHaveText('右手・使う手');
