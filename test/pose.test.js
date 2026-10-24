@@ -102,6 +102,22 @@ async function establish(app, start=100) {
   for(let i=0;i<=5;i++){app.time(start+i*100);await app.frame();app.reply();}
 }
 
+for(const tracking of [false,true])test('frame reservation failure stops worker and permits explicit restart: '+tracking,async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  const app=setup(t), reserve=app.video.requestVideoFrameCallback;
+  if(tracking){app.ready();await establish(app);}
+  app.video.requestVideoFrameCallback=()=>{throw Error('browser frame failure');};
+  if(tracking){app.time(700);await app.frame();assert.doesNotThrow(()=>app.reply());}
+  else assert.doesNotThrow(()=>app.ready());
+  assert.equal(app.session.state,'error');assert.equal(app.session.reason,'inference_failed');
+  assert.equal(app.workers[0].terminated,1);assert.equal(app.samples.at(-1),null);
+  assert.equal(app.callbacks.size,0);assert.equal(app.session.inFlight,null);
+  app.workers[0].emit({type:'ready'});t.mock.timers.tick(16000);
+  assert.equal(app.session.reason,'inference_failed');
+  app.video.requestVideoFrameCallback=reserve;
+  app.ready();await establish(app,800);assert.equal(app.session.state,'tracking');
+});
+
 for (const restart of [false, true]) {
   test('sample consumer can stop' + (restart ? ' and explicitly restart' : '') + ' without an old watchdog', async t => {
     t.mock.timers.enable({apis:['setTimeout']});

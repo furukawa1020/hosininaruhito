@@ -174,11 +174,15 @@ export class PoseSession {
   }
   schedule(generation) {
     if (generation !== this.generation || !['searching','tracking'].includes(this.state) || this.inFlight || this.callbackId !== null) return;
-    this.callbackId = this.video.requestVideoFrameCallback((_, metadata) => {
-      if (generation !== this.generation) return;
-      this.callbackId = null;
-      this.capture(generation, metadata);
-    });
+    try {
+      this.callbackId = this.video.requestVideoFrameCallback((_, metadata) => {
+        if (generation !== this.generation) return;
+        this.callbackId = null;
+        this.capture(generation, metadata);
+      });
+    } catch {
+      this.stop('inference_failed', 'error');
+    }
   }
   async capture(generation, metadata) {
     if (generation !== this.generation || this.inFlight) return;

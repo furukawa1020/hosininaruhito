@@ -40,6 +40,9 @@ export function waitForAuth(promise, signal, timeoutMs = 10000) {
     Promise.resolve(promise).then(value => {
       if (performance.now() >= until) timeout();
       else finish(resolve, value);
-    }, error => finish(reject, error));
+    }, error => {
+      if (performance.now() >= until) timeout();
+      else finish(reject, error);
+    });
   });
 }
