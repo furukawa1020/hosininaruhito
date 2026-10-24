@@ -8,6 +8,17 @@ const sky={source:'hoshimiru-live',constellations:[
  {id:'2',name:'低い試験星座',azimuthDeg:180,altitudeDeg:20}
 ]};
 const advice={source:'jev-live',advisoryOnly:true,action:'right',confidence:.5};
+for(const [width,height] of [[320,568],[844,390]])test('game empty results keep retry and stop visible at '+width,async({page})=>{
+ await page.setViewportSize({width,height});await guestSdk(page);
+ await page.route('**/api/status',r=>r.fulfill({json:{...ready,auth:guestAuth}}));
+ await page.route('**/api/sky',r=>r.fulfill({json:{...sky,constellations:[]}}));
+ await page.goto('/');await page.locator('#studio-action').click();await page.locator('#auth-guest').click();
+ await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');await page.locator('#consent').check();await page.locator('#sky').click();
+ await expect(page.locator('#studio-dialog-notice')).toContainText('時間をおいてもう一度');
+ for(const id of ['studio-dialog-notice','sky','studio-close'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
+ expect(await page.locator('.game-page').evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
+ await page.screenshot({path:'test-results/empty-retry-'+width+'.png'});
+});
 async function prepare(page){
  await page.route('**/api/status',r=>r.fulfill({json:ready}));
  await page.goto('/?view=details');await expect(page.locator('#sky')).toBeEnabled();
