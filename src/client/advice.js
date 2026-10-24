@@ -1,4 +1,10 @@
 export const ADVICE_LIMITS = Object.freeze({ intervalMs: 500, maxAgeMs: 1000, sampleAgeMs: 150, requests: 60, failures: 3 });
+export function validateAdvice(result) {
+  if (result?.source !== 'jev-live' || result.advisoryOnly !== true ||
+      !['left','right','up','down','hold','wait'].includes(result.action) ||
+      !Number.isFinite(result.confidence) || result.confidence < 0 || result.confidence > 1) throw Error('invalid_response');
+  return {source:result.source, advisoryOnly:true, action:result.action, confidence:result.confidence};
+}
 export function geometricCue({dx,dy,tolerance}) {
   if(Math.hypot(dx,dy)<=tolerance)return 'hold';
   return Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up');
@@ -51,9 +57,7 @@ export class AdvisorySession {
       const now=this.now();
       if(!this.active||ticket.generation!==this.generation||ticket.controller.signal.aborted)return;
       if(!valid(this.current,now)||now<ticket.at||now-ticket.at>ADVICE_LIMITS.maxAgeMs)return;
-      if(result?.source!=='jev-live'||result.advisoryOnly!==true||
-        !['left','right','up','down','hold','wait'].includes(result.action)||
-        !Number.isFinite(result.confidence)||result.confidence<0||result.confidence>1)throw Error('invalid_response');
+      validateAdvice(result);
       this.failures=0;
       if(this.current.targetId!==ticket.targetId||geometricCue(this.current)!==result.action)return;
       this.suggestion={action:result.action,at:ticket.at};

@@ -6,9 +6,9 @@ test.use({launchOptions:{args:['--use-fake-device-for-media-stream','--use-fake-
 const projection=input=>({...input,ok:true,timeBasis:'explicit-utc-catalog-calculation',source:{catalog:'d3-celestial/XHIP',commit:'7e720a3de062059d4c5400a379146a601d9010e0',license:'BSD-3-Clause',calculation:'astronomy-engine@2.1.19'},
   projection:'gnomonic',coordinateSystem:'normalized-image-template',mirrored:false,excluded:[],
   stars:[{id:'a',x:.25,y:.25},{id:'b',x:.75,y:.25},{id:'c',x:.25,y:.75}],lines:[['a','b'],['b','c']]});
-async function setup(page, respond, guest=false, guestOptions={}) {
+async function setup(page, respond, guest=false, guestOptions={}, reflex=false) {
   await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
-  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:guest?'vertex':'codex',services:{access:true,sky:true,planner:guest,reflex:false},...(guest?{auth:guestAuth}:{})}}));
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:guest?'vertex':'codex',services:{access:true,sky:true,planner:guest,reflex},...(guest?{auth:guestAuth}:{})}}));
   if(guest)await guestSdk(page,guestOptions);
   await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験用星座',azimuthDeg:120,altitudeDeg:40}]}}));
   await page.route('**/api/project',respond|| (r=>r.fulfill({json:projection(r.request().postDataJSON())})));
@@ -44,6 +44,17 @@ async function setup(page, respond, guest=false, guestOptions={}) {
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');
   await page.locator('#session-prepare').click();
 }
+for(const fails of [false,true])test('Jev connection check preserves a prepared constellation: '+fails,async({page})=>{
+ await page.route('**/api/reflex',r=>r.fulfill(fails?{status:502,json:{code:'upstream_unavailable'}}:{json:{source:'jev-live',advisoryOnly:true,action:'right',confidence:.5}}));
+ await setup(page,undefined,false,{},true);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ const metadata=await page.locator('#session-metadata').textContent();
+ await page.locator('.diagnostics summary').click();await page.locator('#jev').click();
+ await expect(page.locator('#notice')).toHaveAttribute('data-tone',fails?'error':'success');
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#session-metadata')).toHaveText(metadata);await expect(page.locator('#trace-start')).toBeEnabled();
+ await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+});
+
 test('fixture selection to measured captures completes, and reset removes all captures',async({page})=>{
   const posts=[];page.on('request',r=>{if(r.method()==='POST')posts.push({path:new URL(r.url()).pathname,body:r.postDataJSON()});});
   await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');

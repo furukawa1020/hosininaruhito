@@ -2,6 +2,7 @@ import { mountStudio } from './studio.js';
 import { skyRows } from './sky-response.js';
 import './studio.css';
 import { mountAdvice } from './advice-view.js';
+import { validateAdvice } from './advice.js';
 import {mountPlayGuide} from './play-guide.js';
 import {mountLocation} from './location-view.js';
 import {mountAccess,configureAccess,hasAccess,requestHeaders} from './access.js';
@@ -58,6 +59,7 @@ function notice(message, tone = '') {
   $('notice').dataset.tone = tone;
 }
 function updateControls() {
+  $('services').setAttribute('aria-busy', String(checking));
   $('controls').disabled = busy || checking;
   $('refresh').disabled = busy || checking;
   $('sky').disabled = busy || checking || !(services?.access && services?.sky);
@@ -68,6 +70,8 @@ function clearResults() {
   $('constellations').replaceChildren();
   $('detail').hidden = true;
   $('empty').hidden = false;
+  $('empty-title').textContent = 'どんな星座に、なろう。';
+  $('empty-help').textContent = '見つかった星座がここに並びます。気になる名前を押して選んでください。';
   $('count').textContent = '検索前';
   $('result').textContent = '実APIの応答をここに表示します。';
 }
@@ -106,6 +110,7 @@ async function loadStatus() {
   checking = true;
   updateControls();
   $('services').textContent = 'サーバーを確認中…';
+  notice('接続設定を確認しています…');
   try {
     const response = await fetch('/api/status', { cache: 'no-store', signal: AbortSignal.any([request.signal, AbortSignal.timeout(8000)]) });
     const data = await response.json();
@@ -146,7 +151,9 @@ function renderSky(data) {
   $('count').textContent = rows.length + ' 星座';
   $('empty').hidden = rows.length > 0;
   if (!rows.length) {
-    notice('接続成功。今回の条件では星座が返されませんでした。', 'success');
+    $('empty-title').textContent = '今回は星座が見つかりませんでした。';
+    $('empty-help').textContent = '場所の入力を確認するか、時間をおいてもう一度探してください。';
+    notice('接続成功。今回の条件では星座が返されませんでした。場所を確認するか、時間をおいてもう一度探してください。', 'success');
     return;
   }
   for (const row of rows) {
@@ -173,31 +180,53 @@ async function call(path, body) {
   const token = $('token').value;
   if (!hasAccess(token)) { notice('ゲストとしてはじめるか、アカウントでログインしてください。開発環境ではアクセストークンを入力してください。', 'error'); return; }
   const request = session.begin();
+  const focused = document.activeElement;
+  const ownsFocus = path === '/api/sky' && !studio && $('sky-form').contains(focused);
+  let focusTarget = $('sky'), phase = 'auth';
   busy = true;
-  clearResults();
+  if (path === '/api/sky') clearResults();
+  else $('result').textContent = 'Jevへの接続を確認中です。';
   updateControls();
-  notice('実APIに接続しています…');
+  notice('参加の認証情報を確認しています…');
   try {
+    const headers = await requestHeaders(token,request.signal);
+    if (!request.isCurrent()) return;
+    phase = 'api';
+    notice(path === '/api/sky' ? '星をみるひとAPIから星座を取得しています…' : 'Jevへの接続を確認しています…');
     const response = await fetch(path, {
-      method: 'POST', headers: await requestHeaders(token,request.signal),
+      method: 'POST', headers,
       body: JSON.stringify(body), signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
     });
     const data = await response.json();
     if (!request.isCurrent()) return;
     if (!response.ok) {
-      notice(errors[data.code] || '接続に失敗しました。サーバーの設定を確認してください。', 'error');
-      $('result').textContent = 'HTTP ' + response.status + ' / ' + (data.code || 'request_failed');
+      const code = typeof data?.code === 'string' && Object.hasOwn(errors, data.code) ? data.code : 'request_failed';
+      notice(code === 'request_failed' ? '接続に失敗しました。時間をおいて再試行してください。' : errors[code], 'error');
+      $('result').textContent = 'HTTP ' + response.status + ' / ' + code;
       return;
     }
-    if (path === '/api/sky') { observation = { ...body }; renderSky(data); }
-    else notice('Jevへの接続を確認しました。結果は開発用の接続確認に表示しています。身体誘導には使っていません。', 'success');
-    $('result').textContent = JSON.stringify(data, null, 2);
+    let result = data;
+    if (path === '/api/sky') {
+      observation = { ...body }; renderSky(data);
+      focusTarget = $('constellations').firstElementChild || $('sky');
+    } else {
+      result = validateAdvice(data);
+      notice('Jevへの接続を確認しました。結果は開発用の接続確認に表示しています。身体誘導には使っていません。', 'success');
+    }
+    $('result').textContent = JSON.stringify(result, null, 2);
   } catch (error) {
     if (!request.isCurrent()) return;
     if (path === '/api/sky') clearResults();
-    notice(error.name === 'TimeoutError' ? '応答が時間内に届きませんでした。再試行してください。' : '通信または応答の確認に失敗しました。再試行してください。', 'error');
+    else $('result').textContent = 'Jevの応答を確認できませんでした。';
+    notice(error?.name === 'TimeoutError'
+      ? phase === 'auth' ? '参加の認証情報を時間内に確認できませんでした。もう一度試してください。' : 'APIの応答が時間内に届きませんでした。再試行してください。'
+      : '通信または応答の確認に失敗しました。再試行してください。', 'error');
   } finally {
-    if (request.isCurrent()) { busy = false; updateControls(); }
+    if (request.isCurrent()) {
+      const restoreFocus = ownsFocus && [document.body, focused].includes(document.activeElement);
+      busy = false; updateControls();
+      if (restoreFocus && !focusTarget.disabled && focusTarget.getClientRects().length) focusTarget.focus({preventScroll:true});
+    }
   }
 }
 $('sky-form').addEventListener('submit', event => {
@@ -211,8 +240,14 @@ $('sky-form').addEventListener('submit', event => {
 $('jev').addEventListener('click', () => {
   if (!busy && !document.hidden && services?.access && services?.reflex) call('/api/reflex', { dx: 0.1, dy: 0, tracked: true });
 });
-for (const id of ['lat', 'lng', 'token']) $(id).addEventListener('input', () => { session.cancel(); clearResults(); busy = false; updateControls(); });
-$('consent').addEventListener('change', () => { if (!$('consent').checked) { session.cancel(); clearResults(); busy = false; updateControls(); } });
+function invalidateSearch(message) {
+  session.cancel(); clearResults(); busy = false; updateControls();
+  if (!checking) notice(message);
+}
+for (const id of ['lat', 'lng', 'token']) $(id).addEventListener('input', () => invalidateSearch(id === 'token'
+  ? '認証情報を変更しました。場所と送信への同意を確認して、もう一度星座を探してください。'
+  : '場所を変更しました。入力を確認して、もう一度星座を探してください。'));
+$('consent').addEventListener('change', () => { if (!$('consent').checked) invalidateSearch('位置送信への同意を取り消しました。検索するには、内容を確認して同意を選んでください。'); });
 $('stop').addEventListener('click', () => stop());
 $('camera-start').addEventListener('click', () => {
   // An explicit new camera attempt dismisses the previous drawing failure.
