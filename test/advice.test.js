@@ -1,9 +1,18 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AdvisorySession,geometricCue} from '../src/client/advice.js';
+import {AdvisorySession,geometricCue,validateAdvice} from '../src/client/advice.js';
 import {decideReflex} from '../src/providers/live.js';
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const answer=action=>({source:'jev-live',advisoryOnly:true,action,confidence:.01});
+test('diagnostic advice accepts only the advisory contract and omits extra response fields',()=>{
+ for(const action of ['left','right','up','down','hold','wait'])for(const confidence of [0,1]){
+  const value={...answer(action),confidence};
+  assert.deepEqual(validateAdvice({...value,private:'must not be displayed'}),value);
+ }
+ for(const patch of [{source:'fixture'},{advisoryOnly:false},{action:'capture'},{confidence:-1},{confidence:1.1},{confidence:'0.5'},{confidence:NaN}])
+  assert.throws(()=>validateAdvice({...answer('right'),...patch}),/invalid_response/);
+ for(const value of [null,{},[],true])assert.throws(()=>validateAdvice(value),/invalid_response/);
+});
 function setup(send=async()=>answer('right')){
  let now=0;const events=[],calls=[];
  const session=new AdvisorySession({now:()=>now,onChange:e=>events.push(e),send:(body,options)=>{calls.push({body,options,at:now});return send(body,options);}});
