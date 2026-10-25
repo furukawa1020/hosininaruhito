@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {guestAuth,guestSdk} from './guest-fixture.js';
 for(const action of ['timeout','stop','logout'])test('pending auth headers '+action+' cannot send a late sky request',async({page})=>{
- await page.clock.install();await page.clock.pauseAt(new Date());
+ await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:guestAuth}}));
  await guestSdk(page,{headersDelay:true});
  let posts=0;await page.route('**/api/sky',r=>{posts++;return r.fulfill({json:{source:'hoshimiru-live',constellations:[]}});});
@@ -22,7 +22,7 @@ for(const action of ['timeout','stop','logout'])test('pending auth headers '+act
 });
 
 test('sky search advances from authentication to API waiting only after headers resolve',async({page})=>{
- await page.clock.install();await page.clock.pauseAt(new Date());
+ await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:guestAuth}}));
  await guestSdk(page,{headersDelay:true});let pending;
  await page.route('**/api/sky',r=>{pending=r;});
