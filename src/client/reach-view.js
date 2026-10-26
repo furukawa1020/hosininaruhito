@@ -39,7 +39,8 @@ export function mountReach(document, window, { onChange = () => {} } = {}) {
     const message = messages[snapshot.reason] || messages.manual;
     // Avoid announcing every frame to screen readers.
     if ($('reach-notice').textContent !== message) $('reach-notice').textContent = message;
-    $('reach-progress').textContent = snapshot.count ? (snapshot.elapsedMs / 1000).toFixed(1) + ' 秒の動きを記録' : '';
+    const remaining = snapshot.state === 'collecting' ? ' / 残り ' + Math.ceil(snapshot.remainingMs / 1000) + ' 秒' + (snapshot.remainingMs <= 5000 ? '（まもなく計測を終了します）' : '') : '';
+    $('reach-progress').textContent = (snapshot.count ? (snapshot.elapsedMs / 1000).toFixed(1) + ' 秒の動きを記録' : '') + remaining;
     const points = calibration.points;
     $('reach-overlay').toggleAttribute('hidden', !points.length);
     $('reach-overlay').setAttribute('viewBox', '0 0 ' + video.videoWidth + ' ' + video.videoHeight);
@@ -50,7 +51,14 @@ export function mountReach(document, window, { onChange = () => {} } = {}) {
     calibration.start({ joint: $('reach-joint').value, posture: $('reach-posture').value, size: size() }, window.performance.now());
     render();
   };
-  const finish = () => { calibration.finish(window.performance.now()); render(); };
+  const finish = () => {
+    const transfer = !$('studio') && document.activeElement === $('reach-finish');
+    calibration.finish(window.performance.now()); render();
+    if (transfer && calibration.state === 'ready' && [document.body,$('reach-finish')].includes(document.activeElement)) {
+      const next = !$('session-prepare').disabled ? $('session-prepare') : $('guide-next');
+      if (next.getClientRects().length) next.focus({preventScroll:true});
+    }
+  };
   const clear = () => { calibration.clear(); render(); };
   const changed = () => { calibration.clear('changed'); render(); };
   const handlers = [['reach-start', 'click', start], ['reach-finish', 'click', finish], ['reach-clear', 'click', clear],

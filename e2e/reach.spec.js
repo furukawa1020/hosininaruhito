@@ -60,6 +60,8 @@ test('fixture measurement requires tracking, enough time and selected left wrist
   await page.locator('#reach-finish').evaluate(el=>el.click());
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason', 'collecting');
   await complete(page);
+  await expect(page.locator('#guide-next')).toBeFocused();
+  await expect(page.locator('#reach-progress')).not.toContainText('残り');
   await expect(page.locator('#reach-overlay')).toBeVisible();
   await page.locator('.camera-panel').screenshot({ path: 'test-results/reach-fixture-desktop.png' });
   expect(requests.every(r => new URL(r.url).origin === 'http://127.0.0.1:8799' && r.method === 'GET')).toBe(true);
@@ -79,6 +81,7 @@ test('static selected right hand reports a narrow range without claiming complet
   await page.locator('#reach-finish').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason', 'narrow_range');
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state', 'collecting');
+  await expect(page.locator('#reach-finish')).toBeFocused();
   await page.locator('#reach-clear').click();
   await expect(page.locator('#reach-overlay')).toBeHidden();
 });
@@ -123,6 +126,26 @@ test('hidden tab clears an in-progress measurement', async ({ page }) => {
   await expect(page.locator('#reach-overlay')).toBeHidden();
   await expect(page.locator('#reach-start')).toBeDisabled();
   await expect(page.locator('#reach-points')).toHaveAttribute('d', '');
+});
+
+test('detail measurement counts down and warns before clearing at its time limit',async({page})=>{
+  await setup(page);await begin(page);
+  await expect(page.locator('#reach-progress')).toContainText('残り 30 秒');
+  await page.clock.runFor(25000);
+  await expect(page.locator('#reach-progress')).toContainText('まもなく計測を終了');
+  await page.clock.runFor(5000);
+  await expect(page.locator('#reach-notice')).toHaveAttribute('data-reason','time_limit');
+  await expect(page.locator('#reach-progress')).toBeEmpty();
+  await page.locator('#reach-start').click();
+  await expect(page.locator('#reach-progress')).toContainText('残り 30 秒');
+});
+
+test('programmatic measurement completion does not steal another control focus',async({page})=>{
+  await setup(page);await begin(page);await page.clock.runFor(3300);
+  await page.locator('#reach-posture').focus();
+  await page.locator('#reach-finish').evaluate(el=>el.click());
+  await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');
+  await expect(page.locator('#reach-posture')).toBeFocused();
 });
 
 test('mobile fixture measurement fits controls with persistent stop', async ({ page }) => {

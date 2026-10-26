@@ -6,6 +6,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
   let trace = new ConstellationTrace(), renderer = null, lastFrame = null, dimensions = null;
   let configured = null, guided = false;
   let generation = 0, loading = false, disposed = false, error = null;
+  let loadTimer = null;
   const tracking = () => !disposed && lastFrame && !document.hidden && $('camera-consent').checked && isFreshPoseTime(lastFrame.at, window.performance.now());
   const size = () => ({ width: $('camera-video').videoWidth, height: $('camera-video').videoHeight });
   const messages = {
@@ -17,6 +18,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
     invalid_clock: '計測の時刻を確認できず停止しました。',
     complete: '保持した実測点がそろいました。',
     webgl_unavailable: 'この環境では光の描画を開始できません。描画は停止しています。',
+    renderer_timeout: '光の描画の読み込みが20秒以内に終わりませんでした。通信を確認し、カメラと手首の推定を再開してから、もう一度開始してください。',
     context_lost: '描画機能との接続が切れたため停止しました。再開するには、もう一度開始してください。',
     render_failed: '描画に失敗したため停止しました。',
     frame_changed: '映像の大きさが変わったため、軌跡を消去しました。'
@@ -30,6 +32,7 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
     $('trace-notice').dataset.state = error ? 'error' : frame.state;
     $('trace-notice').dataset.reason = error || frame.reason;
     let text = loading ? '光の描画を準備しています…' : messages[error || frame.state] || messages.paused;
+    if (!guided && !loading && !error && frame.state === 'paused' && messages[frame.reason]) text = messages[frame.reason] + '再開すると古い軌跡を消して、新しく描き始めます。';
     if (guided && !loading && !error) {
       text = frame.state === 'complete' ? 'すべての対象を保持して確定しました。記録した実測点の星座です。' :
         !configured ? '停止しました。計測と配置を準備し直してください。' :
@@ -55,9 +58,11 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
   };
   const release = () => { renderer?.dispose(); renderer = null; };
   const stop = (reason = 'manual') => {
+    window.clearTimeout(loadTimer); loadTimer = null;
     generation++; loading = false; trace.stop(reason); render();
   };
   const reset = () => {
+    window.clearTimeout(loadTimer); loadTimer = null;
     generation++; loading = false; configured = null; guided = false; trace = new ConstellationTrace(); error = null; dimensions = null;
     render(); release();
   };
@@ -71,10 +76,14 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
   const start = async () => {
     if (disposed || !tracking() || loading || trace.state === 'running' || (guided && (!configured || trace.state === 'complete'))) return;
     const ticket = ++generation;
+    const deadline = window.performance.now() + 20000;
+    const timer = loadTimer = window.setTimeout(() => { if (ticket === generation && loading) fail('renderer_timeout'); }, 20000);
     loading = true; error = null; render();
     try {
       const { TraceRenderer } = await import('./trace-renderer.js');
-      if (ticket !== generation || disposed || !tracking()) return;
+      if (ticket !== generation || disposed) return;
+      if (window.performance.now() >= deadline) { fail('renderer_timeout'); return; }
+      if (!tracking()) return;
       release();
       // A deliberately lost WebGL context cannot be reused on the same canvas.
       const oldCanvas = $('trace-canvas');
@@ -87,8 +96,9 @@ export function mountTrace(document, window, { onFailure = () => {}, onState = (
       trace = new ConstellationTrace(configured ? { program: configured.program, lines: configured.lines, joint: configured.joint } : { joint: $('trace-joint').value });
       trace.start(window.performance.now());
       resize();
-    } catch { if (ticket === generation) fail('webgl_unavailable'); }
+    } catch { if (ticket === generation) fail(window.performance.now() >= deadline ? 'renderer_timeout' : 'webgl_unavailable'); }
     finally {
+      window.clearTimeout(timer); if (loadTimer === timer) loadTimer = null;
       if (ticket === generation) { loading = false; render(); }
       // Tracking may disappear while the module is loading.
       else if (!disposed) render();

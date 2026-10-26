@@ -13,16 +13,17 @@ export function mountPlayGuide(document, window, {hasAccess}) {
         if(state('camera-notice')==='error')message='カメラを開始できませんでした。カメラ欄の案内を確認してください。';
         if(state('camera-notice')==='preview'){
           key='pose';target='pose-setup';label='手首を見つける';message='顔と両手首を映し、「手首の推定を開始・再開する」を押してください。';
-          if(state('pose-notice')==='loading')message='手首を見つける準備中です。そのままお待ちください。';
+          if(state('pose-notice')==='loading')message=$('pose-notice').textContent;
           if(state('pose-notice')==='searching')message='人物を探しています。顔・肩・両ひじ・両手首が映るように調整してください。見つかるまで計測は始まりません。';
-          if(state('pose-notice')==='paused'||state('pose-notice')==='error')message='手首の追跡が止まりました。映り方を確認し、手首の推定を再開してください。';
+          if(state('pose-notice')==='paused'||state('pose-notice')==='error')message=$('pose-notice').textContent;
           if(state('pose-notice')==='tracking'){
             key='reach';target='reach-setup';label='動かせる範囲を記録';message='動かす手を選び、計測を始めてください。上下・左右に、楽な範囲で動かします。';
             if(state('reach-notice')==='collecting'){key='collecting';message='手をゆっくり動かし、3秒以上記録したら「ここまでを使う」を押してください。';label='計測の操作へ';}
+            if(['narrow_range','insufficient_samples','time_limit'].includes($('reach-notice').dataset.reason))message=$('reach-notice').textContent;
             if(state('reach-notice')==='ready'){
               step='play';key='arrange';target='arrange';label='星を配置する';message='手の準備ができました。「配置を準備する」で、星の位置を決めましょう。';
-              if(state('session-notice')==='loading'){key='preparing';message='星の配置を準備しています。完了するまで、そのままお待ちください。';}
-              if(state('session-notice')==='error'){key='arrange-error';message='この条件では配置できませんでした。配置欄の理由を確認し、星座の選び直しや再計測をしてください。';}
+              if(state('session-notice')==='loading'){key='preparing';message=$('session-notice').textContent;}
+              if(state('session-notice')==='error'){key='arrange-error';message=$('session-notice').textContent;}
               if(state('session-notice')==='ready'){
                 key='draw';target='draw';label='星座づくりへ';message='配置できました。「配置した星座を開始する」を押すと、目標の輪が現れます。';
                 if(state('trace-notice')==='running'){key='running';message='手の光を輪に重ね、楽なら0.8秒止めましょう。星が残ったら次の輪へ。';label='手の光を見る';}
@@ -46,7 +47,7 @@ export function mountPlayGuide(document, window, {hasAccess}) {
     $('session-next').hidden=state('session-notice')!=='ready';
   }
   const observer=new window.MutationObserver(render);
-  for(const id of ['camera-notice','pose-notice','reach-notice','session-notice','trace-notice'])observer.observe($(id),{attributes:true,attributeFilter:['data-state']});
+  for(const id of ['camera-notice','pose-notice','reach-notice','session-notice','trace-notice'])observer.observe($(id),{attributes:true,attributeFilter:['data-state','data-reason'],childList:true,characterData:true,subtree:true});
   observer.observe($('detail'),{attributes:true,attributeFilter:['hidden']});
   observer.observe($('detail-name'),{childList:true});
   observer.observe($('auth-notice'),{childList:true});
