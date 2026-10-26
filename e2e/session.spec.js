@@ -42,6 +42,7 @@ async function setup(page, respond, guest=false, guestOptions={}, reflex=false) 
   await page.locator('#reach-joint').selectOption('leftWrist');await page.locator('#reach-start').click();
   await page.clock.runFor(6600);await page.locator('#reach-finish').click();
   await expect(page.locator('#reach-notice')).toHaveAttribute('data-state','ready');
+  await expect(page.locator('#session-prepare')).toBeFocused();
   await page.locator('#session-prepare').click();
 }
 for(const fails of [false,true])test('Jev connection check preserves a prepared constellation: '+fails,async({page})=>{
@@ -192,6 +193,7 @@ for(const path of ['/api/project','/api/program'])for(const timeout of [false,tr
  };},{path,timeout});
  await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
  await expect(page.locator('#session-notice')).toContainText(path==='/api/program'?'Vertex AIの計画':'投影の取得');
+ await expect(page.locator('#guide-message')).toHaveText(await page.locator('#session-notice').textContent());
  await expect(page.locator('#session-notice')).not.toContainText('private diagnostic');
  if(timeout)await expect(page.locator('#session-notice')).toContainText('時間内');
  await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
@@ -202,7 +204,8 @@ test('preparation auth timeout identifies authentication and ignores late token 
  await page.addInitScript(()=>{window.headersReady=true;});await setup(page,undefined,true,{headersDelay:true});
  await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
  await page.evaluate(()=>{window.headersReady=false;});await page.locator('#session-prepare').click();
- await expect(page.locator('#session-notice')).toContainText('認証情報を確認');await page.clock.runFor(10001);
+ await expect(page.locator('#session-notice')).toContainText('認証情報を確認');
+ await expect(page.locator('#guide-message')).toHaveText(await page.locator('#session-notice').textContent());await page.clock.runFor(10001);
  await expect(page.locator('#session-notice')).toContainText('認証情報の確認が時間内');
  await page.evaluate(()=>window.releaseHeaders());await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
  await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');

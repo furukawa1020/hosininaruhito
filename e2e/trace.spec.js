@@ -67,6 +67,7 @@ for(const action of ['loss','hidden','clear','joint'])test('trail handles '+acti
   if(action==='clear')await page.locator('#trace-clear').click();
   if(action==='joint')await page.locator('#trace-joint').selectOption('rightWrist');
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-state',action==='clear'||action==='joint'?'idle':'paused');
+  if(action==='loss')await expect(page.locator('#trace-notice')).toContainText('手の計測を確認できず停止');
   if(action==='clear'||action==='joint')await expect(page.locator('#trace-count')).toHaveText('0 点の軌跡 / 確定した星 0');
 });
 test('real WebGL context loss stops camera and requires explicit restart',async({page})=>{
@@ -116,6 +117,23 @@ test('WebGL unavailable is visible and does not claim trace success',async({page
   await setup(page, { failure: true });
   await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason','webgl_unavailable');
   await expect(page.locator('#trace-count')).toContainText('確定した星 0');
+});
+
+for(const action of ['timeout','stop'])test('pending renderer '+action+' discards late loading and requires explicit restart',async({page})=>{
+  let release;const pending=new Promise(resolve=>{release=resolve;});
+  await page.route('**/assets/trace-renderer-*.js',async r=>{await pending;await r.continue();});
+  await setup(page,{failure:true});
+  await expect(page.locator('#trace-notice')).toContainText('準備しています');
+  if(action==='timeout'){
+    await page.clock.runFor(20001);
+    await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason','renderer_timeout');
+    await expect(page.locator('#trace-notice')).toContainText('20秒');
+  }else await page.keyboard.press('Escape');
+  const response=page.waitForResponse(r=>/trace-renderer-.*\.js/.test(r.url()));release();await response;
+  await expect(page.locator('#trace-start')).toBeDisabled();
+  await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+  await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(800);
+  await page.locator('#trace-start').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
 });
 test('mobile trace fits its viewport while keeping stop reachable',async({page})=>{
   await page.setViewportSize({width:390,height:844});await setup(page);

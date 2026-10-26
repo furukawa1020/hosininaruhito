@@ -4,6 +4,34 @@ async function setup(page){
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:guestAuth}}));
  await guestSdk(page);await page.goto('/?view=details');await expect(page.locator('#auth-guest')).toBeVisible();
 }
+
+test('detail guide retains specific pose, measurement and preparation messages as their text changes',async({page})=>{
+ await setup(page);await page.locator('#auth-guest').click();
+ // Presentation contract fixture only: no landmarks, camera or completion claims.
+ await page.evaluate(()=>{document.getElementById('detail').hidden=false;document.getElementById('camera-notice').dataset.state='preview';});
+ for(const [id,state,reason,message] of [
+  ['pose-notice','loading','cpu','CPUで手首の推定を準備しています。'],
+  ['pose-notice','error','model_failed','推定モデルを読み込めませんでした。通信を確認してください。'],
+  ['pose-notice','error','inference_failed','推定処理が停止しました。もう一度開始してください。'],
+  ['reach-notice','collecting','narrow_range','配置に使える広さを確認できませんでした。無理に手を伸ばさず中断してください。'],
+  ['reach-notice','paused','time_limit','30秒を超えたため記録を消去しました。'],
+  ['session-notice','loading','auth','認証情報を確認しています。'],
+  ['session-notice','loading','projection','星の投影を取得しています。'],
+  ['session-notice','loading','ai','AIの計画を待っています。'],
+  ['session-notice','error','timeout','投影の取得が時間内に終わりませんでした。']
+ ]){
+  await page.evaluate(({id,state,reason,message})=>{
+   if(id!=='pose-notice')document.getElementById('pose-notice').dataset.state='tracking';
+   if(id==='session-notice')document.getElementById('reach-notice').dataset.state='ready';
+   const el=document.getElementById(id);el.dataset.state=state;el.dataset.reason=reason;el.textContent=message;
+  },{id,state,reason,message});
+  await expect(page.locator('#guide-message')).toHaveText(message);
+ }
+ await page.evaluate(()=>{document.getElementById('session-notice').textContent='通信を確認して再試行してください。';});
+ await expect(page.locator('#guide-message')).toHaveText('通信を確認して再試行してください。');
+ await page.evaluate(()=>{const el=document.getElementById('reach-notice');el.dataset.state='collecting';el.dataset.reason='collecting';el.textContent='計測を開始しました。';});
+ await expect(page.locator('#guide-message')).toContainText('3秒以上');
+});
 test('Japanese play instructions, guest navigation, selection and withdrawal agree',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/sky',r=>r.fulfill({json:{source:'hoshimiru-live',constellations:[{id:'1',name:'試験の星座',azimuthDeg:0,altitudeDeg:45}]}}));
