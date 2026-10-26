@@ -7,6 +7,7 @@ async function setup(page){
 
 test('detail guide retains specific pose, measurement and preparation messages as their text changes',async({page})=>{
  await setup(page);await page.locator('#auth-guest').click();
+ await expect(page.locator('#auth-notice')).toContainText('ゲストとして開始');
  // Presentation contract fixture only: no landmarks, camera or completion claims.
  await page.evaluate(()=>{document.getElementById('detail').hidden=false;document.getElementById('camera-notice').dataset.state='preview';});
  for(const [id,state,reason,message] of [
