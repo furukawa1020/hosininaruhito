@@ -119,7 +119,7 @@ test('WebGL unavailable is visible and does not claim trace success',async({page
   await expect(page.locator('#trace-count')).toContainText('確定した星 0');
 });
 
-for(const action of ['timeout','stop'])test('pending renderer '+action+' discards late loading and requires explicit restart',async({page})=>{
+for(const action of ['timeout','stop','late'])test('pending renderer '+action+' discards late loading and requires explicit restart',async({page})=>{
   let release;const pending=new Promise(resolve=>{release=resolve;});
   await page.route('**/assets/trace-renderer-*.js',async r=>{await pending;await r.continue();});
   await setup(page,{failure:true});
@@ -128,8 +128,13 @@ for(const action of ['timeout','stop'])test('pending renderer '+action+' discard
     await page.clock.runFor(20001);
     await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason','renderer_timeout');
     await expect(page.locator('#trace-notice')).toContainText('20秒');
-  }else await page.keyboard.press('Escape');
+  }else if(action==='stop')await page.keyboard.press('Escape');
+  else await page.evaluate(()=>{window.originalTraceNow=performance.now.bind(performance);performance.now=()=>window.originalTraceNow()+20001;});
   const response=page.waitForResponse(r=>/trace-renderer-.*\.js/.test(r.url()));release();await response;
+  if(action==='late'){
+    await expect(page.locator('#trace-notice')).toHaveAttribute('data-reason','renderer_timeout');
+    await page.evaluate(()=>{performance.now=window.originalTraceNow;});
+  }
   await expect(page.locator('#trace-start')).toBeDisabled();
   await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
   await page.locator('#camera-start').click();await page.locator('#pose-start').click();await page.clock.runFor(800);
