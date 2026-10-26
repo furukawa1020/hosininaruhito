@@ -30,7 +30,7 @@ for(const [code,message] of [
 });
 
 for(const member of [false,true])test('timed out '+(member?'member':'guest')+' cannot accept late success; recovery fits the small screen',async({page})=>{
-  await page.clock.install();await page.clock.pauseAt(new Date());
+  await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));
   await page.setViewportSize({width:320,height:568});await open(page,{delayed:true});
   if(member){await page.locator('#game-login').click();await page.locator('#auth-email').fill('fixture@example.test');await page.locator('#auth-password').fill('fixture');}
   await page.locator(member?'#auth-login':'#auth-guest').click();
@@ -56,7 +56,7 @@ for(const member of [false,true])test('timed out '+(member?'member':'guest')+' c
 });
 
 test('cancelling a stuck start exposes reload when cleanup never completes',async({page})=>{
-  await page.clock.install();await page.clock.pauseAt(new Date());await open(page,{delayed:true});
+  await page.clock.install({time:new Date('2026-01-01T00:00:00Z')});await page.clock.pauseAt(new Date('2026-01-01T00:00:01Z'));await open(page,{delayed:true});
   await page.locator('#auth-guest').click();
   await expect.poll(()=>page.evaluate(()=>typeof window.releaseGuest)).toBe('function');
   await page.locator('#auth-logout').click();
@@ -70,8 +70,26 @@ test('cancelling a stuck start exposes reload when cleanup never completes',asyn
 test('late result is expired even before a delayed deadline timer runs',async({page})=>{
   await open(page,{delayed:true});await page.locator('#auth-guest').click();
   await expect.poll(()=>page.evaluate(()=>typeof window.releaseGuest)).toBe('function');
-  await page.evaluate(()=>{const original=Date.now;Date.now=()=>original()+45001;window.releaseGuest();});
+  await page.evaluate(()=>{const original=performance.now.bind(performance);performance.now=()=>original()+45001;window.releaseGuest();});
   await expect(page.locator('#studio-dialog-notice')).toContainText('45秒');
   await expect(page.locator('#studio-location')).toBeHidden();
   await expect.poll(()=>page.evaluate(()=>window.guestSignouts)).toBe(1);
+});
+
+test('wall clock changes do not expire a timely guest response',async({page})=>{
+  await open(page,{delayed:true});await page.locator('#auth-guest').click();
+  await expect.poll(()=>page.evaluate(()=>typeof window.releaseGuest)).toBe('function');
+  await page.evaluate(()=>{Date.now=()=>0;window.releaseGuest();});
+  await expect(page.locator('#studio-location')).toBeVisible();
+  await expect(page.locator('#auth-email')).toBeEnabled();
+});
+
+test('late failure reports the elapsed deadline and restores editable credentials',async({page})=>{
+  await open(page,{delayed:true,fail:true});await page.locator('#auth-guest').click();
+  await expect(page.locator('#auth-email')).toBeDisabled();
+  await expect.poll(()=>page.evaluate(()=>typeof window.releaseGuest)).toBe('function');
+  await page.evaluate(()=>{const now=performance.now.bind(performance);performance.now=()=>now()+45001;window.releaseGuest();});
+  await expect(page.locator('#studio-dialog-notice')).toContainText('45秒');
+  await expect(page.locator('#auth-email')).toBeEnabled();
+  await expect(page.locator('#studio-location')).toBeHidden();
 });

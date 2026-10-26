@@ -20,20 +20,24 @@ function failureNotice(error,guest) {
 export function mountAccess(document,onChange) {
   documentRef=document;changed=onChange;
   const $=id=>document.getElementById(id);
+  const lockInputs=value=>{for(const id of ['auth-email','auth-password'])$(id).disabled=value;};
   async function begin(guest,manual=false) {
     if(pending||recoveryRequired||mode!=='firebase'||document.hidden||(guest&&settings?.guestEnabled!==true))return;
     if(manual&&!settings?.checkboxSiteKey)return;
     const at=++generation;pending=true;current=null;changed();
     const controller=new AbortController();cancelAttempt=()=>controller.abort();
-    const timeout=manual?180000:START_TIMEOUT_MS,deadline=Date.now()+timeout;
+    const now=()=>document.defaultView.performance.now();
+    const timeout=manual?180000:START_TIMEOUT_MS,deadline=now()+timeout;
     let expired=false;
     $('auth-recovery').hidden=true;
     $('auth-login').disabled=true;$('auth-guest').disabled=true;
+    lockInputs(true);
     $('auth-human').disabled=true;
     $('auth-logout').hidden=false;$('auth-logout').textContent='開始を取り消す';
     $('auth-notice').textContent=guest?'ゲストの体験を準備しています…':'ログインを確認しています…';
     const progress=phase=>{
       if(at!==generation||expired)return;
+      if(now()>=deadline){expire();return;}
       $('auth-notice').textContent=phase==='verification'?'ブラウザーを確認しています…':guest?'ゲストの参加を確認しています…':'ログインを確認しています…';
     };
     const expire=()=>{
@@ -51,21 +55,23 @@ export function mountAccess(document,onChange) {
       const proof=manual?await requestCheckbox(document,settings.checkboxSiteKey,controller.signal):null;
       if(at!==generation)return;
       sdk ||= await import('./firebase-access.js');
-      if(Date.now()>=deadline)expire();
+      if(now()>=deadline)expire();
       if(at!==generation)return;
       const user=manual?await sdk.guestWithProof(settings,proof,progress,controller.signal):guest?await sdk.guest(settings,progress):await sdk.login(settings,$('auth-email').value,$('auth-password').value,progress);
       $('auth-password').value='';
-      if(Date.now()>=deadline)expire();
+      if(now()>=deadline)expire();
       if(at!==generation){await sdk.logout();return;}
       current=user;changed();
       $('auth-notice').textContent=guest?'ゲストとして開始しました。観測地点を選んでください。':'ログインしました。観測地点を選んでください。';
       $('auth-logout').textContent=guest?'ゲストを終了する':'ログアウト';
     }catch(error){
+      if(at===generation&&now()>=deadline)expire();
       if(at===generation){current=null;$('auth-notice').textContent=failureNotice(error,guest)+(guest&&settings?.checkboxSiteKey&&String(error?.code).startsWith('appCheck/')?' 「画面で確認して参加する」も使えます。':'');}
     }finally{
       clearTimeout(timer);
       cancelAttempt=()=>{};$('auth-human').disabled=false;
       pending=false;$('auth-password').value='';$('auth-login').disabled=false;$('auth-guest').disabled=false;$('auth-logout').hidden=!current;
+      lockInputs(false);
       if(at!==generation&&!expired)$('auth-notice').textContent='開始を取り消しました。もう一度操作すると再開できます。';
     }
   }
@@ -83,6 +89,7 @@ export function mountAccess(document,onChange) {
     generation++;current=null;changed();$('auth-logout').hidden=true;
     // Serialize SDK identity changes so a late logout cannot clear a new login.
     pending=true;$('auth-login').disabled=true;$('auth-guest').disabled=true;$('auth-human').disabled=true;
+    lockInputs(true);
     $('auth-notice').textContent='ログアウトしています…';
     try{await waitForAuth(sdk?.logout());$('auth-notice').textContent='ログアウトしました。';}
     catch{
@@ -90,13 +97,14 @@ export function mountAccess(document,onChange) {
       recoveryRequired=true;$('auth-recovery').hidden=false;
       $('auth-notice').textContent='ログアウトを完了できませんでした。ページを読み直してから参加してください。';
     }
-    finally{pending=false;$('auth-login').disabled=recoveryRequired;$('auth-guest').disabled=recoveryRequired;$('auth-human').disabled=recoveryRequired;}
+    finally{pending=false;lockInputs(recoveryRequired);$('auth-login').disabled=recoveryRequired;$('auth-guest').disabled=recoveryRequired;$('auth-human').disabled=recoveryRequired;}
   });
 }
 export function configureAccess(value) {
   const next=value?.mode||'development';
   if(JSON.stringify(settings)!==JSON.stringify(value)||mode!==next){
     const hadSession=!!current;generation++;current=null;settings=value;mode=next;
+    if(pending)cancelAttempt();
     if(hadSession){
       changed();
       documentRef.getElementById('auth-logout').hidden=true;

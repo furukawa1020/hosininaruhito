@@ -13,8 +13,10 @@ for(const details of [false,true])test('account form validates and submits Enter
  await page.locator('#auth-email').fill('fixture@example.test');await page.locator('#auth-password').press('Enter');
  await expect.poll(()=>page.evaluate(()=>window.memberCalls)).toBe(1);
  await expect(page.locator('#auth-login')).toBeDisabled();
- await page.locator('#auth-password').press('Enter');expect(await page.evaluate(()=>window.memberCalls)).toBe(1);
+ await expect(page.locator('#auth-email')).toBeDisabled();await expect(page.locator('#auth-password')).toBeDisabled();
+ await page.keyboard.press('Enter');expect(await page.evaluate(()=>window.memberCalls)).toBe(1);
  await page.evaluate(()=>window.releaseGuest());await expect(page.locator('#auth-notice')).toContainText('ログインしました');
  await expect(page.locator('#auth-password')).toHaveValue('');
+ await expect(page.locator('#auth-email')).toBeEnabled();await expect(page.locator('#auth-password')).toBeEnabled();
  if(!details)await expect(page.locator('#studio-location')).toBeVisible();
 });
