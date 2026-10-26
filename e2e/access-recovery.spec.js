@@ -76,12 +76,24 @@ test('late result is expired even before a delayed deadline timer runs',async({p
   await expect.poll(()=>page.evaluate(()=>window.guestSignouts)).toBe(1);
 });
 
-test('wall clock changes do not expire a timely guest response',async({page})=>{
+for(const future of [false,true])test('wall clock changes do not expire a timely guest response: '+future,async({page})=>{
   await open(page,{delayed:true});await page.locator('#auth-guest').click();
   await expect.poll(()=>page.evaluate(()=>typeof window.releaseGuest)).toBe('function');
-  await page.evaluate(()=>{Date.now=()=>0;window.releaseGuest();});
+  await page.evaluate(future=>{Date.now=()=>future?9e12:0;window.releaseGuest();},future);
   await expect(page.locator('#studio-location')).toBeVisible();
   await expect(page.locator('#auth-email')).toBeEnabled();
+});
+
+test('changed settings discard a pending automatic guest response',async({page})=>{
+  await open(page,{delayed:true});await page.locator('#auth-guest').click();
+  await expect.poll(()=>page.evaluate(()=>typeof window.releaseGuest)).toBe('function');
+  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:{...guestAuth,guestEnabled:false}}}));
+  await page.evaluate(()=>document.getElementById('refresh').click());
+  await expect(page.locator('#auth-guest')).toBeHidden();
+  await page.evaluate(()=>window.releaseGuest());
+  await expect.poll(()=>page.evaluate(()=>window.guestSignouts)).toBe(1);
+  await expect(page.locator('#auth-email')).toBeEnabled();
+  await expect(page.locator('#studio-location')).toBeHidden();
 });
 
 test('late failure reports the elapsed deadline and restores editable credentials',async({page})=>{
