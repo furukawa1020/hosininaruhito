@@ -41,3 +41,18 @@ test('checkbox service failure restores controls and cannot enter location',asyn
  await setup(page);await page.locator('#auth-human').click();await expect(page.getByText('Fixture confirmation',{exact:true})).toBeVisible();await page.evaluate(()=>window.checkboxError());
  await expect(page.locator('.human-check')).toHaveCount(0);await expect(page.locator('#studio-access')).toBeVisible();await expect(page.locator('#auth-human')).toBeEnabled();expect(await page.evaluate(()=>window.humanGuestCalls||0)).toBe(0);
 });
+
+test('changed access settings cancel the old checkbox and discard its proof',async({page})=>{
+ await setup(page);await page.locator('#auth-human').click();await expect(page.getByText('Fixture confirmation',{exact:true})).toBeVisible();
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:false},auth:{...guestAuth,checkboxSiteKey:'fixture-new-checkbox-key'}}}));
+ // Simulate a settings refresh while the confirmation owns the inert background.
+ await page.evaluate(()=>document.getElementById('refresh').click());
+ await expect(page.locator('.human-check')).toHaveCount(0);
+ await page.evaluate(()=>window.checkboxCallback());
+ expect(await page.evaluate(()=>window.humanGuestCalls||0)).toBe(0);
+ expect(await page.evaluate(()=>document.querySelector('main').inert)).toBe(false);
+ await expect(page.locator('#auth-email')).toBeEnabled();
+ await page.locator('#studio-action').click();await page.locator('#auth-human').click();
+ await page.getByText('Fixture confirmation',{exact:true}).click();
+ await expect(page.locator('#studio-location')).toBeVisible();
+});
