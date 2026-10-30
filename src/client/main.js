@@ -12,7 +12,7 @@ import { mountTrace } from './trace-view.js';
 import { mountReach } from './reach-view.js';
 import { mountCamera } from './camera-view.js';
 import { mountPose } from './pose-view.js';
-import { RequestSession, parseCoordinates } from './requests.js';
+import { RequestSession, parseCoordinates, fetchJson } from './requests.js';
 
 const $ = id => document.getElementById(id);
 const session = new RequestSession();
@@ -112,8 +112,7 @@ async function loadStatus() {
   $('services').textContent = 'サーバーを確認中…';
   notice('接続設定を確認しています…');
   try {
-    const response = await fetch('/api/status', { cache: 'no-store', signal: AbortSignal.any([request.signal, AbortSignal.timeout(8000)]) });
-    const data = await response.json();
+    const {response, data} = await fetchJson('/api/status', { cache: 'no-store', signal: request.signal }, 8000);
     if (!request.isCurrent()) return;
     if (!response.ok || data.mode !== 'live' || !data.services ||
         !Object.keys(labels).every(key => typeof data.services[key] === 'boolean')) throw new Error('Invalid status');
@@ -193,11 +192,10 @@ async function call(path, body) {
     if (!request.isCurrent()) return;
     phase = 'api';
     notice(path === '/api/sky' ? '星をみるひとAPIから星座を取得しています…' : 'Jevへの接続を確認しています…');
-    const response = await fetch(path, {
+    const {response, data} = await fetchJson(path, {
       method: 'POST', headers,
-      body: JSON.stringify(body), signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
-    });
-    const data = await response.json();
+      body: JSON.stringify(body), signal: request.signal
+    }, 45000);
     if (!request.isCurrent()) return;
     if (!response.ok) {
       const code = typeof data?.code === 'string' && Object.hasOwn(errors, data.code) ? data.code : 'request_failed';

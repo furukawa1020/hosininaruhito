@@ -23,8 +23,27 @@ export function parseCoordinates(lat, lng) {
   return coordinates;
 }
 
+// Bound both transport and body reading, even when they ignore cancellation.
+export async function fetchJson(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
+  const operation = Promise.resolve().then(async () => {
+    signal.throwIfAborted();
+    const response = await fetch(url, {...options, signal});
+    signal.throwIfAborted();
+    const data = await response.json();
+    return {response, data};
+  });
+  try { return await waitForOperation(operation, signal, timeoutMs, '通信が時間内に終わりませんでした。'); }
+  finally { controller.abort(); }
+}
+
 // SDK token refresh cannot necessarily be cancelled, but its consumer can be.
 export function waitForAuth(promise, signal, timeoutMs = 10000) {
+  return waitForOperation(promise, signal, timeoutMs, '認証情報の確認が時間内に終わりませんでした。');
+}
+
+function waitForOperation(promise, signal, timeoutMs, message) {
   return new Promise((resolve, reject) => {
     const until = performance.now() + timeoutMs;
     let settled = false;
@@ -32,7 +51,7 @@ export function waitForAuth(promise, signal, timeoutMs = 10000) {
       if (settled) return;
       settled = true; clearTimeout(timer); signal?.removeEventListener('abort', abort); done(value);
     };
-    const timeout = () => finish(reject, new DOMException('認証情報の確認が時間内に終わりませんでした。', 'TimeoutError'));
+    const timeout = () => finish(reject, new DOMException(message, 'TimeoutError'));
     const abort = () => finish(reject, signal.reason);
     const timer = setTimeout(timeout, timeoutMs);
     signal?.addEventListener('abort', abort, {once:true});

@@ -1,6 +1,6 @@
 import { evaluatePlan, validatePlannedProgram } from '../core/planner.js';
 import { prepareSession } from '../core/session.js';
-import { RequestSession } from './requests.js';
+import { RequestSession, fetchJson } from './requests.js';
 import {hasAccess,requestHeaders} from './access.js';
 
 // Only errors created here contain reviewed user-facing text.
@@ -72,11 +72,10 @@ export function mountSession(document, window, { reach, trace }) {
       if (!request.isCurrent()) return;
       phase = 'projection';
       say('恒星カタログを計算し、記録した範囲への配置を確認しています…', 'loading');
-      const response = await fetch('/api/project', {
+      const {response, data} = await fetchJson('/api/project', {
         method: 'POST', headers,
-        body: JSON.stringify(input), signal: AbortSignal.any([request.signal, AbortSignal.timeout(15000)])
-      });
-      const data = await response.json();
+        body: JSON.stringify(input), signal: request.signal
+      }, 15000);
       if (!request.isCurrent()) return;
       if (!response.ok) throw new PreparationError(messageFor(data?.code, '投影を取得できませんでした。'));
       if (!reach.ready() || document.hidden || !$('consent').checked || !$('camera-consent').checked) {
@@ -93,12 +92,11 @@ export function mountSession(document, window, { reach, trace }) {
         if (!request.isCurrent()) return;
         phase = 'planner';
         say(plannerName() + 'が星の順序を計画しています…', 'loading');
-        const planned = await fetch('/api/program', {
+        const {response: planned, data: candidate} = await fetchJson('/api/program', {
           method: 'POST', headers: { ...headers, 'X-HCR-Planner': plannerProvider },
           body: JSON.stringify({ program: fitted.program }),
-          signal: AbortSignal.any([request.signal, AbortSignal.timeout(45000)])
-        });
-        const candidate = await planned.json();
+          signal: request.signal
+        }, 45000);
         if (!request.isCurrent()) return;
         if (!planned.ok) throw new PreparationError(messageFor(candidate?.code, 'AIの計画を取得できませんでした。'));
         if (!reach.ready() || document.hidden || !$('planner-consent').checked ||
