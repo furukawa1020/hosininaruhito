@@ -5,7 +5,8 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
   canvas.setAttribute('aria-label', '回せる天球。光の目印は星座の代表位置です。左右ボタンでも星座を選べます。');
   canvas.setAttribute('role', 'img');
   host.append(canvas);
-  const ctx = canvas.getContext('2d');
+  let ctx = null;
+  try { ctx = canvas.getContext('2d'); } catch { /* The menu remains usable without the dome. */ }
   let rows = [], selected = -1, yaw = -.45, pitch = .38, width = 1, height = 1, drag = null, hits = [], disposed = false;
   const rad = Math.PI / 180;
   function point(az, alt) {
@@ -64,7 +65,7 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
   }
   canvas.addEventListener('pointerdown',event=>{
     if(disposed||drag||event.button!==0)return;
-    canvas.setPointerCapture(event.pointerId);
+    try { canvas.setPointerCapture(event.pointerId); } catch { return; }
     drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,yaw,pitch,moved:false};
   });
   canvas.addEventListener('pointermove',event=>{
@@ -78,9 +79,10 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
   });
   canvas.addEventListener('pointerup',event=>{
     if(!drag||event.pointerId!==drag.pointerId)return;
+    if(!canvas.hasPointerCapture(event.pointerId)){drag=null;return;}
     const moved=drag.moved||Math.hypot(event.clientX-drag.x,event.clientY-drag.y)>5;
     drag=null;
-    if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
+    try { canvas.releasePointerCapture(event.pointerId); } catch { return; }
     if(!moved){
       const r=canvas.getBoundingClientRect();
       const hit=hits.map(p=>({...p,distance:Math.hypot(event.clientX-r.left-p.x,event.clientY-r.top-p.y)}))
@@ -93,7 +95,7 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
   canvas.addEventListener('lostpointercapture',cancel);
   function resetDrag(){
     const id=drag?.pointerId;drag=null;
-    if(id!==undefined&&canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
+    if(id!==undefined&&canvas.hasPointerCapture(id))try{canvas.releasePointerCapture(id);}catch{}
   }
   const observer=new ResizeObserver(resize);observer.observe(host);
   if(!ctx){host.dataset.fallback='true';canvas.hidden=true;}

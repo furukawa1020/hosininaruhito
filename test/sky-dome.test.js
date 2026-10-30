@@ -18,7 +18,7 @@ function setup(t, rows=[{name:'最初',azimuthDeg:0,altitudeDeg:0}]) {
   const host={ownerDocument:{createElement(){return canvas;}},append(){},dataset:{},getBoundingClientRect(){return rect;}};
   const dome=mountSkyDome(host,{onSelect:i=>selected.push(i)});dome.resize();dome.update(rows,0);
   const pointer=(type,x=200,y=200)=>events[type]({pointerId:1,button:0,clientX:x,clientY:y});
-  return {dome,host,pointer,selected,arcs,labels,rows,captured,rect};
+  return {dome,host,canvas,pointer,selected,arcs,labels,rows,captured,rect};
 }
 
 test('small pointer jitter preserves orientation and tap; deliberate drag rotates without selecting',t=>{
@@ -53,4 +53,19 @@ test('dome labels remain bounded and preserve short names and source data',t=>{
   const [label,x,,maxWidth]=s.labels.at(-1);assert.ok(label.endsWith('…'));assert.ok(label.length<name.length);
   assert.ok(x-maxWidth/2>=12);assert.ok(x+maxWidth/2<=s.rect.width-12);
   s.rect.width=80;s.dome.resize();assert.equal(s.labels.at(-1)[3],56);
+});
+
+test('pointer capture failure and lost capture before release never select a marker',t=>{
+ const s=setup(t),capture=s.canvas.setPointerCapture;
+ s.canvas.setPointerCapture=()=>{throw Error('fixture');};
+ assert.doesNotThrow(()=>s.pointer('pointerdown'));s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.canvas.setPointerCapture=capture;s.pointer('pointerdown');s.captured.clear();s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[0]);
+});
+test('pointer release exceptions cancel selection and do not block subsequent gestures',t=>{
+ const s=setup(t),release=s.canvas.releasePointerCapture;
+ s.canvas.releasePointerCapture=()=>{throw Error('fixture');};
+ s.pointer('pointerdown');assert.doesNotThrow(()=>s.pointer('pointerup'));assert.deepEqual(s.selected,[]);
+ s.pointer('pointerdown');assert.doesNotThrow(()=>s.dome.center());
+ s.canvas.releasePointerCapture=release;s.captured.clear();s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[0]);
 });

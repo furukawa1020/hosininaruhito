@@ -21,6 +21,10 @@ export function mountAccess(document,onChange) {
   documentRef=document;changed=onChange;
   const $=id=>document.getElementById(id);
   const lockInputs=value=>{for(const id of ['auth-email','auth-password'])$(id).disabled=value;};
+  const requireRecovery=()=>{
+    recoveryRequired=true;$('auth-recovery').hidden=false;
+    $('auth-notice').textContent='ログアウトを完了できませんでした。ページを読み直してから参加してください。';
+  };
   async function begin(guest,manual=false) {
     if(pending||recoveryRequired||mode!=='firebase'||document.hidden||(guest&&settings?.guestEnabled!==true))return;
     if(manual&&!settings?.checkboxSiteKey)return;
@@ -60,7 +64,11 @@ export function mountAccess(document,onChange) {
       const user=manual?await sdk.guestWithProof(settings,proof,progress,controller.signal):guest?await sdk.guest(settings,progress):await sdk.login(settings,$('auth-email').value,$('auth-password').value,progress);
       $('auth-password').value='';
       if(now()>=deadline)expire();
-      if(at!==generation){await sdk.logout();return;}
+      if(at!==generation){
+        clearTimeout(timer);
+        try{await waitForAuth(sdk.logout());}catch{requireRecovery();}
+        return;
+      }
       current=user;changed();
       $('auth-notice').textContent=guest?'ゲストとして開始しました。観測地点を選んでください。':'ログインしました。観測地点を選んでください。';
       $('auth-logout').textContent=guest?'ゲストを終了する':'ログアウト';
@@ -69,10 +77,10 @@ export function mountAccess(document,onChange) {
       if(at===generation){current=null;$('auth-notice').textContent=failureNotice(error,guest)+(guest&&settings?.checkboxSiteKey&&String(error?.code).startsWith('appCheck/')?' 「画面で確認して参加する」も使えます。':'');}
     }finally{
       clearTimeout(timer);
-      cancelAttempt=()=>{};$('auth-human').disabled=false;
-      pending=false;$('auth-password').value='';$('auth-login').disabled=false;$('auth-guest').disabled=false;$('auth-logout').hidden=!current;
-      lockInputs(false);
-      if(at!==generation&&!expired)$('auth-notice').textContent='開始を取り消しました。もう一度操作すると再開できます。';
+      cancelAttempt=()=>{};$('auth-human').disabled=recoveryRequired;
+      pending=false;$('auth-password').value='';$('auth-login').disabled=recoveryRequired;$('auth-guest').disabled=recoveryRequired;$('auth-logout').hidden=!current;
+      lockInputs(recoveryRequired);
+      if(at!==generation&&!expired&&!recoveryRequired)$('auth-notice').textContent='開始を取り消しました。もう一度操作すると再開できます。';
     }
   }
   function cancelPending(){if(pending){generation++;cancelAttempt();$('auth-password').value='';$('auth-logout').hidden=true;$('auth-notice').textContent='開始を取り消しました。終了処理を待っています。';}}
@@ -83,7 +91,7 @@ export function mountAccess(document,onChange) {
   $('stop').addEventListener('click',cancelPending);
   document.addEventListener('keydown',event=>{if(event.key==='Escape')cancelPending();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelPending();});
-  document.defaultView.addEventListener('pagehide',cancelPending);
+  document.defaultView.addEventListener('pagehide',()=>{cancelPending();$('auth-password').value='';});
   $('auth-logout').addEventListener('click',async()=>{
     if(pending){cancelPending();return;}
     generation++;current=null;changed();$('auth-logout').hidden=true;
@@ -94,8 +102,7 @@ export function mountAccess(document,onChange) {
     try{await waitForAuth(sdk?.logout());$('auth-notice').textContent='ログアウトしました。';}
     catch{
       // An unfinished SDK sign-out must never race a new sign-in.
-      recoveryRequired=true;$('auth-recovery').hidden=false;
-      $('auth-notice').textContent='ログアウトを完了できませんでした。ページを読み直してから参加してください。';
+      requireRecovery();
     }
     finally{pending=false;lockInputs(recoveryRequired);$('auth-login').disabled=recoveryRequired;$('auth-guest').disabled=recoveryRequired;$('auth-human').disabled=recoveryRequired;}
   });

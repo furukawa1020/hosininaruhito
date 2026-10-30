@@ -10,6 +10,17 @@ async function setup(page,rows=[row]){
  await expect(page.locator('#studio-choose')).toBeVisible();
 }
 async function centerClick(page){const box=await page.locator('#game-sphere canvas').boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);}
+for(const mode of ['null','throw'])test('dome context '+mode+' preserves selection and game navigation',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(mode=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){
+  if(type==='2d'&&this.parentElement?.id==='game-sphere'){if(mode==='throw')throw Error('fixture');return null;}
+  return original.call(this,type,...args);
+ };},mode);
+ await setup(page,[row,{...row,id:'2',name:'次の星座',altitudeDeg:20}]);
+ await expect(page.locator('#game-sphere')).toHaveAttribute('data-fallback','true');
+ await page.locator('#game-next').click();await expect(page.locator('#detail-name')).toHaveText('次の星座');
+ await page.locator('#studio-choose').click();await expect(page.locator('#camera-consent')).toBeVisible();expect(errors).toEqual([]);
+});
 for(const viewport of [{width:320,height:568},{width:844,height:390}])test('long constellation names keep controls visible at '+viewport.width,async({page})=>{
  const name='長い名前'.repeat(50);await page.setViewportSize(viewport);await setup(page,[{...row,name,description:'説明'}]);
  for(const id of ['detail-name','studio-choose','game-about'])await expect(page.locator('#'+id)).toBeInViewport({ratio:1});
