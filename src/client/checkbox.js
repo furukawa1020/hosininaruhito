@@ -4,10 +4,25 @@ function load(window,document) {
   if(!loading)loading=new Promise((resolve,reject)=>{
     const script=document.createElement('script');
     script.src='https://www.google.com/recaptcha/enterprise.js?render=explicit&hl=ja';script.async=true;
-    const timer=setTimeout(()=>reject(Error('Verification script timeout')),20000);
-    script.onload=()=>window.grecaptcha?.enterprise?.ready(()=>{clearTimeout(timer);resolve(window.grecaptcha.enterprise);});
-    script.onerror=()=>{clearTimeout(timer);reject(Error('Verification script unavailable'));};
-    document.head.append(script);
+    let finished=false;const until=window.performance.now()+20000;
+    const finish=error=>{
+      if(finished)return;finished=true;window.clearTimeout(timer);script.onload=script.onerror=null;
+      if(error){script.remove();reject(error);}else resolve(window.grecaptcha.enterprise);
+    };
+    const timeout=()=>finish(Error('Verification script timeout'));
+    const timer=window.setTimeout(timeout,20000);
+    script.onload=()=>{
+      if(window.performance.now()>=until){timeout();return;}
+      try{
+        if(!window.grecaptcha?.enterprise?.ready)throw Error();
+        window.grecaptcha.enterprise.ready(()=>{
+          if(window.performance.now()>=until)timeout();
+          else finish(window.grecaptcha?.enterprise?.render?null:Error('Verification script unavailable'));
+        });
+      }catch{finish(Error('Verification script unavailable'));}
+    };
+    script.onerror=()=>finish(Error('Verification script unavailable'));
+    try{document.head.append(script);}catch{finish(Error('Verification script unavailable'));}
   }).catch(error=>{loading=null;throw error;});
   return loading;
 }

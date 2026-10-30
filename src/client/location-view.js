@@ -28,7 +28,11 @@ export function mountLocation(document, window) {
       for(const id of ['lat','lng'])$(id).dispatchEvent(new window.Event('input',{bubbles:true}));
       $('location-notice').dataset.state='success';
       if(restoreFocus&&!$('consent').disabled&&$('consent').getClientRects().length)$('consent').focus({preventScroll:true});
-    },error=>{if(at===generation)finish(window.performance.now()>=until?failures[3]:failures[error?.code]||'現在地を取得できませんでした。再試行するか、緯度・経度を入力してください。');},{enableHighAccuracy:false,timeout:10000,maximumAge:60000});}
+    },error=>{
+      const code=error?.code;
+      if(at===generation)finish(window.performance.now()>=until?failures[3]:
+        typeof code==='number'&&Object.hasOwn(failures,code)?failures[code]:'現在地を取得できませんでした。再試行するか、緯度・経度を入力してください。');
+    },{enableHighAccuracy:false,timeout:10000,maximumAge:60000});}
     catch{if(at===generation)finish('現在地を取得できませんでした。緯度・経度を入力してください。');}
   });
   for(const id of ['lat','lng','stop','sky','auth-logout','auth-guest','auth-login'])$(id).addEventListener(id==='lat'||id==='lng'?'input':'click',cancel);

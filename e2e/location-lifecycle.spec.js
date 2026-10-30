@@ -10,6 +10,12 @@ async function setup(page){
  await page.locator('#lat').fill('0');await page.locator('#lng').fill('0');await page.locator('#consent').check();
  await page.evaluate(()=>{window.geoNow=0;});await page.locator('#locate').focus();await page.keyboard.press('Enter');
 }
+for(const code of ['constructor','__proto__','1',null,{},999])test('unknown location code '+JSON.stringify(code)+' keeps manual input and sanitized guidance',async({page})=>{
+ await setup(page);await page.evaluate(code=>window.geoReply.fail({code,message:'private location diagnostic'}),code);
+ await expect(page.locator('#location-notice')).toHaveText('現在地を取得できませんでした。再試行するか、緯度・経度を入力してください。');
+ await expect(page.locator('#locate')).toBeEnabled();await expect(page.locator('#lat')).toHaveValue('0');await expect(page.locator('#consent')).toBeChecked();
+ await page.locator('#lat').fill('1');await expect(page.locator('#lat')).toHaveValue('1');
+});
 for(const [at,outcome] of [[11999,'success'],[12000,'success'],[12000,'failure']])test('location checks absolute deadline '+at+' '+outcome,async({page})=>{
  await setup(page);await page.evaluate(({at,outcome})=>{window.geoNow=at;if(outcome==='success')window.geoReply.ok({coords:{latitude:10.123,longitude:20.456}});else window.geoReply.fail({code:1});},{at,outcome});
  if(at<12000){await expect(page.locator('#lat')).toHaveValue('10.12');await expect(page.locator('#lng')).toHaveValue('20.46');await expect(page.locator('#consent')).not.toBeChecked();}
