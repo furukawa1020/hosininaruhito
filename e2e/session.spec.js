@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import {guestAuth,guestSdk} from './guest-fixture.js';
+import {holdJson,expireJson,releaseJson} from './late-json-fixture.js';
 const videoPath=fileURLToPath(new URL('./.generated/camera.y4m',import.meta.url));
 test.use({launchOptions:{args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--enable-unsafe-swiftshader','--use-file-for-fake-video-capture='+videoPath]}});
 const projection=input=>({...input,ok:true,timeBasis:'explicit-utc-catalog-calculation',source:{catalog:'d3-celestial/XHIP',commit:'7e720a3de062059d4c5400a379146a601d9010e0',license:'BSD-3-Clause',calculation:'astronomy-engine@2.1.19'},
@@ -181,6 +182,22 @@ async function vertexStatus(page, provider = 'vertex') {
  await page.locator('.connection').evaluate(el=>el.open=true);await page.locator('#refresh').click();
  await expect(page.locator('#services')).not.toContainText('確認中');
 }
+
+for(const path of ['/api/project','/api/program'])for(const mode of ['timer','late'])test('preparation JSON deadline '+path+' '+mode+' cannot install late bodies',async({page})=>{
+ await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ if(path==='/api/program'){
+  await vertexStatus(page);await page.route('**/api/program',r=>r.fulfill({json:{...r.request().postDataJSON().program,source:'vertex-live'}}));await page.locator('#planner-consent').check();
+ }
+ await holdJson(page,path);await page.locator('#session-prepare').click();
+ await expect.poll(()=>page.evaluate(()=>typeof window.releaseJson)).toBe('function');
+ await expireJson(page,path==='/api/project'?15000:45000,mode);
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
+ await expect(page.locator('#session-notice')).toContainText('時間内');
+ await releaseJson(page);await page.clock.runFor(100);await expect(page.locator('#session-prepare')).toBeEnabled();
+ await expect(page.locator('#session-notice')).toHaveAttribute('data-state','error');
+ await page.locator('#session-prepare').click();await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
+ await expect(page.locator('#trace-notice')).not.toHaveAttribute('data-state','running');
+});
 
 for(const path of ['/api/project','/api/program'])for(const timeout of [false,true])test('preparation sanitizes and identifies '+path+' '+(timeout?'timeout':'exception'),async({page})=>{
  await setup(page);await expect(page.locator('#session-notice')).toHaveAttribute('data-state','ready');
