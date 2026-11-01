@@ -31,6 +31,7 @@ export function mountStudio(document, window, { hasAccess }) {
       </div>
       <aside class="studio-coach">
         <p id="studio-step" class="studio-step">手でつくる、今夜の星座</p>
+        <p id="studio-phase-announcement" class="sr-only" role="status" aria-atomic="true"></p>
         <h1 id="studio-title">その手で、<br>星をつなごう。</h1>
         <p id="studio-instruction"></p>
         <div id="studio-consent"></div>
@@ -41,7 +42,7 @@ export function mountStudio(document, window, { hasAccess }) {
         </div>
         <div id="studio-progress" hidden><div><span id="studio-progress-label"></span><strong id="studio-progress-value"></strong></div><progress id="studio-meter" max="1" value="0" aria-label="準備の進み具合"></progress></div>
         <p id="studio-status" role="status" aria-live="polite"></p>
-        <div class="studio-actions"><button id="studio-action" class="primary" type="button"></button><button id="studio-other-star" class="text-button" type="button" hidden>別の星座を選ぶ</button><button id="studio-recalibrate" class="text-button" type="button" hidden>手・範囲を選び直す</button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button></div>
+        <div class="studio-actions"><button id="studio-action" class="primary" type="button" aria-describedby="studio-instruction studio-status"></button><button id="studio-other-star" class="text-button" type="button" hidden>別の星座を選ぶ</button><button id="studio-recalibrate" class="text-button" type="button" hidden>手・範囲を選び直す</button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button><button id="studio-end-practice" class="text-button" type="button" hidden>練習を終えて戻る</button></div>
         <p class="studio-comfort">手は楽な高さで。つらいときは右上の「停止」。</p>
       </aside>
     </div>
@@ -160,7 +161,11 @@ export function mountStudio(document, window, { hasAccess }) {
     if (trace === 'paused' && ['camera','pose','reach','collecting','arrange'].includes(phase) && latestTrace?.captures.length) {
       status += (status ? ' ' : '') + '途中の星は、次の開始で最初からつくり直します。';
     }
-    if (root.dataset.phase !== phase) root.dataset.phase = phase;
+    if (root.dataset.phase !== phase) {
+      root.dataset.phase = phase;
+      const announcements={welcome:'開始画面です。星座を選ぶか、カメラだけ試せます。',camera:'カメラの準備です。顔と両手首を映します。',pose:'手首を見つける段階です。',reach:'楽に動かせる範囲を教えます。',collecting:'範囲を計測中です。ゆっくり上下・左右へ動かします。',arrange:'範囲が決まりました。星を置く準備です。',ready:'星の配置ができました。開始できます。',running:'星をつないでいます。輪に光を重ねます。',complete:'星座が完成しました。手を下ろして休んでください。'};
+      say('studio-phase-announcement',announcements[phase]);
+    }
     say('studio-title', title); say('studio-instruction', instruction); say('studio-step', step); say('studio-status', status);
     say('studio-selection', selected ? $('detail-name').textContent + 'をつくる' : '手を動かして、星座をつくる');
     say('studio-camera-label', cam === 'preview' ? 'カメラ使用中・映像はこの端末だけ' : 'カメラ停止中');
@@ -169,6 +174,7 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-example').hidden = phase !== 'camera';
     $('studio-movement').hidden = !['reach','collecting'].includes(phase) || (phase === 'collecting' && $('reach-notice').dataset.reason !== 'collecting');
     $('studio-practice').hidden = phase !== 'welcome';
+    $('studio-end-practice').hidden = !practice || selected;
     $('studio-other-star').hidden = !(selected && (phase === 'complete' || (phase === 'arrange' && session === 'error')));
     $('studio-recalibrate').hidden = !['collecting','arrange','ready'].includes(phase);
     $('studio-recalibrate').disabled = $('reach-clear').disabled;
@@ -185,6 +191,8 @@ export function mountStudio(document, window, { hasAccess }) {
     $('studio-progress').hidden = progress === null;
     if (progress !== null) {
       $('studio-meter').value = progress;
+      $('studio-meter').setAttribute('aria-label',phase === 'collecting'?'動かせる範囲の計測':'星になるまでの保持');
+      $('studio-meter').setAttribute('aria-valuetext',phase === 'collecting'?'計測 '+Math.min(3,elapsed/1000).toFixed(1)+' / 3秒。確定はボタンで行います。':'保持 '+Math.round(progress*100)+'%。輪の中で0.8秒止めます。');
       say('studio-progress-label', phase === 'collecting' ? '記録は3秒が目安・上限30秒' : '輪の中で、少し止める');
       say('studio-progress-value', phase === 'collecting' ? '残り' + Math.ceil(Number($('reach-notice').dataset.remaining)/1000) + '秒' : Math.round(progress*100) + '%');
     }
@@ -203,6 +211,10 @@ export function mountStudio(document, window, { hasAccess }) {
     else if (action && !$(action).disabled) { if (action === 'pose-start') attempted = true; $(action).click(); }
   });
   $('studio-practice').addEventListener('click', () => { practice = true; render(); });
+  $('studio-end-practice').addEventListener('click', () => {
+    if (!practice || !$('detail').hidden) return;
+    $('stop').click();practice=false;attempted=false;render();$('studio-action').focus({preventScroll:true});
+  });
   $('studio-recalibrate').addEventListener('click', () => {
     if ($('studio-recalibrate').hidden || $('reach-clear').disabled) return;
     $('reach-clear').click();
