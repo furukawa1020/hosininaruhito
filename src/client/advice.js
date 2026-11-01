@@ -23,7 +23,9 @@ export class AdvisorySession {
     this.lastSent=-Infinity;this.lastNow=null;this.suggestion=null;
   }
   start({resetAllowance=true}={}) {
-    this.stop();this.active=true;this.count=resetAllowance?0:(this.count||0);this.failures=0;this.retryAt=0;this.lastNow=null;
+    this.stop();this.active=true;this.count=resetAllowance?0:(this.count||0);
+    this.failures=resetAllowance?0:(this.failures||0);this.retryAt=resetAllowance?0:(this.retryAt||0);this.lastNow=null;
+    if(this.failures>=ADVICE_LIMITS.failures){this.stop('unavailable');return;}
     this.onChange({state:'waiting'});
   }
   stop(state='idle') {
@@ -56,7 +58,8 @@ export class AdvisorySession {
       const result=await this.send(payload,{signal:ticket.controller.signal});
       const now=this.now();
       if(!this.active||ticket.generation!==this.generation||ticket.controller.signal.aborted)return;
-      if(!valid(this.current,now)||now<ticket.at||now-ticket.at>ADVICE_LIMITS.maxAgeMs)return;
+      if(!valid(this.current,now)||now<ticket.at||(this.lastNow!==null&&now<this.lastNow)){this.stop('stale');return;}
+      if(now-ticket.at>ADVICE_LIMITS.maxAgeMs)return;
       validateAdvice(result);
       this.failures=0;
       if(this.current.targetId!==ticket.targetId||geometricCue(this.current)!==result.action)return;
@@ -64,7 +67,9 @@ export class AdvisorySession {
       this.onChange({state:'advice',action:result.action,latencyMs:Math.round(now-ticket.at)});
     } catch {
       if(!this.active||ticket.generation!==this.generation||ticket.controller.signal.aborted)return;
-      this.suggestion=null;this.failures++;this.retryAt=this.now()+2000;
+      const now=this.now();
+      if(!valid(this.current,now)||now<ticket.at||(this.lastNow!==null&&now<this.lastNow)){this.stop('stale');return;}
+      this.suggestion=null;this.failures++;this.retryAt=now+2000;
       if(this.failures>=ADVICE_LIMITS.failures)this.stop('unavailable');
       else this.onChange({state:'error'});
     } finally {if(this.pending===ticket)this.pending=null;}

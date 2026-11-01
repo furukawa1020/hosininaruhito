@@ -18,6 +18,7 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
     return {x:width/2+xx*size, y:height/2-yy*size, depth};
   }
   function draw() {
+    hits=[];
     if (!ctx || disposed || width<2 || height<2) return;
     ctx.clearRect(0,0,width,height); hits=[];
     const radius = Math.min(width,height)*.47;
@@ -58,13 +59,16 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
     host.dataset.markers=String(rows.length);host.dataset.orientation=yaw.toFixed(3)+','+pitch.toFixed(3);
   }
   function resize(){
-    const r=host.getBoundingClientRect();width=r.width;height=r.height;
+    if(disposed)return;
+    const r=host.getBoundingClientRect();
+    if(width!==r.width||height!==r.height)resetDrag();
+    width=r.width;height=r.height;
     // Bound the backing store while preserving CSS-space projection and hit tests.
     const ratio=Math.min(2,devicePixelRatio||1,2048/Math.max(1,width,height));canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
     ctx?.setTransform(ratio,0,0,ratio,0,0);draw();
   }
   canvas.addEventListener('pointerdown',event=>{
-    if(disposed||drag||event.button!==0)return;
+    if(disposed||!ctx||width<2||height<2||host.ownerDocument.hidden||drag||event.button!==0)return;
     try { canvas.setPointerCapture(event.pointerId); } catch { return; }
     drag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,yaw,pitch,moved:false};
   });
@@ -98,16 +102,28 @@ export function mountSkyDome(host, {onSelect = () => {}} = {}) {
     if(id!==undefined&&canvas.hasPointerCapture(id))try{canvas.releasePointerCapture(id);}catch{}
   }
   const observer=new ResizeObserver(resize);observer.observe(host);
+  const visibility=()=>{if(host.ownerDocument.hidden)resetDrag();};
+  host.ownerDocument.addEventListener('visibilitychange',visibility);
+  canvas.addEventListener('contextlost',()=>{
+    if(disposed)return;
+    resetDrag();ctx=null;hits=[];host.dataset.fallback='true';canvas.hidden=true;
+  });
+  canvas.addEventListener('contextrestored',()=>{
+    if(disposed)return;
+    try{ctx=canvas.getContext('2d');}catch{ctx=null;}
+    if(ctx){delete host.dataset.fallback;canvas.hidden=false;resize();}
+  });
   if(!ctx){host.dataset.fallback='true';canvas.hidden=true;}
   return {
     update(next,index){
+      if(disposed)return;
       const changed=rows!==next||selected!==index;rows=next;selected=index;
       if(changed)resetDrag();
       if(changed&&rows[index]){yaw=rows[index].azimuthDeg*rad;pitch=rows[index].altitudeDeg*rad;}
       if(changed)draw();
     },
-    center(){resetDrag();if(rows[selected]){yaw=rows[selected].azimuthDeg*rad;pitch=rows[selected].altitudeDeg*rad;}else{yaw=-.45;pitch=.38;}draw();},
+    center(){if(disposed)return;resetDrag();if(rows[selected]){yaw=rows[selected].azimuthDeg*rad;pitch=rows[selected].altitudeDeg*rad;}else{yaw=-.45;pitch=.38;}draw();},
     resize,
-    dispose(){disposed=true;resetDrag();observer.disconnect();canvas.width=canvas.height=0;rows=[];hits=[];}
+    dispose(){disposed=true;resetDrag();observer.disconnect();host.ownerDocument.removeEventListener('visibilitychange',visibility);canvas.width=canvas.height=0;rows=[];hits=[];}
   };
 }

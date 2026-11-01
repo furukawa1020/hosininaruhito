@@ -43,7 +43,7 @@ export function waitForAuth(promise, signal, timeoutMs = 10000) {
   return waitForOperation(promise, signal, timeoutMs, '認証情報の確認が時間内に終わりませんでした。');
 }
 
-function waitForOperation(promise, signal, timeoutMs, message) {
+export function waitForOperation(promise, signal, timeoutMs, message) {
   return new Promise((resolve, reject) => {
     const until = performance.now() + timeoutMs;
     let settled = false;
