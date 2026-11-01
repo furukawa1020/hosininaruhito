@@ -1,5 +1,6 @@
 import { AdvisorySession } from './advice.js';
 import {requestHeaders} from './access.js';
+import {requestAdvice} from './advice-request.js';
 export function mountAdvice(document,window) {
   const $=id=>document.getElementById(id);
   let services=null,wasActive=false,disposed=false,lastExecution=null;
@@ -10,12 +11,7 @@ export function mountAdvice(document,window) {
     error:'Jevの応答を確認できませんでした。輪と保持表示は端末内で動作しています。',
     unavailable:'Jevへの接続失敗が続いたため、助言を停止しました。'};
   const controller=new AdvisorySession({now:()=>window.performance.now(),
-    send:async(body,{signal})=>{
-      const response=await fetch('/api/reflex',{method:'POST',headers:await requestHeaders($('token').value,signal),
-        body:JSON.stringify(body),signal:AbortSignal.any([signal,AbortSignal.timeout(1000)])});
-      if(!response.ok)throw Error('request_failed');
-      return response.json();
-    },
+    send:(body,{signal})=>requestAdvice(body,{signal,headers:owned=>requestHeaders($('token').value,owned)}),
     onChange:result=>{
       $('advice-notice').dataset.state=result.state;
       $('advice-notice').textContent=result.state==='advice'?
@@ -26,7 +22,7 @@ export function mountAdvice(document,window) {
     const active=!disposed&&!document.hidden&&$('advice-consent').checked&&$('camera-consent').checked&&
       services?.access&&services?.reflex&&frame.state==='running'&&frame.current&&frame.activeTarget;
     if(!active){if(wasActive)stop();return;}
-    if(!wasActive){controller.start({resetAllowance:frame.executionId!==lastExecution});lastExecution=frame.executionId;wasActive=true;}
+    if(!wasActive||frame.executionId!==lastExecution){controller.start({resetAllowance:frame.executionId!==lastExecution});lastExecution=frame.executionId;wasActive=true;}
     const target=frame.activeTarget,current=frame.current;
     controller.update({targetId:target.starId,dx:target.target.x-current.x,dy:target.target.y-current.y,tolerance:target.tolerance,at:current.at});
   };
@@ -34,5 +30,5 @@ export function mountAdvice(document,window) {
   $('advice-consent').addEventListener('change',consent);
   const dispose=()=>{disposed=true;stop();$('advice-consent').removeEventListener('change',consent);};
   window.addEventListener('pagehide',dispose,{once:true});stop();
-  return {update,stop,setServices(value){services=value;if(!services?.reflex)stop();}};
+  return {update,stop,setServices(value){services=value;if(!services?.reflex||!services?.access)stop();}};
 }

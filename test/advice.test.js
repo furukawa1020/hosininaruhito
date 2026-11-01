@@ -91,3 +91,16 @@ test('display age is measured from dispatch rather than delayed receipt',async()
  resolve(answer('right'));await flush();assert.equal(h.events.at(-1).state,'advice');
  h.time(1001);h.tick();assert.equal(h.events.at(-1).state,'waiting');
 });
+
+for(const fail of [false,true])for(const time of [NaN,Infinity,-1,200])test('stale advisory '+(fail?'failure':'success')+' stops at '+time,async()=>{
+ let resolve,reject;const h=setup(()=>new Promise((a,b)=>{resolve=a;reject=b;}));h.tick();h.time(time);
+ if(fail)reject(Error('fixture'));else resolve(answer('right'));
+ await flush();assert.equal(h.events.at(-1).state,'stale');assert.equal(h.session.active,false);
+});
+test('same execution keeps error backoff and failure limit; new execution resets them',async()=>{
+ const h=setup(async()=>{throw Error('fixture');});h.tick();await flush();
+ h.session.start({resetAllowance:false});h.time(1000);h.tick();assert.equal(h.calls.length,1);
+ h.time(2000);h.tick();await flush();h.time(4000);h.tick();await flush();
+ h.session.start({resetAllowance:false});h.time(6000);h.tick();assert.equal(h.calls.length,3);assert.equal(h.events.at(-1).state,'unavailable');
+ h.session.start();h.tick();await flush();assert.equal(h.calls.length,4);assert.equal(h.events.at(-1).state,'error');
+});

@@ -15,10 +15,11 @@ function setup(t, rows=[{name:'最初',azimuthDeg:0,altitudeDeg:0}]) {
   const canvas={setAttribute(){},getContext(){return ctx;},getBoundingClientRect(){return rect;},
     addEventListener(type,fn){events[type]=fn;},setPointerCapture(id){captured.add(id);},
     hasPointerCapture(id){return captured.has(id);},releasePointerCapture(id){captured.delete(id);}};
-  const host={ownerDocument:{createElement(){return canvas;}},append(){},dataset:{},getBoundingClientRect(){return rect;}};
+  const documentEvents={};
+  const host={ownerDocument:{createElement(){return canvas;},addEventListener(type,fn){documentEvents[type]=fn;},removeEventListener(type){delete documentEvents[type];}},append(){},dataset:{},getBoundingClientRect(){return rect;}};
   const dome=mountSkyDome(host,{onSelect:i=>selected.push(i)});dome.resize();dome.update(rows,0);
   const pointer=(type,x=200,y=200)=>events[type]({pointerId:1,button:0,clientX:x,clientY:y});
-  return {dome,host,canvas,pointer,selected,arcs,labels,rows,captured,rect};
+  return {dome,host,canvas,pointer,selected,arcs,labels,rows,captured,rect,events,documentEvents};
 }
 
 test('small pointer jitter preserves orientation and tap; deliberate drag rotates without selecting',t=>{
@@ -68,4 +69,31 @@ test('pointer release exceptions cancel selection and do not block subsequent ge
  s.pointer('pointerdown');assert.doesNotThrow(()=>s.pointer('pointerup'));assert.deepEqual(s.selected,[]);
  s.pointer('pointerdown');assert.doesNotThrow(()=>s.dome.center());
  s.canvas.releasePointerCapture=release;s.captured.clear();s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[0]);
+});
+
+test('zero sized dome discards old hits and restores selection after resizing',t=>{
+ const s=setup(t);s.rect.width=0;s.dome.resize();s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.rect.width=400;s.dome.resize();s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[0]);
+});
+test('resize cancels an old gesture only when geometry changes',t=>{
+ const s=setup(t);s.pointer('pointerdown');s.dome.resize();assert.equal(s.captured.size,1);
+ s.rect.height=450;s.dome.resize();assert.equal(s.captured.size,0);s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.pointer('pointerdown',200,225);s.pointer('pointerup',200,225);assert.deepEqual(s.selected,[0]);
+});
+test('hidden document releases capture and ignores old and hidden presses',t=>{
+ const s=setup(t);s.pointer('pointerdown');s.host.ownerDocument.hidden=true;s.documentEvents.visibilitychange();assert.equal(s.captured.size,0);
+ s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.host.ownerDocument.hidden=false;s.documentEvents.visibilitychange();s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[0]);
+});
+test('context loss shows fallback and restoration rebuilds markers',t=>{
+ const s=setup(t);s.pointer('pointerdown');s.events.contextlost();assert.equal(s.host.dataset.fallback,'true');assert.equal(s.canvas.hidden,true);assert.equal(s.captured.size,0);
+ s.pointer('pointerup');s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[]);
+ s.events.contextrestored();assert.equal(s.host.dataset.fallback,undefined);assert.equal(s.canvas.hidden,false);
+ s.pointer('pointerdown');s.pointer('pointerup');assert.deepEqual(s.selected,[0]);
+});
+test('disposed dome ignores late resize, update, centering and context recovery',t=>{
+ const s=setup(t);s.dome.dispose();const before=s.host.dataset.orientation;
+ s.dome.resize();s.dome.update(s.rows,0);s.dome.center();s.events.contextrestored();
+ assert.equal(s.canvas.width,0);assert.equal(s.canvas.height,0);assert.equal(s.host.dataset.orientation,before);assert.deepEqual(s.documentEvents,{});
 });
