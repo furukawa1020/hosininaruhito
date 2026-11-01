@@ -48,11 +48,11 @@ test('reading boundary buttons return keyboard focus to the text',async({page})=
  await page.keyboard.press('Tab');await expect(page.locator('#game-text-next')).toBeFocused();
 });
 test('story pages preserve combining marks and joined emoji at their boundaries',async({page})=>{
- const mark='か\u3099',emoji='👩‍🚀',description='あ'.repeat(119)+mark+emoji+'終わり';
+ const prefix='名前：'+row.name+'\n\n',mark='か\u3099',emoji='👩‍🚀',description='あ'.repeat(119-prefix.length)+mark+emoji+'終わり';
  await setup(page,[{...row,description}]);await page.locator('#game-about').click();
- await expect(page.locator('#game-reading-text')).toHaveText('あ'.repeat(119)+mark);
+ await expect(page.locator('#game-reading-text')).toHaveText(prefix+'あ'.repeat(119-prefix.length)+mark);
  await page.locator('#game-text-next').click();await expect(page.locator('#game-reading-text')).toHaveText(emoji+'終わり');
- await page.locator('#game-text-prev').click();await expect(page.locator('#game-reading-text')).toHaveText('あ'.repeat(119)+mark);
+ await page.locator('#game-text-prev').click();await expect(page.locator('#game-reading-text')).toHaveText(prefix+'あ'.repeat(119-prefix.length)+mark);
 });
 test('revisiting settings collapses navigation cycles and preserves the story position',async({page})=>{
  await setup(page);await page.locator('#game-about').click();await page.locator('#game-text-next').click();

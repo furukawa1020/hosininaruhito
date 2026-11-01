@@ -58,6 +58,37 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+for(const viewport of [{width:320,height:568},{width:844,height:390}])test('practice can end and return without a running camera '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);await setup(page);await page.locator('#studio-practice').click();
+ await page.locator('#camera-consent').check();await page.locator('#studio-action').click();await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');
+ await noScroll(page,['studio-end-practice','studio-action','stop']);await page.locator('#studio-end-practice').click();
+ await expect(page.locator('#studio')).toHaveAttribute('data-phase','welcome');await expect(page.locator('#camera-video')).toBeHidden();
+ expect(await page.locator('#camera-video').evaluate(e=>e.srcObject)).toBeNull();await expect(page.locator('#studio-action')).toBeFocused();
+ await expect(page.locator('#studio-end-practice')).toBeHidden();await page.locator('#studio-practice').click();await expect(page.locator('#camera-video')).toBeHidden();
+});
+test('game phase announcements stay stable during frames and progress names describe their purpose',async({page})=>{
+ await setup(page);await expect(page.locator('#studio-action')).toHaveAccessibleDescription(/画面の輪/);
+ await beginCalibration(page);await expect(page.locator('#studio-meter')).toHaveAccessibleName('動かせる範囲の計測');
+ await expect(page.locator('#studio-meter')).toHaveAttribute('aria-valuetext',/確定はボタン/);
+ await expect(page.locator('#studio-phase-announcement')).toContainText('範囲を計測中');
+ await page.clock.runFor(6600);await page.locator('#studio-action').click();await page.locator('#studio-action').click();await page.locator('#studio-action').click();await page.clock.runFor(100);
+ await expect(page.locator('#studio-meter')).toHaveAccessibleName('星になるまでの保持');await expect(page.locator('#studio-meter')).toHaveAttribute('aria-valuetext',/0.8秒/);
+ const announcement=await page.locator('#studio-phase-announcement').textContent();
+ await page.evaluate(()=>{window.sessionFixture.point={x:.35,y:.35};});await page.clock.runFor(100);await expect(page.locator('#studio-phase-announcement')).toHaveText(announcement);
+ await page.locator('#stop').click();await expect(page.locator('#studio-phase-announcement')).toContainText('カメラの準備');
+ await expect(page.locator('#studio-action')).toHaveAccessibleDescription(/顔・肩・ひじ・両手首/);
+});
+for(const viewport of [{width:320,height:568},{width:844,height:390}])test('settings withdraw camera consent and clear recorded constellation '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);await setup(page);await prepare(page);
+ const target=await page.locator('#trace-target').evaluate(el=>({x:1-parseFloat(el.style.left)/100,y:parseFloat(el.style.top)/100}));
+ await page.evaluate(p=>{window.sessionFixture.point=p;},target);await page.clock.runFor(900);await expect(page.locator('#trace-count')).toContainText('確定した星 1');
+ await page.locator('#studio-settings').click();await page.locator('#game-options').click();await noScroll(page,['game-withdraw-camera','refresh','game-help','studio-back']);
+ await page.locator('#game-withdraw-camera').click();await expect(page.locator('#camera-consent')).not.toBeChecked();await expect(page.locator('#camera-video')).toBeHidden();
+ expect(await page.locator('#camera-video').evaluate(el=>el.srcObject)).toBeNull();await expect(page.locator('#reach-notice')).not.toHaveAttribute('data-state','ready');
+ await expect(page.locator('#trace-count')).toHaveText('0 点の軌跡 / 確定した星 0');await expect(page.locator('#game-withdraw-camera')).toBeDisabled();await expect(page.locator('#studio-dialog-title')).toBeFocused();
+ await page.locator('#studio-close').click();await expect(page.locator('#studio-action')).toBeDisabled();
+});
+
 for(const viewport of [{width:320,height:568},{width:844,height:390}])test('game shows projection and AI preparation stages without scrolling '+viewport.width,async({page})=>{
  await page.setViewportSize(viewport);await setup(page);
  await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',plannerProvider:'vertex',services:{access:true,sky:true,planner:true,reflex:false},auth:guestAuth}}));

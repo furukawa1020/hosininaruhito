@@ -14,9 +14,9 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <div id="studio-location"></div>
         <div id="studio-stars"></div>
         <div id="game-account" hidden></div>
-        <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div id="game-reconnect"></div><button id="game-connection" class="text-button" type="button">接続状況を見る</button></div>
+        <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div class="game-setting-actions"><button id="game-help" class="text-button" type="button">あそび方を見る</button><button id="game-withdraw-camera" class="text-button" type="button">撮影同意を取り消す</button><div id="game-reconnect"></div><button id="game-connection" class="text-button" type="button">接続状況を見る</button></div></div>
         <div id="game-connection-page" hidden><div id="game-service-list"></div><button id="game-recheck" class="secondary" type="button">接続設定を再確認する</button></div>
-        <div id="game-reading" hidden><p id="game-reading-text" tabindex="-1" aria-live="polite" aria-atomic="true"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
+        <div id="game-reading" hidden><p id="game-reading-text" tabindex="-1" aria-describedby="game-text-count"></p><p id="game-reading-announcement" class="sr-only" role="status" aria-atomic="true"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
         <div id="game-star-pager" class="game-pager"><button id="game-prev" type="button" aria-label="前の星座">←</button><span id="game-page-count"></span><button id="game-next" type="button" aria-label="次の星座">→</button></div>
         <p id="game-selection-announcement" class="sr-only" role="status" aria-atomic="true"></p>
         <p id="studio-dialog-notice" role="status"></p>
@@ -78,7 +78,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     }
     const next=extra||base(),changed=page!==next;page=next;dialog.dataset.page=page;
     for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings'],['game-connection-page','connection']])$(id).hidden=page!==name;
-    $('game-reading').hidden=!['about','privacy'].includes(page);
+    $('game-reading').hidden=!['about','privacy','help'].includes(page);
     $('game-privacy-links').hidden=page!=='privacy';
     for(const id of ['studio-choose','game-star-pager','game-about'])$(id).hidden=page!=='stars';
     for(const id of ['game-login','game-privacy'])$(id).hidden=page!=='access';
@@ -87,8 +87,13 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     $('studio-choose').setAttribute('aria-label',selectedName?'この星座で遊ぶ：'+selectedName:'この星座で遊ぶ');
     $('game-selection-announcement').hidden=page!=='stars';
     say('game-selection-announcement',page==='stars'&&selectedName?selectedName+'、'+(index+1)+' / '+buttons.length:'');
-    const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',connection:'接続の準備',about:'この星座のお話',privacy:'ログイン情報について'};
+    const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',connection:'接続の準備',about:'この星座のお話',privacy:'ログイン情報について',help:'あそび方'};
     say('studio-dialog-title',titles[page]);
+    const back=extra?(history.at(-1)?.extra||base()):page==='stars'?'location':null;
+    const backNames={access:'参加',account:'ログイン',location:'場所',stars:'星座',settings:'設定',connection:'接続',about:'お話',privacy:'情報',help:'遊び方'};
+    say('studio-back',back?'← '+backNames[back]+'へ':'← 閉じる');
+    $('studio-back').setAttribute('aria-label',back?backNames[back]+'へ戻る':'停止して閉じる');
+    $('game-withdraw-camera').disabled=!$('camera-consent').checked;
     const locationNotice=['pending','error','success'].includes($('location-notice').dataset.state)?$('location-notice').textContent:$('notice').textContent;
     say('studio-dialog-notice',page==='location'?locationNotice:['access','account'].includes(page)?$('auth-notice').textContent:['settings','connection'].includes(page)?$('notice').textContent:'');
     $('game-recheck').disabled=$('refresh').disabled;
@@ -96,9 +101,14 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     $('game-return-stars').hidden=page!=='location'||!locationEdit||!buttons.length||$('detail').hidden;
     say('game-page-count',buttons.length?(index+1)+' / '+buttons.length:'');
     $('game-prev').disabled=$('game-next').disabled=buttons.length<2;
+    for(const [id,delta,label]of [['game-prev',-1,'前の星座'],['game-next',1,'次の星座']]){
+      const destination=buttons.length>1?buttons[(index+delta+buttons.length)%buttons.length].querySelector('strong').textContent:'';
+      $(id).setAttribute('aria-label',label+(destination?'：'+destination:''));
+    }
     say('game-dome-caption',rows.length?'ドラッグで回す · 光は星座の位置の目印':'地平線を囲む、空の地図');
     say('game-reading-text',texts[textIndex]||'説明がありません。');
     say('game-text-count',(textIndex+1)+' / '+Math.max(1,texts.length));
+    say('game-reading-announcement',['about','privacy','help'].includes(page)?(textIndex+1)+' / '+Math.max(1,texts.length)+'ページ。'+(texts[textIndex]||'説明がありません。'):'');
     $('game-text-prev').disabled=textIndex<=0;$('game-text-next').disabled=textIndex>=texts.length-1;
     const step=hasAccess()?(base()==='stars'?2:1):0;
     document.querySelectorAll('.game-route li').forEach((el,i)=>el.setAttribute('aria-current',String(step===i)));
@@ -126,7 +136,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         const list=cards();if(!list.length)return;
         e.preventDefault();list[e.key==='Home'?0:list.length-1].click();refresh();
       }
-    }else if(['about','privacy'].includes(page)&&['ArrowLeft','ArrowRight'].includes(e.key)){
+    }else if(['about','privacy','help'].includes(page)&&['ArrowLeft','ArrowRight'].includes(e.key)){
       e.preventDefault();pageText(e.key==='ArrowLeft'?-1:1);
     }
   });
@@ -134,11 +144,25 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-login').addEventListener('click',()=>openExtra('account'));
   $('game-options').addEventListener('click',()=>openExtra('settings'));
   $('game-connection').addEventListener('click',()=>openExtra('connection'));
+  $('game-help').addEventListener('click',()=>{
+    openExtra('help');
+    texts=[
+      '1. 今の空から選ぶ。ゲストとして参加し、場所を入力。位置の送信に同意して星座を探し、好きな名前を選びます。',
+      '2. 手を映す。端末を固定して座り、顔・肩・ひじ・両手首を映します。撮影に同意してカメラをつけ、「手を見つける」を押します。',
+      '3. 楽な範囲を教える。動かす手を選び、胸の前でゆっくり上下・左右へ。3秒以上動かして確定し、その範囲に星を置きます。',
+      '4. 星をつなぐ。輪に手首の光を重ね、楽なら0.8秒止めます。次の輪へ進み、全部つなぐと完成。つらいときは「停止」かEsc。手が映らなくなったら、準備から再開できます。'
+    ];textIndex=0;refresh();
+  });
+  $('game-withdraw-camera').addEventListener('click',()=>{
+    if(!$('camera-consent').checked)return;
+    $('camera-consent').checked=false;$('camera-consent').dispatchEvent(new window.Event('change',{bubbles:true}));
+    refresh();$('studio-dialog-title').focus({preventScroll:true});
+  });
   $('game-recheck').addEventListener('click',()=>$('refresh').click());
   $('game-privacy').addEventListener('click',()=>showReading(privacyText,'privacy'));
   $('game-about').addEventListener('click',()=>{
     const name=$('detail-name').textContent;
-    showReading((name.length>16?'名前：'+name+'\n\n':'')+$('detail-description').textContent+' '+$('detail-story').textContent,'about');
+    showReading('名前：'+name+'\n\n'+$('detail-description').textContent+' '+$('detail-story').textContent,'about');
   });
   function pageText(delta){
     const focused=document.activeElement;
