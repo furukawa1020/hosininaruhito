@@ -47,7 +47,7 @@ test('menu names backward destinations and neighboring constellations',async({pa
  await expect(page.locator('#game-next')).toHaveAccessibleName('次の星座：次の星座');await expect(page.locator('#game-prev')).toHaveAccessibleName('前の星座：次の星座');
  await page.locator('#game-next').click();await expect(page.locator('#game-next')).toHaveAccessibleName('次の星座：最初の星座');
  await page.locator('#studio-back').click();await page.locator('#lat').fill('1');
- await expect(page.locator('#game-next')).toHaveAccessibleName('次の星座');
+ await expect(page.locator('#game-next')).toBeHidden();await expect(page.locator('#game-next')).toHaveAttribute('aria-label','次の星座');
 });
 test('dome context loss keeps arrow navigation and restoration permits fresh taps',async({page})=>{
  await setup(page);await stars(page);const dome=page.locator('#game-sphere'),canvas=dome.locator('canvas');
