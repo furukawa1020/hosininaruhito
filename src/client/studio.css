@@ -37,7 +37,8 @@ body.studio-open{overflow:hidden;background:#080e20;color:#f1f4ff;color-scheme:d
 #studio-advice{font-size:12px;line-height:1.5;color:#c7d9ec;margin:0 0 8px;overflow-wrap:anywhere}
 #game-advice-controls details{padding:0;border:0;margin:0}
 #game-advice-controls summary{display:none}
-#game-advice-controls p{font-size:13px;line-height:1.6;margin:8px 0}
+#game-advice-controls p{font-size:13px;line-height:1.6;margin:8px 0;color:#bccbe3}
+#game-advice-controls #advice-notice{color:#ffd59a}
 #game-advice-open{font-size:13px;min-height:36px;padding:4px 0}
 .studio-actions{display:grid;gap:6px}
 #studio-action,#studio-dialog .primary{border:1px solid #bddfec;background:#c3e8f4;color:#0b223a;border-radius:16px;min-height:54px;font-size:17px;font-weight:750;justify-content:center;width:100%;box-shadow:0 5px 26px #6598e121}
