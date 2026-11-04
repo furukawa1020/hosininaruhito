@@ -1,5 +1,9 @@
 # Jevの低頻度助言
 
+標準ゲームでは「星座・設定」→「設定」→「Jevの助言（任意）」で送信内容を確認して同意する。星座をつないでいる間だけ補助の助言を表示し、未設定時は選択できない。設定を開くとカメラと実行を停止する。
+
+接続には星APIとは別のTypeSafe APIキーが必要。[TypeSafe console](https://console.typesafe.ai)で取得した値をローカルの `.env` の `TYPESAFE_API_KEY` に設定する。値をチャット・Git・ブラウザー入力欄へ転記しない。`npm run smoke:jev` で固定の合成入力を試験してから、指定GCP projectのSecret ManagerとCloud Runにサーバー用secretとして反映する。2026-11-04時点ではキー未設定のため実接続待ち。
+
 Jevは表示用の補助コメントだけを返す。毎フレームの目標、保持、capture、停止はHumanRuntimeが計測値で決める。
 AIのconfidenceは応答形式として検証するだけで、到達・安全・capture・採用の確率閾値には使わない。
 

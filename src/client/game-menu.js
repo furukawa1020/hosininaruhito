@@ -16,6 +16,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
         <div id="game-account" hidden></div>
         <div id="game-settings" hidden><div id="studio-ai"></div><p>AIは星をたどる順序を考えます。映像や身体の記録は送りません。</p><div class="game-setting-actions"><button id="game-help" class="text-button" type="button">あそび方を見る</button><button id="game-withdraw-camera" class="text-button" type="button">撮影同意を取り消す</button><div id="game-reconnect"></div><button id="game-connection" class="text-button" type="button">接続状況を見る</button></div></div>
         <div id="game-connection-page" hidden><div id="game-service-list"></div><button id="game-recheck" class="secondary" type="button">接続設定を再確認する</button></div>
+        <div id="game-advice" hidden><div id="game-advice-controls"></div></div>
         <div id="game-reading" hidden><p id="game-reading-text" tabindex="-1" aria-describedby="game-text-count"></p><p id="game-reading-announcement" class="sr-only" role="status" aria-atomic="true"></p><div class="game-pager"><button id="game-text-prev" type="button" aria-label="前の説明">←</button><span id="game-text-count"></span><button id="game-text-next" type="button" aria-label="次の説明">→</button></div></div>
         <div id="game-star-pager" class="game-pager"><button id="game-prev" type="button" aria-label="前の星座">←</button><span id="game-page-count"></span><button id="game-next" type="button" aria-label="次の星座">→</button></div>
         <p id="game-selection-announcement" class="sr-only" role="status" aria-atomic="true"></p>
@@ -36,6 +37,9 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   move($('auth-recovery'),'game-auth-recovery');
   move($('refresh'),'game-reconnect');
   move($('services'),'game-service-list');
+  const adviceControls=$('advice-consent').closest('details');adviceControls.open=true;move(adviceControls,'game-advice-controls');
+  const adviceButton=document.createElement('button');adviceButton.id='game-advice-open';adviceButton.type='button';adviceButton.className='text-button';adviceButton.textContent='Jevの助言（任意）';
+  $('game-settings').append(adviceButton);
   const privacy=document.querySelector('#cloud-login .fine-details');
   const privacyText=privacy.querySelector('p').textContent;privacy.hidden=true;
   const privacyLinks=document.createElement('p');privacyLinks.id='game-privacy-links';
@@ -77,7 +81,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
       extra=null;history=[];texts=[];textIndex=0;
     }
     const next=extra||base(),changed=page!==next;page=next;dialog.dataset.page=page;
-    for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings'],['game-connection-page','connection']])$(id).hidden=page!==name;
+    for(const [id,name]of [['studio-access','access'],['studio-location','location'],['studio-stars','stars'],['game-account','account'],['game-settings','settings'],['game-connection-page','connection'],['game-advice','advice']])$(id).hidden=page!==name;
     $('game-reading').hidden=!['about','privacy','help'].includes(page);
     $('game-privacy-links').hidden=page!=='privacy';
     for(const id of ['studio-choose','game-star-pager','game-about'])$(id).hidden=page!=='stars';
@@ -88,9 +92,9 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
     $('game-selection-announcement').hidden=page!=='stars';
     say('game-selection-announcement',page==='stars'&&selectedName?selectedName+'、'+(index+1)+' / '+buttons.length:'');
     const titles={access:'星空へ、ようこそ。',account:'アカウントで入る',location:'どこの空で遊ぶ？',stars:'どの星座にする？',settings:'あそびの設定',connection:'接続の準備',about:'この星座のお話',privacy:'ログイン情報について',help:'あそび方'};
-    say('studio-dialog-title',titles[page]);
+    titles.advice='Jevの助言を使う';say('studio-dialog-title',titles[page]);
     const back=extra?(history.at(-1)?.extra||base()):page==='stars'?'location':null;
-    const backNames={access:'参加',account:'ログイン',location:'場所',stars:'星座',settings:'設定',connection:'接続',about:'お話',privacy:'情報',help:'遊び方'};
+    const backNames={access:'参加',account:'ログイン',location:'場所',stars:'星座',settings:'設定',connection:'接続',about:'お話',privacy:'情報',help:'遊び方',advice:'助言'};
     say('studio-back',back?'← '+backNames[back]+'へ':'← 閉じる');
     $('studio-back').setAttribute('aria-label',back?backNames[back]+'へ戻る':'停止して閉じる');
     $('game-withdraw-camera').disabled=!$('camera-consent').checked;
@@ -144,6 +148,7 @@ export function mountGameMenu(document, window, {hasAccess, render, stop}) {
   $('game-login').addEventListener('click',()=>openExtra('account'));
   $('game-options').addEventListener('click',()=>openExtra('settings'));
   $('game-connection').addEventListener('click',()=>openExtra('connection'));
+  $('game-advice-open').addEventListener('click',()=>openExtra('advice'));
   $('game-help').addEventListener('click',()=>{
     openExtra('help');
     texts=[

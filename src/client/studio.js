@@ -42,6 +42,7 @@ export function mountStudio(document, window, { hasAccess }) {
         </div>
         <div id="studio-progress" hidden><div><span id="studio-progress-label"></span><strong id="studio-progress-value"></strong></div><progress id="studio-meter" max="1" value="0" aria-label="準備の進み具合"></progress></div>
         <p id="studio-status" role="status" aria-live="polite"></p>
+        <p id="studio-advice" role="status" aria-live="polite" hidden></p>
         <div class="studio-actions"><button id="studio-action" class="primary" type="button" aria-describedby="studio-instruction studio-status"></button><button id="studio-other-star" class="text-button" type="button" hidden>別の星座を選ぶ</button><button id="studio-recalibrate" class="text-button" type="button" hidden>手・範囲を選び直す</button><button id="studio-practice" class="text-button" type="button">先にカメラだけ試す</button><button id="studio-end-practice" class="text-button" type="button" hidden>練習を終えて戻る</button></div>
         <p class="studio-comfort">手は楽な高さで。つらいときは右上の「停止」。</p>
       </aside>
@@ -167,6 +168,8 @@ export function mountStudio(document, window, { hasAccess }) {
       say('studio-phase-announcement',announcements[phase]);
     }
     say('studio-title', title); say('studio-instruction', instruction); say('studio-step', step); say('studio-status', status);
+    const showAdvice=phase==='running'&&$('advice-consent').checked&&['advice','error','unavailable','limit','stale'].includes(state('advice-notice'));
+    $('studio-advice').hidden=!showAdvice;say('studio-advice',showAdvice?$('advice-notice').textContent:'');
     say('studio-selection', selected ? $('detail-name').textContent + 'をつくる' : '手を動かして、星座をつくる');
     say('studio-camera-label', cam === 'preview' ? 'カメラ使用中・映像はこの端末だけ' : 'カメラ停止中');
     $('studio-consent').hidden = phase !== 'camera';
@@ -228,7 +231,7 @@ export function mountStudio(document, window, { hasAccess }) {
   $('camera-consent').addEventListener('change', render);
   $('token').addEventListener('input', render);
   const observer = new window.MutationObserver(render);
-  for (const id of ['camera-notice','pose-notice','reach-notice','reach-progress','session-notice','trace-notice','auth-notice','notice','location-notice','detail-name','constellations','services','refresh']) observer.observe($(id), {attributes:true,childList:true,characterData:true,subtree:true});
+  for (const id of ['camera-notice','pose-notice','reach-notice','reach-progress','session-notice','trace-notice','advice-notice','auth-notice','notice','location-notice','detail-name','constellations','services','refresh']) observer.observe($(id), {attributes:true,childList:true,characterData:true,subtree:true});
   for (const id of ['camera-start','pose-start','reach-start','reach-finish','reach-clear','session-prepare','trace-start','trace-clear','detail']) observer.observe($(id), {attributes:true,attributeFilter:['disabled','hidden']});
   const resize = new window.ResizeObserver(fit); resize.observe($('studio-surface'));
   $('camera-video').addEventListener('loadedmetadata', fit);
