@@ -58,6 +58,25 @@ async function prepare(page){
  await page.locator('#studio-action').click();await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');await page.clock.runFor(100);
 }
 
+for(const viewport of [{width:320,height:568},{width:844,height:390}])for(const fails of [false,true])test('game Jev consent and advisory display '+viewport.width+' failure '+fails,async({page})=>{
+ await page.setViewportSize(viewport);await setup(page);let calls=0;
+ await page.route('**/api/status',r=>r.fulfill({json:{mode:'live',services:{access:true,sky:true,planner:false,reflex:true},auth:guestAuth}}));
+ await page.route('**/api/reflex',r=>{
+  calls++;const {dx,dy}=r.request().postDataJSON();
+  const action=Math.hypot(dx,dy)<=.045?'hold':Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'down':'up';
+  return r.fulfill({status:fails?503:200,json:fails?{error:'unavailable'}:{source:'jev-live',advisoryOnly:true,action,confidence:.9}});
+ });
+ await page.locator('#studio-settings').click();await page.locator('#game-options').click();await page.locator('#refresh').click();await expect(page.locator('#advice-consent')).toBeEnabled();
+ await noScroll(page,['game-advice-open','game-help','refresh','studio-back']);await page.locator('#game-advice-open').click();
+ await noScroll(page,['advice-consent','advice-notice','studio-back']);await expect(page.locator('#game-advice')).toContainText('最大2回/秒');
+ await expect(page.locator('#advice-consent')).not.toBeChecked();await page.locator('#advice-consent').check();expect(calls).toBe(0);
+ await page.locator('#studio-close').click();await prepare(page);await page.evaluate(()=>{window.sessionFixture.point={x:.5,y:.5};});await page.clock.runFor(600);
+ await expect(page.locator('#studio-advice')).toBeVisible();await expect(page.locator('#studio-advice')).toContainText(fails?'応答を確認できません':'Jevの助言:');
+ await noScroll(page,['studio-advice','studio-progress','stop']);await expect(page.locator('#trace-notice')).toHaveAttribute('data-state','running');
+ await page.locator('#studio-settings').click();await expect(page.locator('#studio-advice')).toBeEmpty();await page.locator('#game-options').click();await page.locator('#game-advice-open').click();
+ await page.locator('#advice-consent').uncheck();const sent=calls;await page.clock.runFor(1000);expect(calls).toBe(sent);await expect(page.locator('#advice-notice')).toHaveAttribute('data-state','idle');
+});
+
 for(const viewport of [{width:320,height:568},{width:844,height:390}])test('practice can end and return without a running camera '+viewport.width,async({page})=>{
  await page.setViewportSize(viewport);await setup(page);await page.locator('#studio-practice').click();
  await page.locator('#camera-consent').check();await page.locator('#studio-action').click();await expect(page.locator('#camera-notice')).toHaveAttribute('data-state','preview');

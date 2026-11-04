@@ -16,5 +16,13 @@ test('continuous running with a new execution discards the old reply',async t=>{
 test('access revocation aborts immediately without another frame',async t=>{
  let signal;t.mock.method(globalThis,'fetch',async(url,options)=>{signal=options.signal;return new Promise(()=>{});});
  const h=setup();h.tick(1);await flush();h.view.setServices({access:false,reflex:true});
- assert.equal(signal.aborted,true);assert.equal(h.nodes['advice-notice'].dataset.state,'idle');await flush();
+ assert.equal(signal.aborted,true);assert.equal(h.nodes['advice-notice'].dataset.state,'unconfigured');await flush();
+});
+
+test('missing configuration disables consent, removes it, and never silently restores it',()=>{
+ const h=setup();h.view.setServices({access:true,reflex:false});
+ assert.equal(h.nodes['advice-consent'].disabled,true);assert.equal(h.nodes['advice-consent'].checked,false);
+ h.view.stop();assert.equal(h.nodes['advice-notice'].dataset.state,'unconfigured');
+ h.view.setServices({access:true,reflex:true});assert.equal(h.nodes['advice-consent'].disabled,false);assert.equal(h.nodes['advice-consent'].checked,false);
+ assert.equal(h.nodes['advice-notice'].dataset.state,'idle');
 });

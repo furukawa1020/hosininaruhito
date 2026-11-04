@@ -16,6 +16,13 @@ async function fits(page,ids){
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight)).toBe(true);
  expect(await page.locator('.game-page').evaluate(e=>e.scrollHeight<=e.clientHeight+1)).toBe(true);
 }
+for(const [width,height]of [[320,568],[844,390]])test('unconfigured Jev remains unavailable in the game settings '+width,async({page})=>{
+ await page.setViewportSize({width,height});await setup(page);let calls=0;page.on('request',r=>{if(r.url().endsWith('/api/reflex'))calls++;});
+ await page.locator('#game-options').click();await fits(page,['game-advice-open','game-help','refresh','studio-back']);
+ await page.locator('#game-advice-open').click();await expect(page.locator('#advice-consent')).toBeDisabled();await expect(page.locator('#advice-consent')).not.toBeChecked();
+ await expect(page.locator('#advice-notice')).toContainText('未設定');await fits(page,['advice-consent','advice-notice','studio-back']);
+ await expect(page.locator('#studio-back')).toHaveAccessibleName('設定へ戻る');await page.locator('#studio-back').click();await expect(page.locator('#game-settings')).toBeVisible();expect(calls).toBe(0);
+});
 for(const [width,height]of [[320,568],[844,390]])test('game help and settings fit without scrolling '+width,async({page})=>{
  await page.setViewportSize({width,height});await setup(page);await page.locator('#game-options').click();
  await fits(page,['game-help','game-withdraw-camera','refresh','game-connection','studio-back']);
